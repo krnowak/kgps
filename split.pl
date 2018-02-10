@@ -11,13 +11,12 @@ use warnings;
 use IO::File;
 use v5.16;
 
-# location marker
-package LM;
+package LocationMarker;
 
 sub new
 {
   my ($type) = @_;
-  my $class = (ref ($type) or $type or 'LM');
+  my $class = (ref ($type) or $type or 'LocationMarker');
   my $self =
   {
     'old_line_no' => undef,
@@ -35,7 +34,7 @@ sub new
 sub new_zero
 {
   my ($type) = @_;
-  my $class = (ref ($type) or $type or 'LM');
+  my $class = (ref ($type) or $type or 'LocationMarker');
   my $self = $class->new ();
 
   $self->set_old_line_no (0);
@@ -73,7 +72,7 @@ sub parse_line
 sub clone
 {
   my ($self) = @_;
-  my $class = (ref ($self) or $self or 'LM');
+  my $class = (ref ($self) or $self or 'LocationMarker');
   my $clone = $class->new ();
 
   $clone->set_old_line_no ($self->get_old_line_no ());
@@ -223,13 +222,12 @@ sub add_marker
 
 1;
 
-# section
-package S;
+package Section;
 
 sub new
 {
   my ($type, $name, $description, $index) = @_;
-  my $class = (ref ($type) or $type or 'S');
+  my $class = (ref ($type) or $type or 'Section');
   my $self =
   {
     'name' => $name,
@@ -282,28 +280,27 @@ sub is_younger_than
 
 1;
 
-# code line
-package CL;
+package CodeLine;
 
 use constant
 {
-  P => 0, # plus, added line
-  M => 1, # minus, removed line
-  S => 2, # space, unchanged line
-  B => 3  # binary line
+  Plus => 0, # added line
+  Minus => 1, # removed line
+  Space => 2, # unchanged line
+  Binary => 3  # binary line
 };
 
 my $type_to_char =
 {
-  P () => '+',
-  M () => '-',
-  S () => ' '
+  Plus () => '+',
+  Minus () => '-',
+  Space () => ' '
 };
 my $char_to_type =
 {
-  '+' => P,
-  '-' => M,
-  ' ' => S
+  '+' => Plus,
+  '-' => Minus,
+  ' ' => Space
 };
 
 sub get_char
@@ -333,7 +330,7 @@ sub get_type
 sub new
 {
   my ($type, $sigil, $line) = @_;
-  my $class = (ref ($type) or $type or 'CL');
+  my $class = (ref ($type) or $type or 'CodeLine');
   my $self =
   {
     'sigil' => $sigil,
@@ -361,13 +358,12 @@ sub get_line
 
 1;
 
-# code base
-package CB;
+package CodeBase;
 
 sub new
 {
   my ($type) = @_;
-  my $class = (ref ($type) or $type or 'CB');
+  my $class = (ref ($type) or $type or 'CodeBase');
   my $self =
   {
     'lines' => []
@@ -389,22 +385,21 @@ sub push_line
 {
   my ($self, $sigil, $code_line) = @_;
   my $lines = $self->get_lines ();
-  my $line = CL->new ($sigil, $code_line);
+  my $line = CodeLine->new ($sigil, $code_line);
 
   push (@{$lines}, $line);
 }
 
 1;
 
-# final code
-package FC;
+package FinalCode;
 
-use parent -norequire, qw(CB);
+use parent -norequire, qw(CodeBase);
 
 sub new
 {
   my ($type, $marker) = @_;
-  my $class = (ref ($type) or $type or 'FC');
+  my $class = (ref ($type) or $type or 'FinalCode');
   my $self = $class->SUPER::new ();
 
   $self->{'marker'} = $marker;
@@ -477,7 +472,7 @@ sub cleanup_context
   # Compute lengths of context in lines.
   foreach my $line (@{$lines})
   {
-    if ($line->get_sigil () == CL::S)
+    if ($line->get_sigil () == CodeLine::Space)
     {
       if ($modification_met)
       {
@@ -499,7 +494,7 @@ sub cleanup_context
   my $before_context = $self->get_before_context ();
   my $after_context = $self->get_after_context ();
   my $marker = $self->get_marker ();
-  my $additions = LM->new_zero ();
+  my $additions = LocationMarker->new_zero ();
   my $count = @{$before_context} + @{$after_context};
   my $line_no = -@{$before_context};
 
@@ -556,7 +551,7 @@ sub merge_final_code
 
   my $lines = $self->get_lines ();
   my $other_lines = $other->get_lines ();
-  my $additions = LM->new_zero ();
+  my $additions = LocationMarker->new_zero ();
   my $marker = $self->get_marker ();
   my $other_marker = $other->get_marker ();
   my @after = @{$self->_get_after_context_from_lines ()};
@@ -624,7 +619,7 @@ sub _get_before_context_from_lines
   foreach my $line (@{$lines}[0 .. 2])
   {
     last unless (defined ($line));
-    last if ($line->get_sigil () != CL::S);
+    last if ($line->get_sigil () != CodeLine::Space);
     push (@context, $line);
   }
 
@@ -641,7 +636,7 @@ sub _get_after_context_from_lines
   foreach my $line (reverse (@{$lines}[-3 .. -1]))
   {
     last unless (defined ($line));
-    last if ($line->get_sigil () != CL::S);
+    last if ($line->get_sigil () != CodeLine::Space);
     unshift (@context, $line);
   }
 
@@ -650,15 +645,14 @@ sub _get_after_context_from_lines
 
 1;
 
-# section code
-package SC;
+package SectionCode;
 
-use parent -norequire, qw(CB);
+use parent -norequire, qw(CodeBase);
 
 sub new
 {
   my ($type, $section) = @_;
-  my $class = (ref ($type) or $type or 'SC');
+  my $class = (ref ($type) or $type or 'SectionCode');
   my $self = $class->SUPER::new ();
 
   $self->{'section'} = $section;
@@ -676,13 +670,12 @@ sub get_section
 
 1;
 
-# location code cluster
-package LCC;
+package LocationCodeCluster;
 
 sub new
 {
   my ($type, $marker) = @_;
-  my $class = (ref ($type) or $type or 'LCC');
+  my $class = (ref ($type) or $type or 'LocationCodeCluster');
   my $self =
   {
     'marker' => $marker,
@@ -718,13 +711,12 @@ sub get_marker
 
 1;
 
-# diff header
-package DH;
+package DiffHeader;
 
 sub new
 {
   my ($type) = @_;
-  my $class = (ref ($type) or $type or 'DH');
+  my $class = (ref ($type) or $type or 'DiffHeader');
   my $self =
   {
     'a' => undef,
@@ -875,13 +867,12 @@ sub set_index_to
 
 1;
 
-# diff base
-package DB;
+package DiffBase;
 
 sub new
 {
   my ($type) = @_;
-  my $class = (ref ($type) or $type or 'DB');
+  my $class = (ref ($type) or $type or 'DiffBase');
   my $self =
   {
     'header' => undef
@@ -915,15 +906,14 @@ sub postprocess
 
 1;
 
-# text diff
-package TD;
+package TextDiff;
 
-use parent -norequire, qw(DB);
+use parent -norequire, qw(DiffBase);
 
 sub new
 {
   my ($type) = @_;
-  my $class = (ref ($type) or $type or 'TD');
+  my $class = (ref ($type) or $type or 'TextDiff');
   my $self = $class->SUPER::new ();
 
   $self->{'clusters'} = [];
@@ -1011,7 +1001,7 @@ sub _postprocess_vfunc
       my $section_name = $section->get_name ();
       my $lines_of_end_context_count = 0;
       my $final_marker = $markers->{$section_name}->clone ();
-      my $final_code = FC->new ($final_marker);
+      my $final_code = FinalCode->new ($final_marker);
 
       # Setup initial context for final code - will be used when
       # cleaning up context of the final code later.
@@ -1094,7 +1084,7 @@ sub _postprocess_vfunc
   my $inner_index_last = @{$sections_array} - 1;
   my $outer_section_index = undef;
   my $raw = {};
-  my $final_inner_correction = LM->new_zero ();
+  my $final_inner_correction = LocationMarker->new_zero ();
   my $mode = $header->get_mode ();
   my $mode_section_index = 0;
 
@@ -1251,7 +1241,7 @@ sub _create_array_for_each_section
 sub _create_marker_additions_for_each_section
 {
   my ($self, $sections_array) = @_;
-  my %additions = map { $_->get_name () => LM->new_zero () } @{$sections_array};
+  my %additions = map { $_->get_name () => LocationMarker->new_zero () } @{$sections_array};
 
   return \%additions;
 }
@@ -1285,7 +1275,7 @@ sub _adapt_additions
     my $marker = $additions->{$section_name};
     my $section = $sections_hash->{$section_name};
 
-    if ($sigil == CL::P)
+    if ($sigil == CodeLine::Plus)
     {
       if ($section->is_younger_than ($current_section))
       {
@@ -1304,7 +1294,7 @@ sub _adapt_additions
         # new line no + 1
       }
     }
-    elsif ($sigil == CL::M)
+    elsif ($sigil == CodeLine::Minus)
     {
       if ($section->is_younger_than ($current_section))
       {
@@ -1337,7 +1327,7 @@ sub _adapt_markers
     my $marker = $markers->{$section_name};
     my $section = $sections_hash->{$section_name};
 
-    if ($sigil == CL::P)
+    if ($sigil == CodeLine::Plus)
     {
       if ($section->is_younger_than ($current_section))
       {
@@ -1356,7 +1346,7 @@ sub _adapt_markers
         # new line no + 1
       }
     }
-    elsif ($sigil == CL::M)
+    elsif ($sigil == CodeLine::Minus)
     {
       if ($section->is_younger_than ($current_section))
       {
@@ -1375,7 +1365,7 @@ sub _adapt_markers
         # old line no + 1
       }
     }
-    elsif ($sigil == CL::S)
+    elsif ($sigil == CodeLine::Space)
     {
       $marker->inc_old_line_no ();
       $marker->inc_new_line_no ();
@@ -1403,15 +1393,15 @@ sub _adapt_final_marker
   my ($self, $current_line, $marker) = @_;
   my $sigil = $current_line->get_sigil ();
 
-  if ($sigil == CL::P)
+  if ($sigil == CodeLine::Plus)
   {
     $marker->inc_new_line_count ();
   }
-  elsif ($sigil == CL::M)
+  elsif ($sigil == CodeLine::Minus)
   {
     $marker->inc_old_line_count ();
   }
-  elsif ($sigil == CL::S)
+  elsif ($sigil == CodeLine::Space)
   {
     $marker->inc_old_line_count ();
     $marker->inc_new_line_count ();
@@ -1429,11 +1419,11 @@ sub _adapt_before_contexts
     my $before_context = $before_contexts->{$section_name};
     my $section = $sections_hash->{$section_name};
 
-    if ($sigil == CL::S or
-        ($section->is_older_than ($current_section) and $sigil == CL::M) or
-        ($section->is_younger_than ($current_section) and $sigil == CL::P))
+    if ($sigil == CodeLine::Space or
+        ($section->is_older_than ($current_section) and $sigil == CodeLine::Minus) or
+        ($section->is_younger_than ($current_section) and $sigil == CodeLine::Plus))
     {
-      $self->_append_context ($before_context, CL->new (CL::S, $current_line->get_line ()));
+      $self->_append_context ($before_context, CodeLine->new (CodeLine::Space, $current_line->get_line ()));
     }
   }
 }
@@ -1448,13 +1438,13 @@ sub _push_after_context
   {
     my $section = $sections_hash->{$section_name};
 
-    if ($sigil == CL::S or
-        ($section->is_older_than ($current_section) and $sigil == CL::M) or
-        ($section->is_younger_than ($current_section) and $sigil == CL::P))
+    if ($sigil == CodeLine::Space or
+        ($section->is_older_than ($current_section) and $sigil == CodeLine::Minus) or
+        ($section->is_younger_than ($current_section) and $sigil == CodeLine::Plus))
     {
       foreach my $final_code (@{$final_codes->{$section_name}})
       {
-        $final_code->push_after_context_line (CL->new (CL::S, $current_line->get_line ()));
+        $final_code->push_after_context_line (CodeLine->new (CodeLine::Space, $current_line->get_line ()));
       }
     }
   }
@@ -1498,7 +1488,7 @@ sub _lines_to_string
 {
   my ($self, $lines) = @_;
 
-  return map { CL::get_char ($_->get_sigil ()) . $_->get_line () } @{$lines};
+  return map { CodeLine::get_char ($_->get_sigil ()) . $_->get_line () } @{$lines};
 }
 
 sub _marker_to_string
@@ -1517,15 +1507,14 @@ sub _marker_to_string
 
 1;
 
-# binary diff
-package BD;
+package BinaryDiff;
 
-use parent -norequire, qw(DB);
+use parent -norequire, qw(DiffBase);
 
 sub new
 {
   my ($type) = @_;
-  my $class = (ref ($type) or $type or 'BD');
+  my $class = (ref ($type) or $type or 'BinaryDiff');
   my $self = $class->SUPER::new ();
 
   $self->{'code'} = undef;
@@ -1592,13 +1581,12 @@ sub _get_raw_lines
 
 1;
 
-# patch
-package P;
+package Patch;
 
 sub new
 {
   my ($type) = @_;
-  my $class = (ref ($type) or $type or 'P');
+  my $class = (ref ($type) or $type or 'Patch');
   my $self =
   {
     'author' => undef,
@@ -1771,13 +1759,12 @@ sub get_ordered_sectioned_raw_diffs_and_modes
 
 1;
 
-# parse context
-package PC;
+package ParseContext;
 
 sub new
 {
   my ($type, $initial_mode, $ops) = @_;
-  my $class = (ref ($type) or $type or 'PC');
+  my $class = (ref ($type) or $type or 'ParseContext');
   my $self =
   {
     'file' => undef,
@@ -1788,7 +1775,7 @@ sub new
     'current_chunk' => undef,
     'ops' => $ops,
     'line' => undef,
-    'patch' => P->new (),
+    'patch' => Patch->new (),
     'patches' => [],
     'current_diff_header' => undef
   };
@@ -1971,13 +1958,12 @@ sub get_current_diff_header_or_die
 
 1;
 
-# gnome patch
-package GP;
+package GnomePatch;
 
 sub new
 {
   my ($type) = @_;
-  my $class = (ref ($type) or $type or 'GP');
+  my $class = (ref ($type) or $type or 'GnomePatch');
   my $self =
   {
     'raw_diffs' => {}
@@ -2015,7 +2001,7 @@ sub _prepare_parse_context
     'rest' => sub { $self->_on_rest (@_); }
   };
 
-  $self->{'p_c'} = PC->new ('intro', $ops);
+  $self->{'p_c'} = ParseContext->new ('intro', $ops);
 }
 
 sub _load_file
@@ -2096,7 +2082,7 @@ sub _on_listing
       }
 
       my $sections_array = $patch->get_sections_ordered ();
-      my $section = S->new ($name, $description, scalar (@{$sections_array}));
+      my $section = Section->new ($name, $description, scalar (@{$sections_array}));
 
       unless ($patch->add_section ($section))
       {
@@ -2146,7 +2132,7 @@ sub _handle_index_lines
     # XXX: This section of code is rather incorrect - there can be
     # more lines in this part of diff. But for my ordinary use no such
     # diffs existed.
-    my $diff_header = DH->new ();
+    my $diff_header = DiffHeader->new ();
     my $line = $pc->get_line ();
 
     unless ($diff_header->parse_diff_line ($line))
@@ -2203,7 +2189,7 @@ sub _handle_text_patch
   my ($self) = @_;
   my $pc = $self->_get_pc ();
   my $diff_header = $pc->get_current_diff_header_or_die ();
-  my $diff = TD->new ();
+  my $diff = TextDiff->new ();
 
   $diff->set_header ($diff_header);
   if ($pc->get_line () =~ /^---\s+(.+)/)
@@ -2238,7 +2224,7 @@ sub _handle_text_patch
   }
   $self->_read_next_line_or_die ();
 
-  my $initial_marker = LM->new ();
+  my $initial_marker = LocationMarker->new ();
 
   if ($pc->get_line () =~ /^@@/)
   {
@@ -2252,7 +2238,7 @@ sub _handle_text_patch
     $pc->die ("Expected '\@\@'.");
   }
 
-  my $last_cluster = LCC->new ($initial_marker);
+  my $last_cluster = LocationCodeCluster->new ($initial_marker);
   my $continue_parsing_rest = 1;
   my $just_got_location_marker = 1;
   my $patch = $pc->get_patch ();
@@ -2285,10 +2271,10 @@ sub _handle_text_patch
       {
         my $last = $sections_array->[-1];
 
-        $code = SC->new ($last);
+        $code = SectionCode->new ($last);
         $just_got_location_marker = 0;
       }
-      $code->push_line (CL::M, '- ');
+      $code->push_line (CodeLine::Minus, '- ');
       redo;
     }
     elsif ($line =~ /^@@/)
@@ -2298,7 +2284,7 @@ sub _handle_text_patch
         $pc->die ("Two location markers in a row.");
       }
 
-      my $marker = LM->new ();
+      my $marker = LocationMarker->new ();
 
       $self->_push_section_code_to_cluster_or_die ($code, $last_cluster);
       $code = undef;
@@ -2307,7 +2293,7 @@ sub _handle_text_patch
       {
         $pc->die ("Failed to parse location marker.");
       }
-      $last_cluster = LCC->new ($marker);
+      $last_cluster = LocationCodeCluster->new ($marker);
       $just_got_location_marker = 1;
     }
     elsif ($line =~ /^#/)
@@ -2337,7 +2323,7 @@ sub _handle_text_patch
           {
             $self->_push_section_code_to_cluster_or_die ($code, $last_cluster);
           }
-          $code = SC->new ($section);
+          $code = SectionCode->new ($section);
         }
       }
       elsif ($line !~ /^# COMMENT: /)
@@ -2349,7 +2335,7 @@ sub _handle_text_patch
     {
       my $sigil = $1;
       my $code_line = $2;
-      my $type = CL::get_type ($sigil);
+      my $type = CodeLine::get_type ($sigil);
 
       unless (defined ($type))
       {
@@ -2360,7 +2346,7 @@ sub _handle_text_patch
       {
         my $last = $sections_array->[-1];
 
-        $code = SC->new ($last);
+        $code = SectionCode->new ($last);
         $just_got_location_marker = 0;
       }
       $code->push_line ($type, $code_line);
@@ -2390,7 +2376,7 @@ sub _push_section_code_to_cluster_or_die
 
   foreach my $line (@{$code->get_lines ()})
   {
-    if ($line->get_sigil () != CL::S)
+    if ($line->get_sigil () != CodeLine::Space)
     {
       $useless = 0;
       last;
@@ -2414,7 +2400,7 @@ sub _handle_binary_patch
   my $first_try = 1;
   my $code = undef;
   my $diff_header = $pc->get_current_diff_header_or_die ();
-  my $diff = BD->new ();
+  my $diff = BinaryDiff->new ();
   my $patch = $pc->get_patch ();
 
   $diff->set_header ($diff_header);
@@ -2439,7 +2425,7 @@ sub _handle_binary_patch
             $pc->die ("Unknown section '$name'.");
           }
 
-          $code = SC->new ($sections_hash->{$name});
+          $code = SectionCode->new ($sections_hash->{$name});
         }
         elsif ($line !~ /^# COMMENT: /)
         {
@@ -2448,7 +2434,7 @@ sub _handle_binary_patch
         next;
       }
       $first_try = 0;
-      $code = SC->new ($sections_array->[-1]);
+      $code = SectionCode->new ($sections_array->[-1]);
       redo;
     }
     if ($line eq '-- ')
@@ -2476,7 +2462,7 @@ sub _handle_binary_patch
         last;
       }
 
-      $code->push_line (CL::B, $line);
+      $code->push_line (CodeLine::Binary, $line);
     }
   }
   $diff->set_code ($code);
@@ -2549,7 +2535,7 @@ sub _get_pc
 package main;
 
 my $filename = @ARGV ? $ARGV[0] : 'old-gnome-3.4.patch';
-my $p = GP->new ();
+my $p = GnomePatch->new ();
 my $list_name = 'patches.list';
 my $patch_list_file = IO::File->new ($list_name, 'w');
 
