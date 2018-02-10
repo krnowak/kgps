@@ -59,13 +59,22 @@ sub parse_line
 {
   my ($self, $line) = @_;
 
-  if ($line =~ /^@@\s+-(\d+),(\d+)\s+\+(\d+),(\d+)\s+@@(?:\s+(\S.*))?$/)
+  if ($line =~ /^@@\s+-(\d+)(?:,(\d+))?\s+\+(\d+)(?:,(\d+))?\s+@@(?:\s+(\S.*))?$/)
   {
     my $old_line_no = $1;
     my $old_line_count = $2;
     my $new_line_no = $3;
     my $new_line_count = $4;
     my $inline_context = $5;
+
+    unless (defined ($old_line_count))
+    {
+        $old_line_count = 1;
+    }
+    unless (defined ($new_line_count))
+    {
+        $new_line_count = 1;
+    }
 
     $self->set_old_line_no ($old_line_no);
     $self->set_old_line_count ($old_line_count);
