@@ -11,6 +11,16 @@ use warnings;
 use IO::File;
 use v5.16;
 
+# LocationMarker is a representation of a line that describes a
+# location of a chunk of changed code. These are lines in a patch that
+# look like:
+#
+# @@ -81,6 +81,7 @@ sub DB_COLUMNS {
+#
+# The line contains line number and count before the change and after
+# the change. It also may contain some context, which comes after
+# second `@@`. Context is the first line that is before the chunk with
+# no leading whitespace.
 package LocationMarker;
 
 sub new
@@ -222,6 +232,8 @@ sub add_marker
 
 1;
 
+# Section describes the generated patch and its ancestor-descendant
+# relation to other generated patches.
 package Section;
 
 sub new
@@ -280,6 +292,9 @@ sub is_younger_than
 
 1;
 
+# CodeLine is a representation of a single line of code in diff. It's
+# the line in diff that starts with a single sigil (either +, - or
+# space) and the rest of the line is the actual code.
 package CodeLine;
 
 use constant
@@ -358,6 +373,7 @@ sub get_line
 
 1;
 
+# CodeBase is a single chunk of changed code.
 package CodeBase;
 
 sub new
@@ -392,6 +408,9 @@ sub push_line
 
 1;
 
+# FinalCode is the final form of the single code chunk. It contains
+# lines that already took the changes made in older generated patches
+# into account.
 package FinalCode;
 
 use parent -norequire, qw(CodeBase);
@@ -645,6 +664,7 @@ sub _get_after_context_from_lines
 
 1;
 
+# SectionCode is a code chunk taken verbatim from the annotated patch.
 package SectionCode;
 
 use parent -norequire, qw(CodeBase);
@@ -670,6 +690,8 @@ sub get_section
 
 1;
 
+# LocationCodeCluster is a single code chunk that is being split
+# between multiple sections.
 package LocationCodeCluster;
 
 sub new
@@ -711,6 +733,13 @@ sub get_marker
 
 1;
 
+# DiffHeader is a representation of lines that come before the
+# description of actual changes in the file. These are lines that look
+# like:
+#
+# diff --git a/.bzrignore.moved b/.bzrignore.moved
+# new file mode 100644
+# index 0000000..f852cf1
 package DiffHeader;
 
 sub new
@@ -867,6 +896,7 @@ sub set_index_to
 
 1;
 
+# DiffBase is a base package for either textual or binary diffs.
 package DiffBase;
 
 sub new
@@ -906,6 +936,7 @@ sub postprocess
 
 1;
 
+# TextDiff is a representation of a single diff of a text file.
 package TextDiff;
 
 use parent -norequire, qw(DiffBase);
@@ -1507,6 +1538,7 @@ sub _marker_to_string
 
 1;
 
+# BinaryDiff is a representation of a diff of a binary file.
 package BinaryDiff;
 
 use parent -norequire, qw(DiffBase);
@@ -1581,6 +1613,7 @@ sub _get_raw_lines
 
 1;
 
+# Patch is a representation of the annotated patch.
 package Patch;
 
 sub new
@@ -1759,6 +1792,8 @@ sub get_ordered_sectioned_raw_diffs_and_modes
 
 1;
 
+# ParseContext describes the current state of parsing the annotated
+# patch.
 package ParseContext;
 
 sub new
@@ -1958,6 +1993,9 @@ sub get_current_diff_header_or_die
 
 1;
 
+# GnomePatch looks like a mixed bag of code that includes parsing the
+# annotated patch and generating the smaller patches from the
+# annotated one.
 package GnomePatch;
 
 sub new
