@@ -2048,7 +2048,7 @@ sub _on_intro
 {
   my ($self) = @_;
   my $pc = $self->_get_pc ();
-  my $patched = 0;
+  my $found_author = 0;
 
   while ((my $line = $pc->get_line ()) ne '')
   {
@@ -2057,12 +2057,12 @@ sub _on_intro
       my $author = $1;
       my $patch = $pc->get_patch ();
 
-      if ($patched)
+      if ($found_author)
       {
         $pc->die ("Two 'From: ' lines in intro.");
       }
       $patch->set_author ($author);
-      $patched = 1;
+      $found_author = 1;
     }
     $self->_read_next_line_or_die ();
   }
