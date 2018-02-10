@@ -2062,6 +2062,7 @@ sub _on_intro
         $pc->die ("Two 'From: ' lines in intro.");
       }
       $patch->set_author ($author);
+      $patched = 1;
     }
     $self->_read_next_line_or_die ();
   }
