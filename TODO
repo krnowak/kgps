@@ -1,0 +1,26 @@
+generate git patches
+
+dec functions are wrong (they do ++ instead of --)
+
+add output directory option to splitter
+
+drop pushd, popd and realpath from test.sh
+
+maybe add color output to test.sh
+  - needs to detect the terminal output, we don't want color when
+    piping things
+
+make splitter a bit smarter about the before and after context
+  - safest thing to do is to put the before context in the same
+    section as the first changed line
+  - same for after context and the section for the last changed line
+  - make the above unnecessary
+
+when generating location markers, skip the line count if it is 1
+
+rename the basic test to something with location markers
+
+add a separate test for the big gnome patch?
+
+compare the splitter-generated patches with the git-format-generated
+patches to see if for example line markers are correct
