@@ -69,11 +69,11 @@ sub parse_line
 
     unless (defined ($old_line_count))
     {
-        $old_line_count = 1;
+      $old_line_count = 1;
     }
     unless (defined ($new_line_count))
     {
-        $new_line_count = 1;
+      $new_line_count = 1;
     }
 
     $self->set_old_line_no ($old_line_no);
