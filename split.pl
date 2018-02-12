@@ -8,8 +8,12 @@
 
 use strict;
 use warnings;
-use IO::File;
 use v5.16;
+
+use File::Path qw(make_path);
+use File::Spec;
+use Getopt::Long;
+use IO::File;
 
 # LocationMarker is a representation of a line that describes a
 # location of a chunk of changed code. These are lines in a patch that
@@ -2581,24 +2585,54 @@ sub _get_pc
 
 package main;
 
-my $filename = @ARGV ? $ARGV[0] : 'old-gnome-3.4.patch';
+my $input_patch = 'old-gnome-3.4.patch';
+my $output_directory = '.';
+
+GetOptions ('output-directory=s' => \$output_directory,
+            'input-patch=s' => \$input_patch) or die ('Error in command line arguments');
+
+my $mp_error;
+make_path($output_directory, {'error' => \$mp_error});
+if ($mp_error && @{$mp_error})
+{
+  for my $diag (@{$mp_error})
+  {
+    my ($dir, $msg) = %{$diag};
+    if ($dir eq '')
+    {
+      say "General error: $msg";
+    }
+    else
+    {
+      say "Problem creating directory $dir: $msg";
+    }
+  }
+  die;
+}
+
 my $p = GnomePatch->new ();
-my $list_name = 'patches.list';
+my $list_name = File::Spec->catfile ($output_directory, 'patches.list');
 my $patch_list_file = IO::File->new ($list_name, 'w');
 
 unless (defined ($patch_list_file))
 {
-  die "Could not load '$list_name' for writing.";
+  die "Could not open '$list_name' for writing.";
 }
 
-$p->process ($filename);
+$p->process ($input_patch);
 foreach my $entry (@{$p->get_raw_diffs ()})
 {
   my $diff = join ('', @{$entry->{'diffs'}});
   my $section = $entry->{'section'};
   my $section_name = $section->get_name ();
   my $patch_name = "$section_name.patch";
-  my $file = IO::File->new ($patch_name, 'w');
+  my $patch_file = File::Spec->catfile ($output_directory, $patch_name);
+  my $file = IO::File->new ($patch_file, 'w');
+
+  unless (defined ($file))
+  {
+    die "Could not open '$patch_file' for writing.";
+  }
 
   $file->binmode (':utf8');
   $file->print ($diff);

@@ -2,10 +2,10 @@
 
 set -e
 
-dir=$(realpath $(dirname $0))
+dir=$(dirname $0)
 splitter="${dir}/split.pl"
 alltestsdir="${dir}/tests"
-allresultsdir=$(realpath "test-results-$(date '+%Y-%m-%d-%H-%M-%S')")
+allresultsdir="test-results-$(date '+%Y-%m-%d-%H-%M-%S')"
 exitstatus=0
 
 shopt -s nullglob
@@ -32,9 +32,11 @@ do
         echo 'SKIP' >"${statusfile}"
         continue
     fi
-    pushd "${patchesdir}" >/dev/null
     failreasons=()
-    if ! "${splitter}" "${testdir}/test.patch" >"${debugdir}/splitter-output" 2>&1
+    if ! "${splitter}" \
+         --input-patch "${testdir}/test.patch" \
+         --output-directory "${patchesdir}" \
+         >"${debugdir}/splitter-output" 2>&1
     then
         failreasons+=("splitter failed to process the patch")
     else
@@ -65,7 +67,6 @@ do
             fi
         done
     fi
-    popd >/dev/null
     if [[ ${#failreasons[@]} -gt 0 ]]
     then
         exitstatus=1

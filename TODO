@@ -2,10 +2,6 @@ generate git patches
 
 dec functions are wrong (they do ++ instead of --)
 
-add output directory option to splitter
-
-drop pushd, popd and realpath from test.sh
-
 maybe add color output to test.sh
   - needs to detect the terminal output, we don't want color when
     piping things
