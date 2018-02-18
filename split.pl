@@ -1706,6 +1706,14 @@ sub get_sections_unordered
   return $self->{'sections_unordered'};
 }
 
+sub get_sections_count
+{
+  my ($self) = @_;
+  my $count = @{$self->get_sections_ordered ()};
+
+  return $count;
+}
+
 sub add_section
 {
   my ($self, $section) = @_;
@@ -2134,8 +2142,8 @@ sub _on_listing
         $pc->die ("SECTION comment mixed with listing.");
       }
 
-      my $sections_array = $patch->get_sections_ordered ();
-      my $section = Section->new ($name, $description, scalar (@{$sections_array}));
+      my $sections_count = $patch->get_sections_count ();
+      my $section = Section->new ($name, $description, $sections_count);
 
       unless ($patch->add_section ($section))
       {
@@ -2144,9 +2152,9 @@ sub _on_listing
     }
     elsif ($line =~ /^ \S/)
     {
-      my $sections = $patch->get_sections_ordered ();
+      my $sections_count = $patch->get_sections_count ();
 
-      unless (@{$sections})
+      unless ($sections_count)
       {
         $pc->die ("No sections specified.");
       }
