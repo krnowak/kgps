@@ -2387,7 +2387,11 @@ sub _handle_text_patch
           $code = SectionCode->new ($section);
         }
       }
-      elsif ($line !~ /^# COMMENT: /)
+      elsif ($self->_line_is_comment ($line))
+      {
+        # it's a comment, skip it
+      }
+      else
       {
         $pc->die ("Malformed comment.");
       }
@@ -2488,7 +2492,11 @@ sub _handle_binary_patch
 
           $code = SectionCode->new ($sections_hash->{$name});
         }
-        elsif ($line !~ /^# COMMENT: /)
+        elsif ($self->_line_is_comment ($line))
+        {
+          # just a comment, skip it
+        }
+        else
         {
           $pc->die ("Malformed comment.");
         }
@@ -2535,6 +2543,18 @@ sub _handle_binary_patch
   }
 
   return $continue_parsing_rest;
+}
+
+sub _line_is_comment
+{
+  my ($self, $line) = @_;
+
+  if ($line =~ /^#\s*COMMENT:/ or $line =~ /^#\s*#/)
+  {
+    return 1;
+  }
+
+  return 0;
 }
 
 sub _postprocess_diff
