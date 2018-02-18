@@ -1968,7 +1968,6 @@ sub get_last_diff_or_die
 sub exhaust_the_file
 {
   my ($self) = @_;
-  my $file = $self->get_file ();
 
   while ($self->read_next_line ()) {};
 }
