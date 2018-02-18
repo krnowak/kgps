@@ -2091,7 +2091,7 @@ sub _on_intro
 
   while ((my $line = $pc->get_line ()) ne '')
   {
-    if ($line =~ /^From:\s+(.*)$/)
+    if ($line =~ /^From:\s*(\S.*)$/)
     {
       my $author = $1;
       my $patch = $pc->get_patch ();
@@ -2124,7 +2124,7 @@ sub _on_listing
 
   while ((my $line = $pc->get_line ()) ne '')
   {
-    if ($line =~ /^# SECTION: (\w+)\s+-\s+(.+)$/)
+    if ($line =~ /^#\s*SECTION:\s*(\w+)\s+-\s+(\S.*)$/a)
     {
       my $name = $1;
       my $description = $2;
@@ -2221,7 +2221,7 @@ sub _handle_diff_lines
   my $pc = $self->_get_pc ();
   my $continue_parsing_rest = 1;
 
-  if ($pc->get_line () =~ /^---\s/)
+  if ($pc->get_line () =~ /^---\s+\S/)
   {
     $continue_parsing_rest = $self->_handle_text_patch ();
   }
@@ -2231,7 +2231,7 @@ sub _handle_diff_lines
   }
   else
   {
-    $pc->die ("Expected '---' or 'GIT binary patch'.");
+    $pc->die ("Expected '--- <path>' or 'GIT binary patch'.");
   }
 
   return $continue_parsing_rest;
@@ -2351,7 +2351,7 @@ sub _handle_text_patch
     }
     elsif ($line =~ /^#/)
     {
-      if ($line =~ /^# SECTION: (\w+)$/)
+      if ($line =~ /^#\s*SECTION:\s*(\w+)$/a)
       {
         my $name = $1;
 
@@ -2468,7 +2468,7 @@ sub _handle_binary_patch
 
       if ($line =~ /^#/)
       {
-        if ($line =~ /^# SECTION: (\w+)$/)
+        if ($line =~ /^#\s*SECTION:\s*(\w+)$/a)
         {
           my $name = $1;
 
@@ -2497,7 +2497,7 @@ sub _handle_binary_patch
     }
     elsif ($line =~ /^#/)
     {
-      if ($line =~ /^# SECTION:/)
+      if ($line =~ /^#\s*SECTION:/)
       {
         $pc->die ("Section comment in the middle of binary patch.");
       }
