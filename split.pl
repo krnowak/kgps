@@ -1820,6 +1820,11 @@ sub get_ordered_sectioned_raw_diffs_and_modes
 # patch.
 package ParseContext;
 
+use constant
+{
+  PreviousLinesLimit => 3
+};
+
 sub new
 {
   my ($type, $initial_mode, $ops) = @_;
@@ -1827,6 +1832,8 @@ sub new
   my $self =
   {
     'file' => undef,
+    'eof' => 1,
+    'reached_eof' => 1,
     'filename' => undef,
     'chunks' => [],
     'mode' => $initial_mode,
@@ -1834,6 +1841,8 @@ sub new
     'current_chunk' => undef,
     'ops' => $ops,
     'line' => undef,
+    'unread_lines' => [],
+    'previous_lines' => [],
     'patch' => Patch->new (),
     'patches' => [],
     'current_diff_header' => undef
@@ -1849,6 +1858,8 @@ sub setup_file
   my ($self, $file, $filename) = @_;
 
   $self->{'file'} = $file;
+  $self->_set_eof (0);
+  $self->{'reached_eof'} = 0;
   $self->{'filename'} = $filename;
 }
 
@@ -1871,6 +1882,31 @@ sub get_patch
   my ($self) = @_;
 
   return $self->{'patch'};
+}
+
+sub get_eof
+{
+  my ($self) = @_;
+
+  return $self->{'eof'};
+}
+
+sub _reached_eof
+{
+  my ($self) = @_;
+
+  return $self->{'reached_eof'};
+}
+
+sub _set_eof
+{
+  my ($self, $eof) = @_;
+
+  $self->{'eof'} = $eof;
+  if ($eof)
+  {
+    $self->{'reached_eof'} = 1;
+  }
 }
 
 sub get_mode
@@ -1901,25 +1937,93 @@ sub set_line
   $self->{'line'} = $line;
 }
 
-sub read_next_line
+sub unread_line
 {
   my ($self) = @_;
-  my $file = $self->get_file ();
-  my $line = $file->getline ();
+  my $unread_lines = $self->_get_unread_lines ();
+  my $line = $self->get_line ();
+  my $previous_lines = $self->_get_previous_lines ();
 
   if (defined ($line))
   {
-    chomp ($line);
-    $self->set_line ($line);
-    $self->inc_line_no ();
+    push (@{$unread_lines}, $line);
   }
-  elsif (defined ($self->get_line ()))
+  $line = pop (@{$previous_lines});
+  $self->set_line ($line);
+  $self->_set_eof (0);
+  $self->dec_line_no ();
+}
+
+sub read_next_line
+{
+  my ($self) = @_;
+  my $old_line = $self->get_line ();
+
+  if (defined ($old_line))
   {
-    $self->set_line (undef);
-    $self->inc_line_no ();
+    my $prev_lines = $self->_get_previous_lines ();
+    until (scalar (@{$prev_lines}) < PreviousLinesLimit) {
+      shift (@{$prev_lines});
+    }
+    push (@{$prev_lines}, $old_line);
   }
 
-  return defined ($self->get_line ());
+  my $unread_lines = $self->_get_unread_lines ();
+  my $line = pop (@{$unread_lines});
+
+  if (defined ($line))
+  {
+    $self->set_line ($line);
+    $self->inc_line_no ();
+    $self->_set_eof (0);
+  }
+  elsif ($self->_reached_eof ())
+  {
+    if (defined ($old_line))
+    {
+      $self->set_line (undef);
+      $self->inc_line_no ();
+    }
+    $self->_set_eof (1);
+  }
+  else
+  {
+    my $file = $self->get_file ();
+
+    $line = $file->getline ();
+    if (defined ($line))
+    {
+      chomp ($line);
+      $self->set_line ($line);
+      $self->inc_line_no ();
+      $self->_set_eof (0);
+    }
+    else
+    {
+      if (defined ($old_line))
+      {
+        $self->set_line (undef);
+      }
+      $self->inc_line_no ();
+      $self->_set_eof (1);
+    }
+  }
+
+  return not $self->get_eof ();
+}
+
+sub _get_previous_lines
+{
+  my ($self) = @_;
+
+  return $self->{'previous_lines'};
+}
+
+sub _get_unread_lines
+{
+  my ($self) = @_;
+
+  return $self->{'unread_lines'};
 }
 
 sub run_op
@@ -1947,7 +2051,24 @@ sub inc_line_no
 {
   my ($self) = @_;
 
-  ++$self->{'line_number'};
+  $self->_mod_line_no (1);
+}
+
+sub dec_line_no
+{
+  my ($self) = @_;
+
+  if ($self->get_line_no () > 0)
+  {
+    $self->_mod_line_no (-1);
+  }
+}
+
+sub _mod_line_no
+{
+  my ($self, $increment) = @_;
+
+  $self->{'line_number'} += $increment;
 }
 
 sub die
@@ -2085,7 +2206,7 @@ sub _parse_file
   my ($self) = @_;
   my $pc = $self->_get_pc ();
 
-  while ($pc->read_next_line ())
+  until ($pc->get_eof ())
   {
     $pc->run_op ();
   }
@@ -2097,8 +2218,11 @@ sub _on_intro
   my $pc = $self->_get_pc ();
   my $found_author = 0;
 
-  while ((my $line = $pc->get_line ()) ne '')
+  while (1)
   {
+    $self->_read_next_line_or_die ();
+    my $line = $pc->get_line ();
+    last if ($line eq '');
     if ($line =~ /^From:\s*(\S.*)$/)
     {
       my $author = $1;
@@ -2111,7 +2235,6 @@ sub _on_intro
       $patch->set_author ($author);
       $found_author = 1;
     }
-    $self->_read_next_line_or_die ();
   }
   $pc->set_mode ('listing');
 }
@@ -2120,18 +2243,14 @@ sub _on_listing
 {
   my ($self) = @_;
   my $pc = $self->_get_pc ();
-
-  if ($pc->get_line () ne '---')
-  {
-    $pc->die ("Expected '---'.");
-  }
-  $self->_read_next_line_or_die ();
-
   my $listing_started = 0;
   my $patch = $pc->get_patch ();
 
-  while ((my $line = $pc->get_line ()) ne '')
+  while (1)
   {
+    $self->_read_next_line_or_die ();
+    my $line = $pc->get_line ();
+    last if ($line eq '');
     if ($line =~ /^#\s*SECTION:\s*(\w+)\s+-\s+(\S.*)$/a)
     {
       my $name = $1;
@@ -2164,7 +2283,6 @@ sub _on_listing
     {
       $pc->die ("Unknown line in listing.");
     }
-    $self->_read_next_line_or_die ();
   }
   $pc->set_mode ('rest');
 }
@@ -2186,6 +2304,9 @@ sub _handle_index_lines
 {
   my ($self) = @_;
   my $pc = $self->_get_pc ();
+
+  $self->_read_next_line_or_die ();
+
   my $word = $self->_get_first_word ();
 
   if (defined ($word) and $word eq 'diff')
@@ -2214,7 +2335,6 @@ sub _handle_index_lines
       $pc->die ("Expected 'index'.");
     }
 
-    $self->_read_next_line_or_die ();
     $pc->set_current_diff_header ($diff_header);
   }
   else
@@ -2229,6 +2349,7 @@ sub _handle_diff_lines
   my $pc = $self->_get_pc ();
   my $continue_parsing_rest = 1;
 
+  $self->_read_next_line_or_die ();
   if ($pc->get_line () =~ /^---\s+\S/)
   {
     $continue_parsing_rest = $self->_handle_text_patch ();
@@ -2336,7 +2457,8 @@ sub _handle_text_patch
         $just_got_location_marker = 0;
       }
       $code->push_line (CodeLine::Minus, '- ');
-      redo;
+      $pc->unread_line ();
+      next;
     }
     elsif ($line =~ /^@@/)
     {
@@ -2420,6 +2542,7 @@ sub _handle_text_patch
     {
       $self->_push_section_code_to_cluster_or_die ($code, $last_cluster);
       $diff->push_cluster ($last_cluster);
+      $pc->unread_line ();
       last;
     }
   }
@@ -2528,6 +2651,7 @@ sub _handle_binary_patch
 
       if (defined ($word) and $word ne 'literal')
       {
+        $pc->unread_line ();
         last;
       }
 
