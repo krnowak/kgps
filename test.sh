@@ -5,7 +5,8 @@ set -e
 dir=$(dirname $0)
 splitter="${dir}/split.pl"
 alltestsdir="${dir}/tests"
-allresultsdir="test-results-$(date '+%Y-%m-%d-%H-%M-%S')"
+resultsdirbase='test-results'
+allresultsdir="${resultsdirbase}-$(date '+%Y-%m-%d-%H-%M-%S')"
 exitstatus=0
 
 shopt -s nullglob
@@ -81,4 +82,6 @@ do
         echo "${name} SUCCESS"
     fi
 done
+rm -f "${resultsdirbase}-latest"
+ln -s "${allresultsdir}" "${resultsdirbase}-latest"
 exit ${exitstatus}
