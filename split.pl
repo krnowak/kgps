@@ -1652,7 +1652,7 @@ sub new
 
 sub get_author
 {
-  my ($self, $author) = @_;
+  my ($self) = @_;
 
   return $self->{'author'};
 }
