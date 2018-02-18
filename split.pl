@@ -258,6 +258,10 @@ sub new
     'name' => $name,
     'index' => $index,
     'subject' => undef,
+    'author' => undef,
+    'date' => undef,
+    'subject' => undef,
+    'message_lines' => undef,
   };
 
   $self = bless ($self, $class);
@@ -291,6 +295,54 @@ sub set_subject
   my ($self, $subject) = @_;
 
   $self->{'subject'} = $subject;
+}
+
+sub get_author
+{
+  my ($self) = @_;
+
+  return $self->{'author'};
+}
+
+sub set_author
+{
+  my ($self, $author) = @_;
+
+  $self->{'author'} = $author;
+}
+
+sub get_date
+{
+  my ($self) = @_;
+
+  return $self->{'date'};
+}
+
+sub set_date
+{
+  my ($self, $date) = @_;
+
+  $self->{'date'} = $date;
+}
+
+sub get_message_lines
+{
+  my ($self) = @_;
+
+  $self->{'message_lines'}
+}
+
+sub add_message_line
+{
+  my ($self, $line) = @_;
+  my $lines = $self->get_message_lines ();
+
+  unless (defined ($lines))
+  {
+    $lines = $self->{'message_lines'} = [];
+  }
+
+  push (@{$lines}, $line);
 }
 
 sub is_older_than
@@ -1646,6 +1698,10 @@ sub new
   my $self =
   {
     'author' => undef,
+    'from_date' => undef,
+    'patch_date' => undef,
+    'subject' => undef,
+    'message_lines' => [],
     'diffs' => [],
     'sections_ordered' => [],
     'sections_unordered' => {},
@@ -1669,6 +1725,63 @@ sub set_author
   my ($self, $author) = @_;
 
   $self->{'author'} = $author;
+}
+
+sub get_from_date
+{
+  my ($self) = @_;
+
+  return $self->{'from_date'};
+}
+
+sub set_from_date
+{
+  my ($self, $from_date) = @_;
+
+  $self->{'from_date'} = $from_date;
+}
+
+sub get_patch_date
+{
+  my ($self) = @_;
+
+  return $self->{'patch_date'};
+}
+
+sub set_patch_date
+{
+  my ($self, $patch_date) = @_;
+
+  $self->{'patch_date'} = $patch_date;
+}
+
+sub get_subject
+{
+  my ($self) = @_;
+
+  return $self->{'subject'};
+}
+
+sub set_subject
+{
+  my ($self, $subject) = @_;
+
+  $self->{'subject'} = $subject;
+}
+
+sub get_message_lines
+{
+  my ($self) = @_;
+
+  return $self->{'message_lines'};
+}
+
+sub add_message_line
+{
+  my ($self, $line) = @_;
+  my $lines = $self->get_message_lines ();
+
+  push (@{$lines}, $line);
 }
 
 sub get_diffs
@@ -2223,7 +2336,8 @@ sub _on_intro
 {
   my ($self) = @_;
   my $pc = $self->_get_pc ();
-  my $stage = 'search-for-author';
+  my $patch = $pc->get_patch ();
+  my $stage = 'from-date';
 
   while ($stage ne 'done')
   {
@@ -2233,19 +2347,74 @@ sub _on_intro
     {
       # just a comment, skip it
     }
-    elsif ($stage eq 'search-for-author')
+    elsif ($stage eq 'from-date')
+    {
+      if ($line =~ /^\s*From\s+\S+\s+(\S.*)$/)
+      {
+        $patch->set_from_date ($1);
+        $stage = 'from-author';
+      }
+      else
+      {
+        $pc->die ("Expected a From hash line, got '$line'");
+      }
+    }
+    elsif ($stage eq 'from-author')
     {
       if ($line =~ /^\s*From:\s*(\S.*)$/)
       {
-        $pc->get_patch ()->set_author ($1);
-        $stage = 'search-for-empty-line';
+        $patch->set_author ($1);
+        $stage = 'patch-date';
+      }
+      else
+      {
+        $pc->die ("Expected a From author line, got '$line'");
       }
     }
-    elsif ($stage eq 'search-for-empty-line')
+    elsif ($stage eq 'patch-date')
+    {
+      if ($line =~ /^\s*Date:\s*(\S.*)$/)
+      {
+        $patch->set_patch_date ($1);
+        $stage = 'subject';
+      }
+      else
+      {
+        $pc->die ("Expected a Date line, got '$line'");
+      }
+    }
+    elsif ($stage eq 'subject')
+    {
+      if ($line =~ /^\s*Subject:\s*(?:\[\s*PATCH[^\]]*\])?\s*(\S.*)$/)
+      {
+        $patch->set_subject ($1);
+        $stage = 'separator';
+      }
+      else
+      {
+        $pc->die ("Expected a Subject line, got '$line'");
+      }
+    }
+    elsif ($stage eq 'separator')
     {
       if ($line eq '')
       {
+        $stage = 'message';
+      }
+      else
+      {
+        $pc->die ("Expected an empty line, got '$line'");
+      }
+    }
+    elsif ($stage eq 'message')
+    {
+      if ($line eq '---')
+      {
         $stage = 'done';
+      }
+      else
+      {
+        $patch->add_message_line ($line);
       }
     }
   }
@@ -2258,7 +2427,10 @@ sub _on_listing
   my $pc = $self->_get_pc ();
   my $patch = $pc->get_patch ();
   my $stage = 'sections';
+  my $got_author = 0;
+  my $got_date = 0;
   my $got_subject = 0;
+  my $got_message = 0;
 
   while ($stage ne 'done')
   {
@@ -2280,7 +2452,42 @@ sub _on_listing
         {
           $pc->die ("Section '$name' specified twice.");
         }
+        $got_author = 0;
+        $got_date = 0;
         $got_subject = 0;
+        $got_message = 0;
+      }
+      elsif ($line =~ /^#\s*AUTHOR:\s*(\S.*)$/)
+      {
+        my $author = $1;
+        unless ($patch->get_sections_count ())
+        {
+          $pc->die ("'AUTHOR' clause needs to follow the 'SECTION' clause");
+        }
+        if ($got_author)
+        {
+          $pc->die ("Multiple 'AUTHOR' clauses for a single 'SECTION' clause");
+        }
+        my $section = @{$patch->get_sections_ordered ()}[-1];
+
+        $section->set_author ($author);
+        $got_author = 1;
+      }
+      elsif ($line =~ /^#\s*DATE:\s*(\S.*)$/)
+      {
+        my $date = $1;
+        unless ($patch->get_sections_count ())
+        {
+          $pc->die ("'DATE' clause needs to follow the 'SECTION' clause");
+        }
+        if ($got_date)
+        {
+          $pc->die ("Multiple 'DATE' clauses for a single 'SECTION' clause");
+        }
+        my $section = @{$patch->get_sections_ordered ()}[-1];
+
+        $section->set_date ($date);
+        $got_date = 1;
       }
       elsif ($line =~ /^#\s*SUBJECT:\s*(\S.*)$/)
       {
@@ -2298,10 +2505,26 @@ sub _on_listing
         $section->set_subject ($subject);
         $got_subject = 1;
       }
+      elsif ($line =~ /#\s*MESSAGE_BEGIN\s*/)
+      {
+        unless ($patch->get_sections_count ())
+        {
+          $pc->die ("'MESSAGE_BEGIN' clause needs to follow the 'SECTION' clause");
+        }
+        if ($got_message)
+        {
+          $pc->die ("Multiple 'MESSAGE_BEGIN' clauses for a single 'SECTION' clause");
+        }
+        $stage = 'section-message';
+        $got_message = 1;
+      }
+      elsif ($line =~ /#\s*MESSAGE_END\s*/)
+      {
+        $pc->die ("'MESSAGE_END' clause without 'MESSAGE_BEGIN'");
+      }
       elsif ($line =~ /^\s+\S/a)
       {
         my $sections_count = $patch->get_sections_count ();
-
 
         unless ($sections_count)
         {
@@ -2312,6 +2535,23 @@ sub _on_listing
       else
       {
         $pc->die ("Unknown line in sections.");
+      }
+    }
+    elsif ($stage eq 'section-message')
+    {
+      if ($line =~ /#\s*MESSAGE_END\s*/)
+      {
+        $stage = 'sections';
+      }
+      elsif ($line =~ /^#/)
+      {
+        $pc->die ("Expected either a comment or MESSAGE_END clause or commit message linie");
+      }
+      else
+      {
+        my $section = @{$patch->get_sections_ordered ()}[-1];
+
+        $section->add_message_line ($line);
       }
     }
     elsif ($stage eq 'listing')
