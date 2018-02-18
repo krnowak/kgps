@@ -37,6 +37,7 @@ do
     if ! "${splitter}" \
          --input-patch "${testdir}/test.patch" \
          --output-directory "${patchesdir}" \
+         --git-patches \
          >"${debugdir}/splitter-output" 2>&1
     then
         failreasons+=("splitter failed to process the patch")
