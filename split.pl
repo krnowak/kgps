@@ -1607,13 +1607,16 @@ sub _get_diff_git_header
   my $index_from = $header->get_index_from ();
   my $index_to = $header->get_index_to ();
 
-  # XXX: We probably don't have to worry about undefined action here -
-  # probably binary patches are always additions or deletions. Not
-  # sure, though. Still, no such case in my ordinary use.
+  if (defined ($action))
+  {
+    return join ("\n",
+                 "diff --git $a $b",
+                 "$action mode $mode",
+                 "index $index_from..$index_to");
+  }
   return join ("\n",
                "diff --git $a $b",
-               "$action mode $mode",
-               "index $index_from..$index_to");
+               "index $index_from..$index_to $mode");
 }
 
 sub _get_raw_lines
