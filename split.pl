@@ -251,13 +251,13 @@ package Section;
 
 sub new
 {
-  my ($type, $name, $description, $index) = @_;
+  my ($type, $name, $index) = @_;
   my $class = (ref ($type) or $type or 'Section');
   my $self =
   {
     'name' => $name,
-    'description' => $description,
-    'index' => $index
+    'index' => $index,
+    'subject' => undef,
   };
 
   $self = bless ($self, $class);
@@ -272,18 +272,25 @@ sub get_name
   return $self->{'name'};
 }
 
-sub get_description
-{
-  my ($self) = @_;
-
-  return $self->{'description'};
-}
-
 sub get_index
 {
   my ($self) = @_;
 
   return $self->{'index'};
+}
+
+sub get_subject
+{
+  my ($self) = @_;
+
+  return $self->{'subject'};
+}
+
+sub set_subject
+{
+  my ($self, $subject) = @_;
+
+  $self->{'subject'} = $subject;
 }
 
 sub is_older_than
@@ -2245,16 +2252,16 @@ sub _on_listing
   my $pc = $self->_get_pc ();
   my $listing_started = 0;
   my $patch = $pc->get_patch ();
+  my $got_subject = 0;
 
   while (1)
   {
     $self->_read_next_line_or_die ();
     my $line = $pc->get_line ();
     last if ($line eq '');
-    if ($line =~ /^#\s*SECTION:\s*(\w+)\s+-\s+(\S.*)$/a)
+    if ($line =~ /^#\s*SECTION:\s*(\w+)\s*$/a)
     {
       my $name = $1;
-      my $description = $2;
 
       if ($listing_started)
       {
@@ -2262,12 +2269,31 @@ sub _on_listing
       }
 
       my $sections_count = $patch->get_sections_count ();
-      my $section = Section->new ($name, $description, $sections_count);
+      my $section = Section->new ($name, $sections_count);
 
       unless ($patch->add_section ($section))
       {
         $pc->die ("Section '$name' specified twice.");
       }
+      $got_subject = 0;
+    }
+    elsif ($line =~ /^#\s*SUBJECT:\s*(\S.*)$/)
+    {
+      my $subject = $1;
+
+      unless ($patch->get_sections_count ())
+      {
+        $pc->die ("'SUBJECT' clause needs to follow the 'SECTION' clause");
+      }
+      if ($got_subject)
+      {
+        $pc->die ("Multiple 'SUBJECT' clauses for a single 'SECTION' clause");
+      }
+
+      my $section = @{$patch->get_sections_ordered ()}[-1];
+
+      $section->set_subject ($subject);
+      $got_subject = 1;
     }
     elsif ($line =~ /^ \S/)
     {
