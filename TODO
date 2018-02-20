@@ -10,8 +10,6 @@ make splitter a bit smarter about the before and after context
   - same for after context and the section for the last changed line
   - make the above unnecessary
 
-when generating location markers, skip the line count if it is 1
-
 rename the basic test to something with location markers
 
 add a separate test for the big gnome patch?

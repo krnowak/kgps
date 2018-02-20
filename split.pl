@@ -1648,15 +1648,29 @@ sub _lines_to_string
 sub _marker_to_string
 {
   my ($self, $marker) = @_;
-  my $raw = '@@ -' . $marker->get_old_line_no () . ',' . $marker->get_old_line_count () . ' +' . $marker->get_new_line_no () . ',' . $marker->get_new_line_count () . ' @@';
+  my @parts = ();
+  my $old_line_count = $marker->get_old_line_count ();
+  my $new_line_count = $marker->get_new_line_count ();
   my $inline_context = $marker->get_inline_context ();
+
+  push (@parts, '@@ -', $marker->get_old_line_no ());
+  if ($old_line_count != 1)
+  {
+    push (@parts, ',', $old_line_count);
+  }
+  push (@parts, ' +', $marker->get_new_line_no ());
+  if ($new_line_count != 1)
+  {
+    push (@parts, ',', $new_line_count);
+  }
+  push (@parts, ' @@');
 
   if (defined ($inline_context))
   {
-    $raw .= ' ' . $inline_context;
+    push (@parts, ' ', $inline_context);
   }
 
-  return $raw;
+  return join ('', @parts);
 }
 
 1;
