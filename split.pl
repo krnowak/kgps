@@ -2857,7 +2857,7 @@ sub _handle_text_patch
 
         if (defined ($code) and $code->get_section ()->get_name () eq $name)
         {
-          # ignore the sections line.
+          # ignore the sections line, we already are in this section.
         }
         else
         {
