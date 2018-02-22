@@ -2223,24 +2223,30 @@ sub _on_intro
 {
   my ($self) = @_;
   my $pc = $self->_get_pc ();
-  my $found_author = 0;
+  my $stage = 'search-for-author';
 
-  while (1)
+  while ($stage ne 'done')
   {
     $self->_read_next_line_or_die ();
     my $line = $pc->get_line ();
-    last if ($line eq '');
-    if ($line =~ /^From:\s*(\S.*)$/)
+    if ($self->_line_is_comment ($line))
     {
-      my $author = $1;
-      my $patch = $pc->get_patch ();
-
-      if ($found_author)
+      # just a comment, skip it
+    }
+    elsif ($stage eq 'search-for-author')
+    {
+      if ($line =~ /^\s*From:\s*(\S.*)$/)
       {
-        $pc->die ("Two 'From: ' lines in intro.");
+        $pc->get_patch ()->set_author ($1);
+        $stage = 'search-for-empty-line';
       }
-      $patch->set_author ($author);
-      $found_author = 1;
+    }
+    elsif ($stage eq 'search-for-empty-line')
+    {
+      if ($line eq '')
+      {
+        $stage = 'done';
+      }
     }
   }
   $pc->set_mode ('listing');
@@ -2250,64 +2256,78 @@ sub _on_listing
 {
   my ($self) = @_;
   my $pc = $self->_get_pc ();
-  my $listing_started = 0;
   my $patch = $pc->get_patch ();
+  my $stage = 'sections';
   my $got_subject = 0;
 
-  while (1)
+  while ($stage ne 'done')
   {
     $self->_read_next_line_or_die ();
     my $line = $pc->get_line ();
-    last if ($line eq '');
-    if ($line =~ /^#\s*SECTION:\s*(\w+)\s*$/a)
+    if ($self->_line_is_comment ($line))
     {
-      my $name = $1;
-
-      if ($listing_started)
-      {
-        $pc->die ("SECTION comment mixed with listing.");
-      }
-
-      my $sections_count = $patch->get_sections_count ();
-      my $section = Section->new ($name, $sections_count);
-
-      unless ($patch->add_section ($section))
-      {
-        $pc->die ("Section '$name' specified twice.");
-      }
-      $got_subject = 0;
+      # just a comment, skip it
     }
-    elsif ($line =~ /^#\s*SUBJECT:\s*(\S.*)$/)
+    elsif ($stage eq 'sections')
     {
-      my $subject = $1;
-
-      unless ($patch->get_sections_count ())
+      if ($line =~ /^#\s*SECTION:\s*(\w+)\s*$/a)
       {
-        $pc->die ("'SUBJECT' clause needs to follow the 'SECTION' clause");
+        my $name = $1;
+        my $sections_count = $patch->get_sections_count ();
+        my $section = Section->new ($name, $sections_count);
+
+        unless ($patch->add_section ($section))
+        {
+          $pc->die ("Section '$name' specified twice.");
+        }
+        $got_subject = 0;
       }
-      if ($got_subject)
+      elsif ($line =~ /^#\s*SUBJECT:\s*(\S.*)$/)
       {
-        $pc->die ("Multiple 'SUBJECT' clauses for a single 'SECTION' clause");
+        my $subject = $1;
+        unless ($patch->get_sections_count ())
+        {
+          $pc->die ("'SUBJECT' clause needs to follow the 'SECTION' clause");
+        }
+        if ($got_subject)
+        {
+          $pc->die ("Multiple 'SUBJECT' clauses for a single 'SECTION' clause");
+        }
+        my $section = @{$patch->get_sections_ordered ()}[-1];
+
+        $section->set_subject ($subject);
+        $got_subject = 1;
       }
+      elsif ($line =~ /^\s+\S/a)
+      {
+        my $sections_count = $patch->get_sections_count ();
 
-      my $section = @{$patch->get_sections_ordered ()}[-1];
 
-      $section->set_subject ($subject);
-      $got_subject = 1;
+        unless ($sections_count)
+        {
+          $pc->die ("No sections specified.");
+        }
+        $stage = 'listing';
+      }
+      else
+      {
+        $pc->die ("Unknown line in sections.");
+      }
     }
-    elsif ($line =~ /^ \S/)
+    elsif ($stage eq 'listing')
     {
-      my $sections_count = $patch->get_sections_count ();
-
-      unless ($sections_count)
+      if ($line =~ /^ \S/)
       {
-        $pc->die ("No sections specified.");
+        # listing line, skip it
       }
-      $listing_started = 1;
-    }
-    else
-    {
-      $pc->die ("Unknown line in listing.");
+      elsif ($line eq '')
+      {
+        $stage = 'done';
+      }
+      else
+      {
+        $pc->die ("Unknown line in listing.");
+      }
     }
   }
   $pc->set_mode ('rest');
