@@ -3025,6 +3025,54 @@ sub _get_pc
 
 package main;
 
+sub generate_old_patches {
+  my ($p, $output_directory) = @_;
+  my $list_name = File::Spec->catfile ($output_directory, 'patches.list');
+  my $patch_list_file = IO::File->new ($list_name, 'w');
+
+  unless (defined ($patch_list_file))
+  {
+    die "Could not open '$list_name' for writing.";
+  }
+
+  foreach my $entry (@{$p->get_raw_diffs ()})
+  {
+    my $diff = join ('', @{$entry->{'diffs'}});
+    my $section = $entry->{'section'};
+    my $section_name = $section->get_name ();
+    my $patch_name = "$section_name.patch";
+    my $patch_file = File::Spec->catfile ($output_directory, $patch_name);
+    my $file = IO::File->new ($patch_file, 'w');
+
+    unless (defined ($file))
+    {
+      die "Could not open '$patch_file' for writing.";
+    }
+
+    $file->binmode (':utf8');
+    $file->print ($diff);
+
+    $patch_list_file->binmode (':utf8');
+    $patch_list_file->say ($patch_name);
+    $patch_list_file->say ($section->get_subject ());
+    if (exists ($entry->{'modes'}))
+    {
+      my $modes = $entry->{'modes'};
+
+      $patch_list_file->say (scalar (@{$modes}));
+      foreach my $mode (@{$modes})
+      {
+        $patch_list_file->say ($mode->{'mode'});
+        $patch_list_file->say ($mode->{'file'});
+      }
+    }
+    else
+    {
+      $patch_list_file->say ('0');
+    }
+  }
+}
+
 my $input_patch = 'old-gnome-3.4.patch';
 my $output_directory = '.';
 
@@ -3051,48 +3099,6 @@ if ($mp_error && @{$mp_error})
 }
 
 my $p = GnomePatch->new ();
-my $list_name = File::Spec->catfile ($output_directory, 'patches.list');
-my $patch_list_file = IO::File->new ($list_name, 'w');
-
-unless (defined ($patch_list_file))
-{
-  die "Could not open '$list_name' for writing.";
-}
 
 $p->process ($input_patch);
-foreach my $entry (@{$p->get_raw_diffs ()})
-{
-  my $diff = join ('', @{$entry->{'diffs'}});
-  my $section = $entry->{'section'};
-  my $section_name = $section->get_name ();
-  my $patch_name = "$section_name.patch";
-  my $patch_file = File::Spec->catfile ($output_directory, $patch_name);
-  my $file = IO::File->new ($patch_file, 'w');
-
-  unless (defined ($file))
-  {
-    die "Could not open '$patch_file' for writing.";
-  }
-
-  $file->binmode (':utf8');
-  $file->print ($diff);
-
-  $patch_list_file->binmode (':utf8');
-  $patch_list_file->say ($patch_name);
-  $patch_list_file->say ($section->get_description ());
-  if (exists ($entry->{'modes'}))
-  {
-    my $modes = $entry->{'modes'};
-
-    $patch_list_file->say (scalar (@{$modes}));
-    foreach my $mode (@{$modes})
-    {
-      $patch_list_file->say ($mode->{'mode'});
-      $patch_list_file->say ($mode->{'file'});
-    }
-  }
-  else
-  {
-    $patch_list_file->say ('0');
-  }
-}
+generate_old_patches ($p, $output_directory);
