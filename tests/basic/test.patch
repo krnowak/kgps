@@ -1,11 +1,20 @@
+#COMMENT:blah blah
+# COMMENT: blah blah
+#  COMMENT:  blah blah
+##yadda yadda
+# #yadda yadda
+# # yadda yadda
+#  #  yadda yadda
 From 783e74e9e54c066c1e0939b714ddc84fdd0bd194 Mon Sep 17 00:00:00 2001
 From: Krzesimir Nowak <qdlacz@gmail.com>
 Date: Sun, 11 Feb 2018 00:07:08 +0100
 Subject: [PATCH] foo
 
 ---
-# SECTION: ADD_B - Add "b"
-# SECTION: ADD_C - Add "c"
+# SECTION: ADD_B
+# SUBJECT: Add "b"
+# SECTION: ADD_C
+# SUBJECT: Add "c"
  foo | 2 ++
  1 file changed, 2 insertions(+)
 
