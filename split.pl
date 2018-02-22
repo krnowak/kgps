@@ -1187,9 +1187,16 @@ sub _postprocess_vfunc
   my $inner_index_last = @{$sections_array} - 1;
   my $outer_section_index = undef;
   my $raw = {};
+  my $git_raw = {};
   my $final_inner_correction = LocationMarker->new_zero ();
   my $mode = $header->get_mode ();
   my $mode_section_index = 0;
+  # Git version of a special header for sections doing the file
+  # creation or deletion.
+  my $git_header_outer = $self->_get_git_unidiff_header_for_outer ($header);
+  # Git version of a typical header for section doing some changes to
+  # a file.
+  my $git_header_inner = $self->_get_git_unidiff_header_for_inner ($header);
 
   unless (defined ($action))
   {
@@ -1251,7 +1258,7 @@ sub _postprocess_vfunc
     my $outer_section_name = $sections_array->[$outer_section_index]->get_name ();
 
     $raw->{$outer_section_name} = $self->_get_raw_text_for_final_codes ($header_outer, $for_raw->{$outer_section_name});
-
+    $git_raw->{$outer_section_name} = $self->_get_raw_text_for_final_codes ($git_header_outer, $for_raw->{$outer_section_name});
   }
 
   my @inner_sections_slice = @{$sections_array}[$inner_index_first .. $inner_index_last];
@@ -1270,6 +1277,7 @@ sub _postprocess_vfunc
 
     next unless (@{$final_codes});
     $raw->{$section_name} = $self->_get_raw_text_for_final_codes ($header_inner, $final_codes);
+    $git_raw->{$section_name} = $self->_get_raw_text_for_final_codes ($git_header_inner, $final_codes);
   }
 
   if (defined ($mode))
@@ -1277,10 +1285,10 @@ sub _postprocess_vfunc
     my $section_name = $sections_array->[$mode_section_index]->get_name ();
     my $changed_file = $self->_get_changed_file ();
 
-    return {'mode' => {'section' => $section_name, 'mode' => $mode, 'file' => $changed_file}, 'raw' => $raw};
+    return {'mode' => {'section' => $section_name, 'mode' => $mode, 'file' => $changed_file}, 'raw' => $raw, 'git-raw' => $git_raw};
   }
 
-  return {'raw' => $raw};
+  return {'raw' => $raw, 'git-raw' => $git_raw};
 }
 
 sub _get_unidiff_header_for_outer
@@ -1294,6 +1302,34 @@ sub _get_unidiff_header_for_outer
                "+++ $to");
 }
 
+sub _get_git_unidiff_header_for_outer
+{
+  my ($self, $header) = @_;
+  my $from = $self->_maybe_prefix ('a', $self->get_from ());
+  my $to = $self->_maybe_prefix ('b', $self->get_to ());
+  my $action = $header->get_action ();
+  my $mode = $header->get_mode ();
+  my @lines = (
+    "diff --git $from $to"
+  );
+
+  if (defined ($action))
+  {
+    push (@lines,
+          "$action mode $mode",
+          "index 111111..222222");
+  }
+  else
+  {
+    push (@lines,
+          "index 111111..222222 $mode");
+  }
+  push (@lines,
+        "--- $from",
+        "+++ $to");
+  return join ("\n", @lines);
+}
+
 sub _get_unidiff_header_for_inner
 {
   my ($self) = @_;
@@ -1302,6 +1338,21 @@ sub _get_unidiff_header_for_inner
   my $to = $self->_maybe_prefix ('b', $file);
 
   return join ("\n",
+               "--- $from",
+               "+++ $to");
+}
+
+sub _get_git_unidiff_header_for_inner
+{
+  my ($self, $header) = @_;
+  my $file = $self->_get_changed_file ();
+  my $from = $self->_maybe_prefix ('a', $file);
+  my $to = $self->_maybe_prefix ('b', $file);
+  my $mode = $header->get_mode ();
+
+  return join ("\n",
+               "diff --git $from $to",
+               "index 111111..222222 $mode",
                "--- $from",
                "+++ $to");
 }
@@ -1651,8 +1702,13 @@ sub _postprocess_vfunc
                   "GIT binary patch",
                   @{$self->_get_raw_lines ($code->get_lines ())},
                   "");
+  my $raw_diff = {$name => $raw};
+  my $raw_diffs_and_modes = {
+    'raw' => $raw_diff,
+    'git-raw' => $raw_diff
+  };
 
-  return {'raw' => {$name => $raw}};
+  return $raw_diffs_and_modes;
 }
 
 sub _get_diff_git_header
@@ -1868,10 +1924,22 @@ sub add_raw_diffs_and_mode
   {
     unless (exists ($raw_diffs_and_modes->{$section_name}))
     {
-      $raw_diffs_and_modes->{$section_name} = {'diffs' => []};
+      $raw_diffs_and_modes->{$section_name} = {'diffs' => [], 'git-diffs' => []};
     }
 
     push (@{$raw_diffs_and_modes->{$section_name}->{'diffs'}}, $diffs->{$section_name});
+  }
+
+  my $git_diffs = $diffs_and_mode->{'git-raw'};
+
+  foreach my $section_name (keys (%{$git_diffs}))
+  {
+    unless (exists ($raw_diffs_and_modes->{$section_name}))
+    {
+      $raw_diffs_and_modes->{$section_name} = {'diffs' => [], 'git-diffs' => []};
+    }
+
+    push (@{$raw_diffs_and_modes->{$section_name}->{'git-diffs'}}, $git_diffs->{$section_name});
   }
 
   if (exists ($diffs_and_mode->{'mode'}))
@@ -1920,13 +1988,14 @@ sub get_ordered_sectioned_raw_diffs_and_modes
       my $diffs_and_modes =
       {
         'diffs' => $raw_diffs_and_modes->{$section_name}->{'diffs'},
+        'git-diffs' => $raw_diffs_and_modes->{$section_name}->{'git-diffs'},
         'section' => $section
       };
+
       if (exists ($raw_diffs_and_modes->{$section_name}->{'modes'}))
       {
         $diffs_and_modes->{'modes'} = $raw_diffs_and_modes->{$section_name}->{'modes'};
       }
-
       push (@sectioned_diffs_and_modes, $diffs_and_modes);
     }
   }
@@ -2268,7 +2337,8 @@ sub new
   my $class = (ref ($type) or $type or 'GnomePatch');
   my $self =
   {
-    'raw_diffs' => {}
+    'raw_diffs' => {},
+    'default_data' => {}
   };
 
   $self = bless ($self, $class);
@@ -2281,6 +2351,13 @@ sub get_raw_diffs
   my ($self) = @_;
 
   return $self->{'raw_diffs'};
+}
+
+sub get_default_data
+{
+  my ($self) = @_;
+
+  return $self->{'default_data'};
 }
 
 sub process
@@ -3011,6 +3088,12 @@ sub _cleanup
   my $patch = $pc->get_patch ();
 
   $self->{'raw_diffs'} = $patch->get_ordered_sectioned_raw_diffs_and_modes ();
+  $self->{'default_data'} = {
+    'author' => $patch->get_author (),
+    'subject' => $patch->get_subject (),
+    'from_date' => $patch->get_from_date (),
+    'patch_date' => $patch->get_patch_date (),
+  };
   delete ($self->{'p_c'});
 }
 
@@ -3024,6 +3107,88 @@ sub _get_pc
 1;
 
 package main;
+
+sub generate_git_patches {
+  my ($p, $output_directory) = @_;
+  my $default_data = $p->get_default_data ();
+  my $entries = $p->get_raw_diffs ();
+  my $patches_count = @{$entries};
+
+  foreach my $entry (@{$entries})
+  {
+    my $diff = join ('', @{$entry->{'git-diffs'}});
+    my $section = $entry->{'section'};
+    my $section_name = $section->get_name ();
+    my $patch_index = $section->get_index () + 1;
+    my $number = sprintf ("%04d", $patch_index);
+    my $subject = $section->get_subject ();
+
+    unless (defined ($subject))
+    {
+      $subject = $default_data->{'subject'};
+      unless (defined ($subject))
+      {
+        die "no subject for section $section_name";
+      }
+    }
+
+    my $subject_for_patch_name = $subject;
+    $subject_for_patch_name =~ s/[^\w.]+/-/ag;
+    $subject_for_patch_name =~ s/^-+//ag;
+    $subject_for_patch_name =~ s/-+$//ag;
+    $subject_for_patch_name = substr ($subject_for_patch_name, 0, 52);
+
+    my $patch_name = "$number-$subject_for_patch_name.patch";
+    my $patch_file = File::Spec->catfile ($output_directory, $patch_name);
+    my $file = IO::File->new ($patch_file, 'w');
+
+    unless (defined ($file))
+    {
+      die "Could not open '$patch_file' for writing.";
+    }
+
+    my $from_date = $default_data->{'from_date'};
+    my $author = $section->get_author ();
+    unless (defined ($author))
+    {
+      $author = $default_data->{'author'};
+      unless (defined ($author))
+      {
+        die "no author for section $section_name";
+      }
+    }
+
+    my $patch_date = $section->get_date ();
+    unless (defined ($patch_date))
+    {
+      $patch_date = $default_data->{'patch_date'};
+      unless (defined ($patch_date))
+      {
+        die "no patch date for section $section_name";
+      }
+    }
+
+    chomp($diff);
+    my $contents = join ("\n",
+                         "From 1111111111111111111111111111111111111111 $from_date",
+                         "From: $author",
+                         "Date: $patch_date",
+                         "Subject: [PATCH $patch_index/$patches_count] $subject",
+                         '',
+                         '---',
+                         ' stats | 1 +',
+                         ' 1 file changed, 1 insertion(+)',
+                         '',
+                         $diff,
+                         '-- ',
+                         '0.0.0',
+                         '',
+                         '');
+
+    $file->binmode (':utf8');
+    $file->print ($contents);
+  }
+}
 
 sub generate_old_patches {
   my ($p, $output_directory) = @_;
@@ -3075,9 +3240,11 @@ sub generate_old_patches {
 
 my $input_patch = 'old-gnome-3.4.patch';
 my $output_directory = '.';
+my $git_patches = 0;
 
 GetOptions ('output-directory=s' => \$output_directory,
-            'input-patch=s' => \$input_patch) or die ('Error in command line arguments');
+            'input-patch=s' => \$input_patch,
+            'git-patches' => \$git_patches) or die ('Error in command line arguments');
 
 my $mp_error;
 make_path($output_directory, {'error' => \$mp_error});
@@ -3101,4 +3268,11 @@ if ($mp_error && @{$mp_error})
 my $p = GnomePatch->new ();
 
 $p->process ($input_patch);
-generate_old_patches ($p, $output_directory);
+if ($git_patches)
+{
+  generate_git_patches ($p, $output_directory);
+}
+else
+{
+  generate_old_patches ($p, $output_directory);
+}

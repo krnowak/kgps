@@ -1,5 +1,3 @@
-generate git patches
-
 dec functions are wrong (they do ++ instead of --)
 
 maybe add color output to test.sh
