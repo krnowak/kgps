@@ -17,3 +17,5 @@ add a separate test for the big gnome patch?
 make regexes more robust by matching the trailing whitespace. strip the whitespace.
 
 drop this TODO, move the issues to github
+
+check if `stat --format='%a %F'` gives the same results when comparing git repo contents
