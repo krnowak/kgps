@@ -94,12 +94,12 @@ function git_strip_patch
             if [[ ${line} = 'From '* ]]
             then
                 sed -e 's/[a-f0-9]\{40\}/1111111111111111111111111111111111111111/' <<<"${line}" >>"${target_path}"
-            elif [[ ${line} == '---' ]]
-            then
-                stage='listing'
-                echo "${line}" >>"${target_path}"
             else
                 echo "${line}" >>"${target_path}"
+                if [[ ${line} == '---' ]]
+                then
+                    stage='listing'
+                fi
             fi
         elif [[ $stage = 'listing' ]]
         then
