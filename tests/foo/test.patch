@@ -1,0 +1,72 @@
+From 27d8ceb4894e14a2399323a21bd9ea343cf94fbe Mon Sep 17 00:00:00 2001
+From: Krzesimir Nowak <qdlacz@gmail.com>
+Date: Sat, 24 Feb 2018 20:37:55 +0100
+Subject: [PATCH] bar
+
+---
+#SECTION: ADD_A
+# SUBJECT: Add "a"
+#SECTION: ADD_B
+# SUBJECT: Add "b"
+#SECTION: ADD_C
+# SUBJECT: Add "c"
+ foo | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+
+diff --git a/foo b/foo
+index d9a0a57..fc341f3 100644
+--- a/foo
++++ b/foo
+@@ -1,13 +1,31 @@
+#SECTION: ADD_A
+ zz
++aa
+#SECTION: ADD_B
++bb
+#SECTION: ADD_C
++cc
+ zz
+ zz
+#SECTION: ADD_A
++aa
+#SECTION: ADD_C
++cc
+#SECTION: ADD_B
++bb
+ zz
+ zz
+#SECTION: ADD_B
++bb
+#SECTION: ADD_A
++aa
+#SECTION: ADD_C
++cc
+ zz
+ zz
+#SECTION: ADD_B
++bb
+#SECTION: ADD_C
++cc
+#SECTION: ADD_A
++aa
+ zz
+ zz
+#SECTION: ADD_C
++cc
+#SECTION: ADD_A
++aa
+#SECTION: ADD_B
++bb
+ zz
+ zz
+#SECTION: ADD_C
++cc
+#SECTION: ADD_B
++bb
+#SECTION: ADD_A
++aa
+ zz
+ zz
+-- 
+2.14.3
+

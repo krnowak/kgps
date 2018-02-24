@@ -1,0 +1,47 @@
+From 1111111111111111111111111111111111111111 Mon Sep 17 00:00:00 2001
+From: Krzesimir Nowak <qdlacz@gmail.com>
+Date: Sat, 24 Feb 2018 20:37:55 +0100
+Subject: [PATCH 3/3] Add "c"
+
+---
+ stats | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/foo b/foo
+index 111111..222222 100644
+--- a/foo
++++ b/foo
+@@ -1,24 +1,30 @@
+ zz
+ aa
+ bb
++cc
+ zz
+ zz
+ aa
++cc
+ bb
+ zz
+ zz
+ bb
+ aa
++cc
+ zz
+ zz
+ bb
++cc
+ aa
+ zz
+ zz
++cc
+ aa
+ bb
+ zz
+ zz
++cc
+ bb
+ aa
+ zz
+-- 
+0.0.0
+
