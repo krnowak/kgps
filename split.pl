@@ -1876,7 +1876,6 @@ sub new
     'unread_lines' => [],
     'previous_lines' => [],
     'patch' => Patch->new (),
-    'patches' => [],
     'current_diff_header' => undef
   };
 
@@ -2131,13 +2130,6 @@ sub exhaust_the_file
   my ($self) = @_;
 
   while ($self->read_next_line ()) {};
-}
-
-sub get_patches
-{
-  my ($self) = @_;
-
-  return $self->{'patches'};
 }
 
 sub get_current_diff_header
