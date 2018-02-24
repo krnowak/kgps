@@ -2928,6 +2928,7 @@ sub _cleanup
     'subject' => $patch->get_subject (),
     'from_date' => $patch->get_from_date (),
     'patch_date' => $patch->get_patch_date (),
+    'message' => $patch->get_message_lines (),
   };
   delete ($self->{'p_c'});
 }
@@ -3003,6 +3004,13 @@ sub generate_git_patches {
       }
     }
 
+    my $message_lines = $section->get_message_lines ();
+    unless (defined ($message_lines))
+    {
+      $message_lines = $default_data->{'message'};
+      # This is never undef, it can be just an empty arrayref.
+    }
+
     chomp($diff);
     my $contents = join ("\n",
                          "From 1111111111111111111111111111111111111111 $from_date",
@@ -3010,6 +3018,7 @@ sub generate_git_patches {
                          "Date: $patch_date",
                          "Subject: [PATCH $patch_index/$patches_count] $subject",
                          '',
+                         @{$message_lines},
                          '---',
                          ' stats | 1 +',
                          ' 1 file changed, 1 insertion(+)',

@@ -10,9 +10,15 @@ From: Krzesimir Nowak <qdlacz@gmail.com>
 Date: Sun, 11 Feb 2018 00:07:08 +0100
 Subject: [PATCH] foo
 
+Patch
+commit
+message
 ---
 # SECTION: ADD_B
 # SUBJECT: Add "b"
+# MESSAGE_BEGIN
+This commit adds b.
+# MESSAGE_END
 # SECTION: ADD_C
 # SUBJECT: Add "c"
  foo | 2 ++
