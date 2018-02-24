@@ -1,6 +1,13 @@
 #!/usr/bin/bash
 
+# exit on first failure
 set -e
+# fail on expanding unset variable
+set -u
+# print shell input line as they are read
+#set -v
+# expand commands
+#set -x
 
 dir=$(dirname $0)
 splitter="${dir}/split.pl"
