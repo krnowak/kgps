@@ -152,6 +152,20 @@ function git_patch_diff
 
 shopt -s nullglob globstar failglob
 
+red=''
+green=''
+uncolor=''
+bold=''
+unbold=''
+if [[ -t 1 ]]
+then
+    red='\e[31m'
+    green='\e[32m'
+    uncolor='\e[39m'
+    bold='\e[1m'
+    unbold='\e[21m'
+fi
+
 mkdir -p "${allresultsdir}"
 rm -f "${resultsdirbase}-latest"
 ln -s "${allresultsdir}" "${resultsdirbase}-latest"
@@ -187,8 +201,8 @@ do
     gittestpatch="${debugdir}/test.patch"
     if [[ "${name}" == 'SKIP'* ]]
     then
-        echo "${name} SKIP"
         echo 'SKIP' >"${statusfile}"
+        echo -e "${name} ${bold}SKIP${unbold}"
         continue
     fi
     failreasons=()
@@ -305,14 +319,14 @@ do
     then
         exitstatus=1
         echo 'FAILURE' >"${statusfile}"
-        echo "${name} FAILURE"
+        echo -e "${name} ${red}${bold}FAILURE${unbold}${uncolor}"
         for reason in "${failreasons[@]}"
         do
             echo "  - ${reason}" | tee --append "${debugdir}/reasons"
         done
     else
         echo 'SUCCESS' >"${statusfile}"
-        echo "${name} SUCCESS"
+        echo -e "${name} ${green}${bold}SUCCESS${unbold}${uncolor}"
     fi
 done
 exit ${exitstatus}
