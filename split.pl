@@ -1499,8 +1499,7 @@ sub _get_raw_text_for_final_codes
 
   return join ("\n",
                $header,
-               @raw_codes,
-               '');
+               @raw_codes);
 }
 
 sub _get_raw_text_for_final_code
@@ -3011,7 +3010,6 @@ sub generate_git_patches {
       # This is never undef, it can be just an empty arrayref.
     }
 
-    chomp($diff);
     my $contents = join ("\n",
                          "From 1111111111111111111111111111111111111111 $from_date",
                          "From: $author",
