@@ -980,6 +980,857 @@ sub postprocess
 
 1;
 
+package TextFileStatSignsBase;
+
+sub new
+{
+  my ($type) = @_;
+  my $class = (ref ($type) or $type or 'TextFileStatSignsBase');
+  my $self = {};
+
+  $self = bless ($self, $class);
+
+  return $self;
+}
+
+sub fill_context_info
+{
+  my ($self, $stat_render_context) = @_;
+
+  $self->_fill_context_info_vfunc ($stat_render_context);
+}
+
+sub to_string
+{
+  my ($self, $stat_render_context) = @_;
+
+  return $self->_to_string_vfunc ($stat_render_context);
+}
+
+1;
+
+package TextFileStatSignsReal;
+
+use parent -norequire, qw(TextFileStatSignsBase);
+
+sub new
+{
+  my ($type, $insertions, $deletions) = @_;
+  my $class = (ref ($type) or $type or 'TextFileStatSignsReal');
+  my $self = $class->SUPER::new ();
+
+  $self->{'insertions'} = $insertions;
+  $self->{'deletions'} = $deletions;
+  $self = bless ($self, $class);
+
+  return $self;
+}
+
+sub _fill_context_info_vfunc
+{
+  my ($self, $stat_render_context) = @_;
+  my $total = $self->_get_insertions () + $self->_get_deletions ();
+
+  $stat_render_context->feed_lines_changed_count ($total);
+}
+
+sub _to_string_vfunc
+{
+  my ($self, $stat_render_context) = @_;
+  my $insertions = $self->_get_insertions ();
+  my $deletions = $self->_get_deletions ();
+  my $total = $insertions + $deletions;
+
+  return $stat_render_context->render_text_rest ($total, $insertions, $deletions);
+}
+
+sub _get_insertions
+{
+  my ($self) = @_;
+
+  return $self->{'insertions'};
+}
+
+sub _get_deletions
+{
+  my ($self) = @_;
+
+  return $self->{'deletions'};
+}
+
+1;
+
+# FileStatBase contains information about single file modification. It
+# is a base package for representation of a line like:
+#
+# foo/file | 26 +
+#
+# or
+#
+# bar/file | Bin 64 -> 0 bytes
+package FileStatBase;
+
+use constant
+{
+  RelevantNo => 0,
+  RelevantYes => 1,
+  RelevantMaybe => 2
+};
+
+sub new
+{
+  my ($type, $path) = @_;
+  my $class = (ref ($type) or $type or 'FileStatBase');
+  my $self = {
+    'path' => $path
+  };
+
+  $self = bless ($self, $class);
+
+  return $self;
+}
+
+sub get_path
+{
+  my ($self) = @_;
+
+  return $self->{'path'};
+}
+
+sub is_relevant_for_path
+{
+  my ($self, $full_path) = @_;
+  my $path = $self->get_path ();
+
+  if ($path eq $full_path)
+  {
+    return RelevantYes;
+  }
+
+  my (undef, $full_dir, $full_basename) = File::Spec->splitpath ($full_path);
+  my (undef, $dir, $basename) = File::Spec->splitpath ($path);
+
+  if ($basename ne $full_basename)
+  {
+    return RelevantNo;
+  }
+
+  my @full_dirs = reverse (File::Spec->splitdir ($full_dir));
+  my @dirs = reverse (File::Spec->splitdir ($dir));
+  my $last_idx = scalar (@full_dirs);
+  if ($last_idx > scalar (@dirs))
+  {
+    $last_idx = scalar (@dirs);
+  }
+  # We want index of last item in the array so decrement by one. We
+  # want to skip comparing last item in the array, because it may be
+  # '...', so decrement by one again.
+  $last_idx -= 2;
+
+  for my $idx (0 .. $last_idx)
+  {
+    if ($full_dirs[$idx] ne $dirs[$idx])
+    {
+      return RelevantNo;
+    }
+  }
+  if ($dirs[$last_idx + 1] eq '...')
+  {
+    return RelevantMaybe;
+  }
+  if (scalar (@dirs) != scalar (@full_dirs))
+  {
+    return RelevantNo;
+  }
+  if ($dirs[$last_idx + 1] ne $full_dirs[$last_idx + 1])
+  {
+    return RelevantNo;
+  }
+
+  return RelevantYes;
+}
+
+sub fill_context_info
+{
+  my ($self, $stat_render_context) = @_;
+
+  $stat_render_context->feed_path_length (length ($self->get_path ()));
+  $self->_fill_context_info_vfunc ($stat_render_context);
+}
+
+sub to_string
+{
+  my ($self, $stat_render_context) = @_;
+
+  return $self->_to_string_vfunc ($stat_render_context);
+}
+
+1;
+
+# TextFileStat contains information stored in line like:
+#
+# foo/file | 26 +
+package TextFileStat;
+
+use parent -norequire, qw(FileStatBase);
+
+sub new
+{
+  my ($type, $path, $signs) = @_;
+  my $class = (ref ($type) or $type or 'TextFileStat');
+  my $self = $class->SUPER::new ($path);
+
+  $self->{'signs'} = $signs;
+  $self = bless ($self, $class);
+
+  return $self;
+}
+
+sub get_lines_changed_count
+{
+  my ($self) = @_;
+
+  return $self->{'lines_changed_count'};
+}
+
+sub _fill_context_info_vfunc
+{
+  my ($self, $stat_render_context) = @_;
+  my $signs = $self->_get_signs ();
+
+  $signs->fill_context_info ($stat_render_context);
+}
+
+sub _to_string_vfunc
+{
+  my ($self, $stat_render_context) = @_;
+  my $signs = $self->_get_signs ();
+
+  return $signs->to_string ($stat_render_context);
+}
+
+sub _get_signs
+{
+  my ($self) = @_;
+
+  return $self->{'signs'};
+}
+
+1;
+
+package NewAndGoneDetails;
+
+use constant
+{
+  Create => 0,
+  Delete => 1
+};
+
+sub new
+{
+  my ($type, $action, $mode) = @_;
+  my $class = (ref ($type) or $type or 'NewAndGoneDetails');
+  my $self = {
+    'action' => $action,
+    'mode' => $mode
+  };
+
+  $self = bless ($self, $class);
+
+  return $self;
+}
+
+sub get_action
+{
+  my ($self) = @_;
+
+  return $self->{'action'};
+}
+
+sub get_mode
+{
+  my ($self) = @_;
+
+  return $self->{'mode'};
+}
+
+1;
+
+# BinaryFileStat contains information stored in line like:
+#
+# bar/file | Bin 64 -> 0 bytes
+package BinaryFileStat;
+
+use parent -norequire, qw(FileStatBase);
+
+sub new
+{
+  my ($type, $path, $from_size, $to_size) = @_;
+  my $class = (ref ($type) or $type or 'BinaryFileStat');
+  my $self = $class->SUPER::new ($path);
+
+  $self->{'from_size'} = $from_size;
+  $self->{'to_size'} = $to_size;
+  $self = bless ($self, $class);
+
+  return $self;
+}
+
+sub get_from_size
+{
+  my ($self) = @_;
+
+  return $self->{'from_size'};
+}
+
+sub get_to_size
+{
+  my ($self) = @_;
+
+  return $self->{'to_size'};
+}
+
+sub _fill_context_info_vfunc
+{
+  my ($self, $stat_render_context) = @_;
+}
+
+sub _to_string_vfunc
+{
+  my ($self, $stat_render_context) = @_;
+  my $from_size = $self->get_from_size ();
+  my $to_size = $self->get_to_size ();
+  my $bytes_word = 'bytes';
+
+  if ($to_size == 0)
+  {
+    chop ($bytes_word);
+  }
+
+  return "Bin $from_size -> $to_size $bytes_word";
+}
+
+1;
+
+package TextFileStatSignsDrawn;
+
+use parent -norequire, qw(TextFileStatSignsBase);
+
+sub new
+{
+  my ($type, $lines_changed_count, $plus_count, $minus_count) = @_;
+  my $class = (ref ($type) or $type or 'TextFileStatSignsDrawn');
+  my $self = $class->SUPER::new ();
+
+  $self->{'lines_changed_count'} = $lines_changed_count;
+  $self->{'plus_count'} = $plus_count;
+  $self->{'minus_count'} = $minus_count;
+  $self = bless ($self, $class);
+
+  return $self;
+}
+
+sub _fill_context_info_vfunc
+{
+  my ($self, $stat_render_context) = @_;
+  my $lines_changed_count = $self->_get_lines_changed_count ();
+
+  $stat_render_context->feed_lines_changed_count ($lines_changed_count);
+}
+
+sub _to_string_vfunc
+{
+  my ($self, $stat_render_context) = @_;
+
+  return '';
+}
+
+sub _get_lines_changed_count
+{
+  my ($self) = @_;
+
+  return $self->{'lines_changed_count'};
+}
+
+1;
+
+# BasenameStats contains information about modifications of all file
+# with certain basename. So for changes like:
+#
+# foo/file | 26 +
+# bar/file | Bin 64 -> 0 bytes
+# bar/aaaa | 2  +-
+#
+# one BasenameStats instance will contain information about foo/file
+# and bar/file, and another instance - about bar/aaaa.
+package BasenameStats;
+
+sub new
+{
+  my ($type) = @_;
+
+  return _new_with_stats ($type, {});
+}
+
+sub get_bin_stats_for_basename
+{
+  my ($self, $basename) = @_;
+  my $stats = $self->_get_stats ();
+  my $bin_stats = [];
+
+  if (exists ($stats->{$basename}))
+  {
+    for my $stat (@{$stats->{$basename}})
+    {
+      # bleh
+      if ($stat->isa ('BinaryFileStat'))
+      {
+        push (@{$bin_stats}, $stat);
+      }
+    }
+  }
+
+  return $bin_stats;
+}
+
+sub add_stat
+{
+  my ($self, $stat) = @_;
+  my $stats = $self->_get_stats ();
+  my $path = $stat->get_path ();
+  my $basename = (File::Spec->splitpath ($path))[2];
+
+  unless (exists ($stats->{$basename}))
+  {
+    $stats->{$basename} = [];
+  }
+
+  push (@{$stats->{$basename}}, $stat);
+}
+
+sub add_file_stats
+{
+  my ($self, $path, $stats_line) = @_;
+  my $stat = undef;
+
+  if ($stats_line =~ /^\s*(\d+) (\+*)(-*)$/a)
+  {
+    my $plus_count = 0;
+    my $minus_count = 0;
+
+    if (defined ($2))
+    {
+      $plus_count = length ($2);
+    }
+    if (defined ($3))
+    {
+      $minus_count = length ($3);
+    }
+
+    my $signs = TextFileStatSignsDrawn->new ($1, $plus_count, $minus_count);
+
+    $stat = TextFileStat->new ($path, $signs);
+  }
+  elsif ($stats_line =~ /^Bin (\d+) -> \d+ bytes?$/)
+  {
+    $stat = BinaryFileStat->new ($path, $1, $2);
+  }
+
+  unless (defined ($stat))
+  {
+    return 0;
+  }
+
+  $self->add_stat ($stat);
+  return 1;
+}
+
+sub merge
+{
+  my ($self, $other) = @_;
+  my $self_stats = $self->_get_stats ();
+  my $other_stats = $other->_get_stats ();
+  my $merged_stats = {};
+
+  for my $basename (keys (%{$self_stats}), keys (%{$other_stats}))
+  {
+    my $self_array = [];
+    my $other_array = [];
+
+    if (exists ($self_stats->{$basename}))
+    {
+      $self_array = $self_stats->{$basename};
+    }
+    if (exists ($other_stats->{$basename}))
+    {
+      $self_array = $other_stats->{$basename};
+    }
+
+    $merged_stats->{$basename} = [@{$self_array}, @{$other_array}];
+  }
+
+  return BasenameStats->_new_with_stats ($merged_stats);
+}
+
+sub fill_context_info
+{
+  my ($self, $stat_render_context) = @_;
+
+  for my $file_stats (values (%{$self->_get_stats ()}))
+  {
+    for my $file_stat (@{$file_stats})
+    {
+      $file_stat->fill_context_info ($stat_render_context);
+    }
+  }
+}
+
+sub to_lines
+{
+  my ($self, $stat_render_context) = @_;
+  my %all_stats = ();
+
+  for my $file_stats (values (%{$self->_get_stats ()}))
+  {
+    for my $file_stat (@{$file_stats})
+    {
+      $all_stats{$file_stat->get_path ()} = $file_stat;
+    }
+  }
+
+  my @lines = ();
+  for my $path (sort (keys (%all_stats)))
+  {
+    my $file_stat = $all_stats{$path};
+
+    push (@lines, $stat_render_context->render_stat ($file_stat));
+  }
+
+  return @lines;
+}
+
+sub _get_stats
+{
+  my ($self) = @_;
+
+  return $self->{'stats'};
+}
+
+sub _new_with_stats
+{
+  my ($type, $stats) = @_;
+  my $class = (ref ($type) or $type or 'BasenameStats');
+  my $self = {
+    # basename to array of FileStatBase
+    'stats' => $stats,
+  };
+
+  $self = bless ($self, $class);
+
+  return $self;
+}
+
+1;
+
+package ListingSummary;
+
+sub new
+{
+  my ($type) = @_;
+
+  return _new_with_numbers ($type, 0, 0, 0);
+}
+
+sub get_files_changed_count
+{
+  my ($self) = @_;
+
+  return $self->{'files_changed_count'};
+}
+
+sub set_files_changed_count
+{
+  my ($self, $count) = @_;
+
+  $self->{'files_changed_count'} = $count;
+}
+
+sub get_insertions
+{
+  my ($self) = @_;
+
+  return $self->{'insertions'};
+}
+
+sub set_insertions
+{
+  my ($self, $count) = @_;
+
+  $self->{'insertions'} = $count;
+}
+
+sub get_deletions
+{
+  my ($self) = @_;
+
+  return $self->{'deletions'};
+}
+
+sub set_deletions
+{
+  my ($self, $count) = @_;
+
+  $self->{'deletions'} = $count;
+}
+
+sub merge
+{
+  my ($self, $other) = @_;
+  my $merged_files_changed_count = $self->get_files_changed_count () + $other->get_files_changed_count ();
+  my $merged_insertions = $self->get_insertions () + $other->get_insertions ();
+  my $merged_deletions = $self->get_deletions () + $other->get_deletions ();
+
+  return ListingSummary->_new_with_numbers ($merged_files_changed_count, $merged_insertions, $merged_deletions);
+}
+
+sub to_string
+{
+  my ($self) = @_;
+  my $files_changed_count = $self->get_files_changed_count ();
+  my $insertions = $self->get_insertions ();
+  my $deletions = $self->get_deletions ();
+  my $files_word = 'files';
+
+  if ($files_changed_count == 1)
+  {
+    chop ($files_word);
+  }
+
+  my $files_changed_part = " $files_changed_count $files_word changed";
+  my $insertions_word = 'insertions';
+
+  if ($insertions == 1)
+  {
+    chop ($insertions_word);
+  }
+
+  my $insertions_part = '';
+
+  if ($insertions > 0 or $deletions == 0)
+  {
+    $insertions_part = ", $insertions $insertions_word(+)";
+  }
+
+  my $deletions_word = 'deletions';
+
+  if ($deletions == 1)
+  {
+    chop ($deletions_word);
+  }
+
+  my $deletions_part = '';
+
+  if ($deletions > 0 or $insertions == 0)
+  {
+    $deletions_part = ", $deletions $deletions_word(-)";
+  }
+
+  return "$files_changed_part$insertions_part$deletions_part";
+}
+
+sub _new_with_numbers
+{
+  my ($type, $files_changed_count, $insertions, $deletions) = @_;
+  my $class = (ref ($type) or $type or 'ListingSummary');
+  my $self = {
+    'files_changed_count' => $files_changed_count,
+    'insertions' => $insertions,
+    'deletions' => $deletions
+  };
+
+  $self = bless ($self, $class);
+
+  return $self;
+}
+
+1;
+
+package NewAndGoneFiles;
+
+sub new
+{
+  my ($type) = @_;
+
+  return _new_with_files ($type, {});
+}
+
+sub add_details
+{
+  my ($self, $path, $details) = @_;
+  my $files = $self->_get_files ();
+
+  if (exists ($files->{$path}))
+  {
+    return 0;
+  }
+
+  $files->{$path} = $details;
+
+  return 1;
+}
+
+sub get_details_for_path
+{
+  my ($self, $path) = @_;
+  my $files = $self->_get_files ();
+
+  unless (exists ($files->{$path}))
+  {
+    return undef;
+  }
+
+  return $files->{$path};
+}
+
+sub merge
+{
+  my ($self, $other) = @_;
+  my $self_files = $self->_get_files ();
+  my $other_files = $other->_get_files ();
+  my $merged_files = { %{$self_files}, %{$other_files} };
+
+  if (scalar (keys (%{$merged_files})) != scalar (keys (%{$self_files})) + scalar (keys (%{$other_files})))
+  {
+    return undef;
+  }
+
+  return NewAndGoneFiles->_new_with_files ($merged_files);
+}
+
+sub to_lines
+{
+  my ($self) = @_;
+  my $files = $self->_get_files ();
+  my @lines = ();
+
+  for my $path (sort (keys (%{$files})))
+  {
+    my $details = $files->{$path};
+    my $action = $details->get_action ();
+    my $mode = $details->get_mode ();
+    my $action_str = '';
+
+    if ($action == NewAndGoneDetails::Create)
+    {
+      $action_str = 'create';
+    }
+    elsif ($action == NewAndGoneDetails::Delete)
+    {
+      $action_str = 'delete';
+    }
+    else
+    {
+      die;
+    }
+
+    push (@lines, " $action_str mode $mode $path");
+  }
+
+  return @lines;
+}
+
+sub _get_files
+{
+  my ($self) = @_;
+
+  return $self->{'files'};
+}
+
+sub _new_with_files
+{
+  my ($type, $files) = @_;
+  my $class = (ref ($type) or $type or 'NewAndGoneFiles');
+  my $self = {
+    # path to NewAndGoneDetails
+    'files' => $files
+  };
+
+  $self = bless ($self, $class);
+
+  return $self;
+}
+
+1;
+
+# ListingInfo contains the listing information of the patch. So it is
+# a representation of lines in the patch like:
+#
+# .htaccess | 26 +
+# gedit     | Bin 64 -> 0 bytes
+# 1 file changed, 26 insertions(+), 0 deletions(-)
+# delete mode 100755 gedit
+package ListingInfo;
+
+sub new
+{
+  my ($type) = @_;
+
+  return _new_with_items ($type, BasenameStats->new (), ListingSummary->new (), NewAndGoneFiles->new ());
+}
+
+sub get_per_basename_stats
+{
+  my ($self) = @_;
+
+  return $self->{'per_basename_stats'};
+}
+
+sub get_summary
+{
+  my ($self) = @_;
+
+  return $self->{'summary'};
+}
+
+sub get_new_and_gone_files
+{
+  my ($self) = @_;
+
+  return $self->{'new_and_gone_files'};
+}
+
+sub merge
+{
+  my ($self, $other) = @_;
+  my $merged_per_basename_stats = $self->get_per_basename_stats ()->merge ($other->get_per_basename_stats ());
+  my $merged_summary = $self->get_summary ()->merge ($other->get_summary ());
+  my $merged_new_and_gone_files = $self->get_new_and_gone_files ()->merge ($other->get_new_and_gone_files ());
+
+  unless (defined ($merged_per_basename_stats) and defined ($merged_summary) and defined ($merged_new_and_gone_files))
+  {
+    return undef;
+  }
+
+  return ListingInfo->_new_with_items ($merged_per_basename_stats, $merged_summary, $merged_new_and_gone_files);
+}
+
+sub _new_with_items
+{
+  my ($type, $per_basename_stats, $summary, $new_and_gone_files) = @_;
+  my $class = (ref ($type) or $type or 'ListingInfo');
+  my $self = {
+    'per_basename_stats' => $per_basename_stats,
+    'summary' => $summary,
+    'new_and_gone_files' => $new_and_gone_files,
+  };
+
+  $self = bless ($self, $class);
+
+  return $self;
+}
+
+1;
+
 # TextDiff is a representation of a single diff of a text file.
 package TextDiff;
 
@@ -2156,6 +3007,189 @@ sub get_current_diff_header_or_die
   }
 
   return $diff_header;
+}
+
+1;
+
+package StatRenderContext;
+
+use constant
+{
+  PrefixSpaceLength => 1,
+
+  MaxFileStatPathLength => 50,
+  MaxFileStatLineLength => 79
+};
+
+sub new
+{
+  my ($type) = @_;
+  my $class = (ref ($type) or $type or 'StatRenderContext');
+  my $self = {
+    'longest_path_length' => 0,
+    'greatest_lines_changed_count' => 0,
+    'locked' => 0,
+    'max_signs_count' => 0,
+    'max_lines_changed_count_length' => 0,
+  };
+
+  $self = bless ($self, $class);
+
+  return $self;
+}
+
+sub feed_path_length
+{
+  my ($self, $length) = @_;
+
+  $self->_die_if_locked ();
+
+  my $old_length = $self->_get_longest_path_length ();
+
+  if ($length > $old_length)
+  {
+    my $new_length = $length;
+    if ($new_length > MaxFileStatPathLength)
+    {
+      $new_length = MaxFileStatPathLength;
+    }
+    if ($new_length > $old_length)
+    {
+      $self->_set_longest_path_length ($new_length);
+    }
+  }
+}
+
+sub feed_lines_changed_count
+{
+  my ($self, $count) = @_;
+
+  $self->_die_if_locked ();
+
+  my $old_count = $self->_get_greatest_lines_changed_count ();
+
+  if ($count > $old_count)
+  {
+    $self->_set_greatest_lines_changed_count ($count);
+  }
+}
+
+sub render_stat
+{
+  my ($self, $file_stat) = @_;
+
+  $self->_lock ();
+
+  my $path = $self->_shorten_path_if_needed ($file_stat->get_path ());
+  my $rest = $file_stat->to_string ($self);
+
+  return sprintf (' %-*2$s | %3$s', $path, $self->_get_longest_path_length (), $rest);
+}
+
+sub _log10plus1
+{
+  my ($num) = @_;
+
+  my $ln = log ($num);
+  my $l10 = log (10);
+  my $l10n = $ln / $l10;
+  my $result = sprintf("%d", $l10n) + 1;
+
+  return $result;
+}
+
+sub render_text_rest
+{
+  my ($self, $changed_lines_count, $plus_count, $minus_count) = @_;
+  my $count_length = _log10plus1 ($self->_get_greatest_lines_changed_count ());
+  my $pluses = '+' x $plus_count;
+  my $minuses = '-' x $minus_count;
+  my $str = sprintf ('%*2$d %3$s%4$s', $changed_lines_count, $count_length, $pluses, $minuses);
+
+  return $str;
+}
+
+sub _shorten_path_if_needed
+{
+  my ($self, $path) = @_;
+  my $limit = $self->_get_longest_path_length ();
+  my $path_length = length ($path);
+
+  while (length ($path) > $limit)
+  {
+    my (undef, $dir, $basename) = File::Spec->splitpath ($path);
+    my @dirs = File::Spec->splitdir ($dir);
+
+    if (scalar (@dirs) > 0)
+    {
+      if ($dirs[0] eq '...')
+      {
+        shift (@dirs);
+      }
+    }
+    else
+    {
+      last;
+    }
+
+    if (scalar (@dirs) > 0)
+    {
+      shift (@dirs);
+      unshift (@dirs, '...');
+    }
+    else
+    {
+      last;
+    }
+    $path = File::Spec->catfile (@dirs, $basename);
+  }
+
+  return $path;
+}
+
+sub _get_longest_path_length
+{
+  my ($self) = @_;
+
+  return $self->{'longest_path_length'};
+}
+
+sub _set_longest_path_length
+{
+  my ($self, $length) = @_;
+
+  $self->{'longest_path_length'} = $length;
+}
+
+sub _get_greatest_lines_changed_count
+{
+  my ($self) = @_;
+
+  return $self->{'greatest_lines_changed_count'};
+}
+
+sub _set_greatest_lines_changed_count
+{
+  my ($self, $count) = @_;
+
+  $self->{'greatest_lines_changed_count'} = $count;
+}
+
+sub _die_if_locked
+{
+  my ($self) = @_;
+
+  if ($self->{'locked'})
+  {
+    die;
+  }
+}
+
+sub _lock
+{
+  my ($self) = @_;
+
+  $self->{'locked'} = 1;
 }
 
 1;
