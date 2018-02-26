@@ -2066,11 +2066,15 @@ sub _postprocess_vfunc
     $final_inner_correction->inc_new_line_no ();
   }
 
+  my $stats = {};
+
   if (defined ($outer_section_index))
   {
     my $outer_section_name = $sections_array->[$outer_section_index]->get_name ();
+    my $final_codes = $for_raw->{$outer_section_name};
 
-    $git_raw->{$outer_section_name} = $self->_get_raw_text_for_final_codes ($git_header_outer, $for_raw->{$outer_section_name});
+    $git_raw->{$outer_section_name} = $self->_get_raw_text_for_final_codes ($git_header_outer, $final_codes);
+    $stats->{$outer_section_name} = $self->_get_stats_for_final_codes ($final_codes);
   }
 
   my @inner_sections_slice = @{$sections_array}[$inner_index_first .. $inner_index_last];
@@ -2372,6 +2376,61 @@ sub _lines_to_string
   return map { CodeLine::get_char ($_->get_sigil ()) . $_->get_line () } @{$lines};
 }
 
+sub _get_stats_for_final_codes
+{
+  my ($self, $final_codes) = @_;
+  my $listing_info = ListingInfo->new ();
+  my $per_basename_stats = $listing_info->get_per_basename_stats ();
+  my $summary = $listing_info->get_summary ();
+  my $new_and_gone_files = $listing_info->get_new_and_gone_files ();
+  my $header = $self->get_header ();
+  my $mode = $header->get_mode ();
+  my $insertions = 0;
+  my $deletions = 0;
+
+  for my $final_code (@{$final_codes})
+  {
+    for my $line (@{$final_code->get_lines ()})
+    {
+      my $sigil = $line->get_sigil ();
+      my $raw_sign = CodeLine::get_char ($sigil);
+      my $code_line = $line->get_line ();
+
+      if ($sigil == CodeLine::Plus)
+      {
+        ++$insertions;
+      }
+      elsif ($sigil == CodeLine::Minus)
+      {
+        ++$deletions;
+      }
+    }
+  }
+
+  my $signs = TextFileStatSignsReal->new ($insertions, $deletions);
+  my $path = $self->_get_changed_file ();
+
+  $summary->set_files_changed_count (1);
+  $summary->set_insertions ($insertions);
+  $summary->set_deletions ($deletions);
+  $per_basename_stats->add_stat (TextFileStat->new ($path, $signs));
+
+  if ($self->get_from () eq '/dev/null')
+  {
+    my $details = NewAndGoneDetails->new (NewAndGoneDetails::Create, $mode);
+
+    $new_and_gone_files->add_details ($self->get_to (), $details);
+  }
+  elsif ($self->get_to () eq '/dev/null')
+  {
+    my $details = NewAndGoneDetails->new (NewAndGoneDetails::Delete, $mode);
+
+    $new_and_gone_files->add_details ($self->get_from (), $details);
+  }
+
+  return $listing_info;
+}
+
 sub _marker_to_string
 {
   my ($self, $marker) = @_;
@@ -2414,6 +2473,7 @@ sub new
   my $self = $class->SUPER::new ();
 
   $self->{'code'} = undef;
+  $self->{'listing_info'} = undef;
   $self = bless ($self, $class);
 
   return $self;
@@ -2433,6 +2493,20 @@ sub set_code
   $self->{'code'} = $code;
 }
 
+sub get_listing_info
+{
+  my ($self) = @_;
+
+  return $self->{'listing_info'};
+}
+
+sub set_listing_info
+{
+  my ($self, $listing_info) = @_;
+
+  $self->{'listing_info'} = $listing_info;
+}
+
 sub _postprocess_vfunc
 {
   my ($self, $sections_array, $sections_hash) = @_;
@@ -2444,8 +2518,61 @@ sub _postprocess_vfunc
                   @{$self->_get_raw_lines ($code->get_lines ())},
                   "");
   my $raw_diff = {$name => $raw};
+  my $big_listing_info = $self->get_listing_info ();
+  my $big_new_and_gone_files = $big_listing_info->new_and_gone_files ();
+  my $big_per_basename_stats = $big_listing_info->get_per_basename_stats ();
+  my $listing_info = ListingInfo->new ();
+  my $per_basename_stats = $listing_info->get_per_basename_stats ();
+  my $summary = $listing_info->get_summary ();
+  my $new_and_gone_files = $listing_info->new_and_gone_files ();
+  my $header = $self->get_header ();
+  my $path = $header->get_a ();
+  my $details_from_big = $big_new_and_gone_files->get_details_for_path ($path);
+  my $basename = (File::Spec->splitpath ($path))[2];
+  my $maybe_relevant = undef;
+
+  for my $bin_stat (@{$big_per_basename_stats->get_bin_stats_for_basename ($basename)})
+  {
+    my $relevancy = $bin_stat->is_relevant_for_path ($path);
+
+    if ($relevancy == FileStatBase::RelevantYes)
+    {
+      $per_basename_stats->add_stat ($bin_stat);
+      $maybe_relevant = undef;
+      last;
+    }
+    if ($relevancy == FileStatBase::RelevantMaybe)
+    {
+      if (defined ($maybe_relevant))
+      {
+        # Meh, warn about ambiguity in overlong paths, maybe consider
+        # adding a helper to GIT binary patch section.
+        #
+        # Try more heuristics with checking if the file is created or
+        # deleted. Created files usually have from size 0, and deleted
+        # files have to size 0.
+      }
+      else
+      {
+        $maybe_relevant = BinaryFileStat->new ($path, $bin_stat->get_from_size, $bin_stat->get_to_size ());
+      }
+    }
+  }
+  if (defined ($maybe_relevant))
+  {
+    $per_basename_stats->add_stat ($maybe_relevant);
+  }
+
+  $summary->set_files_changed_count (1);
+  if (defined ($details_from_big))
+  {
+    $new_and_gone_files->add_details ($path, $details_from_big);
+  }
+
+  my $stats = {$name => $listing_info};
   my $raw_diffs_and_modes = {
-    'git-raw' => $raw_diff
+    'git-raw' => $raw_diff,
+    'stats' => $stats
   };
 
   return $raw_diffs_and_modes;
@@ -2659,15 +2786,33 @@ sub add_raw_diffs_and_mode
   my ($self, $diffs_and_mode) = @_;
   my $raw_diffs_and_modes = $self->get_raw_diffs_and_modes ();
   my $git_diffs = $diffs_and_mode->{'git-raw'};
+  my $stats = $diffs_and_mode->{'stats'};
 
   foreach my $section_name (keys (%{$git_diffs}))
   {
     unless (exists ($raw_diffs_and_modes->{$section_name}))
     {
-      $raw_diffs_and_modes->{$section_name} = {'git-diffs' => []};
+      $raw_diffs_and_modes->{$section_name} = {'git-diffs' => [], 'stats' => ListingInfo->new ()};
     }
 
     push (@{$raw_diffs_and_modes->{$section_name}->{'git-diffs'}}, $git_diffs->{$section_name});
+  }
+
+  foreach my $section_name (keys (%{$stats}))
+  {
+    unless (exists ($raw_diffs_and_modes->{$section_name}))
+    {
+      $raw_diffs_and_modes->{$section_name} = {'git-diffs' => [], 'stats' => ListingInfo->new ()};
+    }
+
+    my $new_listing = $raw_diffs_and_modes->{$section_name}->{'stats'}->merge ($stats->{$section_name});
+
+    unless (defined ($new_listing))
+    {
+      # TODO: just die.
+      next;
+    }
+    $raw_diffs_and_modes->{$section_name}->{'stats'} = $new_listing;
   }
 }
 
@@ -2687,7 +2832,8 @@ sub get_ordered_sectioned_raw_diffs_and_modes
       my $diffs_and_modes =
       {
         'git-diffs' => $raw_diffs_and_modes->{$section_name}->{'git-diffs'},
-        'section' => $section
+        'section' => $section,
+        'stats' => $raw_diffs_and_modes->{$section_name}->{'stats'}
       };
       push (@sectioned_diffs_and_modes, $diffs_and_modes);
     }
@@ -3205,6 +3351,7 @@ sub new
   my $class = (ref ($type) or $type or 'GnomePatch');
   my $self =
   {
+    'listing_info' => ListingInfo->new (),
     'raw_diffs' => {},
     'default_data' => {}
   };
@@ -3212,6 +3359,13 @@ sub new
   $self = bless ($self, $class);
 
   return $self;
+}
+
+sub get_listing_info
+{
+  my ($self) = @_;
+
+  return $self->{'listing_info'};
 }
 
 sub get_raw_diffs
@@ -3371,6 +3525,7 @@ sub _on_listing
   my ($self) = @_;
   my $pc = $self->_get_pc ();
   my $patch = $pc->get_patch ();
+  my $listing_info = $self->get_listing_info ();
   my $stage = 'sections';
   my $got_author = 0;
   my $got_date = 0;
@@ -3475,7 +3630,7 @@ sub _on_listing
         {
           $pc->die ("No sections specified.");
         }
-        $stage = 'listing';
+        $stage = 'listing-per-file';
       }
       else
       {
@@ -3499,11 +3654,47 @@ sub _on_listing
         $section->add_message_line ($line);
       }
     }
-    elsif ($stage eq 'listing')
+    elsif ($stage eq 'listing-per-file')
     {
-      if ($line =~ /^ \S/)
+      if ($line =~ /^ (.*) \| (.*)$/)
       {
-        # listing line, skip it
+        my $basename_stats = $listing_info->get_per_basename_stats ();
+
+        unless ($basename_stats->add_file_stats ($1, $2))
+        {
+          $pc->die ("Invalid file stats line");
+        }
+      }
+      elsif ($line =~ /^ (\d+) files? changed(?:, (\d+) insertions?\(\+\))?(?:, (\d+) deletions?\(-\))?/a)
+      {
+        my $summary = $listing_info->get_summary ();
+
+        $summary->set_files_changed_count ($1);
+        if (defined ($2))
+        {
+          $summary->set_insertions ($2);
+        }
+        if (defined ($3))
+        {
+          $summary->set_deletions ($3);
+        }
+        $stage = 'listing-new-and-gone-files'
+      }
+      else
+      {
+        $pc->die ("Unknown line in listing, expected either file stats or changes summary");
+      }
+    }
+    elsif ($stage eq 'listing-new-and-gone-files')
+    {
+      if ($line =~ /^ (\w+) mode (\d+) (.+)$/)
+      {
+        my $new_and_gone_files = $listing_info->get_new_and_gone_files ();
+        my $details = NewAndGoneDetails->new ($1, $2);
+        unless ($new_and_gone_files->add_details ($3, $details))
+        {
+          $pc->die ("Duplicated new or gone file details for path '$3'");
+        }
       }
       elsif ($line eq '')
       {
@@ -3511,7 +3702,7 @@ sub _on_listing
       }
       else
       {
-        $pc->die ("Unknown line in listing.");
+        $pc->die ("Unknown line in listing, expected new or gone file details");
       }
     }
   }
@@ -3823,6 +4014,7 @@ sub _handle_binary_patch
   my $patch = $pc->get_patch ();
 
   $diff->set_header ($diff_header);
+  $diff->set_listing_info ($self->get_listing_info ());
   while ($pc->read_next_line ())
   {
     my $line = $pc->get_line ();
