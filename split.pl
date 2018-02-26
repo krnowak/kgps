@@ -2093,9 +2093,10 @@ sub _postprocess_vfunc
 
     next unless (@{$final_codes});
     $git_raw->{$section_name} = $self->_get_raw_text_for_final_codes ($git_header_inner, $final_codes);
+    $stats->{$section_name} = $self->_get_stats_for_final_codes ($final_codes);
   }
 
-  return {'git-raw' => $git_raw};
+  return {'git-raw' => $git_raw, 'stats' => $stats};
 }
 
 sub _get_git_unidiff_header_for_outer
@@ -4179,6 +4180,7 @@ sub generate_git_patches {
   {
     my $diff = join ('', @{$entry->{'git-diffs'}});
     my $section = $entry->{'section'};
+    my $stats = $entry->{'stats'};
     my $section_name = $section->get_name ();
     my $patch_index = $section->get_index () + 1;
     my $number = sprintf ("%04d", $patch_index);
@@ -4236,6 +4238,13 @@ sub generate_git_patches {
       # This is never undef, it can be just an empty arrayref.
     }
 
+    my $stat_render_context = StatRenderContext->new ();
+    my $per_basename_stats = $stats->get_per_basename_stats ();
+    my $summary = $stats->get_summary ();
+    my $new_and_gone_files = $stats->get_new_and_gone_files ();
+
+    $per_basename_stats->fill_context_info ($stat_render_context);
+
     my $contents = join ("\n",
                          "From 1111111111111111111111111111111111111111 $from_date",
                          "From: $author",
@@ -4244,8 +4253,9 @@ sub generate_git_patches {
                          '',
                          @{$message_lines},
                          '---',
-                         ' stats | 1 +',
-                         ' 1 file changed, 1 insertion(+)',
+                         $per_basename_stats->to_lines ($stat_render_context),
+                         $summary->to_string (),
+                         $new_and_gone_files->to_lines (),
                          '',
                          $diff,
                          '-- ',
