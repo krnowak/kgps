@@ -103,10 +103,10 @@ function git_strip_patch
             fi
         elif [[ $stage = 'listing' ]]
         then
+            echo "${line}" >>"${target_path}"
             if [[ -z $line ]]
             then
                 stage='diffs'
-                echo '' >>"${target_path}"
             fi
         elif [[ $stage = 'diffs' ]]
         then
