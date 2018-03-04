@@ -4,8 +4,8 @@ Date: Sat, 24 Feb 2018 20:37:55 +0100
 Subject: [PATCH 2/3] Add "b"
 
 ---
- stats | 1 +
- 1 file changed, 1 insertion(+)
+ foo | 6 ++++++
+ 1 file changed, 6 insertions(+)
 
 diff --git a/foo b/foo
 index 111111..222222 100644

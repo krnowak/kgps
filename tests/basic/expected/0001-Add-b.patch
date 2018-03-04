@@ -5,7 +5,7 @@ Subject: [PATCH 1/2] Add "b"
 
 This commit adds b.
 ---
- stats | 1 +
+ foo | 1 +
  1 file changed, 1 insertion(+)
 
 diff --git a/foo b/foo
