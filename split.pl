@@ -13,6 +13,7 @@ use v5.16;
 use File::Path qw(make_path);
 use File::Spec;
 use IO::File;
+use Scalar::Util;
 
 # LocationMarker is a representation of a line that describes a
 # location of a chunk of changed code. These are lines in a patch that
@@ -127,6 +128,13 @@ sub inc_old_line_no
   ++$self->{'old_line_no'};
 }
 
+sub dec_old_line_no
+{
+  my ($self) = @_;
+
+  --$self->{'old_line_no'};
+}
+
 sub set_old_line_count
 {
   my ($self, $old_line_count) = @_;
@@ -167,6 +175,13 @@ sub inc_new_line_no
   my ($self) = @_;
 
   ++$self->{'new_line_no'};
+}
+
+sub dec_new_line_no
+{
+  my ($self) = @_;
+
+  --$self->{'new_line_no'};
 }
 
 sub set_new_line_count
@@ -729,6 +744,65 @@ sub get_section
   my ($self) = @_;
 
   return $self->{'section'};
+}
+
+1;
+
+package OverlapInfo;
+
+sub new
+{
+  my ($type) = @_;
+  my $class = (ref ($type) or $type or 'OverlapInfo');
+  my $self = {
+    'codes' => []
+  };
+
+  $self = bless ($self, $class);
+
+  return $self;
+}
+
+sub get_section_overlapped_codes
+{
+  my ($self) = @_;
+
+  return $self->{'codes'};
+}
+
+sub push_section_overlapped_code
+{
+  my ($self, $section_overlapped_code) = @_;
+  my $codes = $self->get_section_overlapped_codes ();
+
+  push (@{$codes}, $section_overlapped_code);
+  Scalar::Util::weaken ($codes->[-1]);
+}
+
+1;
+
+package SectionOverlappedCode;
+
+use parent -norequire, qw(SectionCode);
+
+sub new
+{
+  my ($type, $section, $overlap_info) = @_;
+  my $class = (ref ($type) or $type or 'SectionOverlappedCode');
+  my $self = $class->SUPER::new ($section);
+
+  $self->{'overlap_info'} = $overlap_info;
+  $self = bless ($self, $class);
+
+  $overlap_info->push_section_overlapped_code ($self);
+  return $self;
+}
+
+sub get_overlap_info
+{
+  my ($self) = @_;
+
+  return $self->{'overlap_info'};
 }
 
 1;
@@ -1918,7 +1992,19 @@ sub _postprocess_vfunc
 
     foreach my $code (@{$cluster->get_section_codes ()})
     {
-      $self->_handle_section_overlapped_code ($code, $markers, $before_contexts, $sections_hash, $final_codes);
+      # bleh
+      if ($code->isa ('SectionOverlappedCode'))
+      {
+        $self->_handle_section_overlapped_code ($code, $markers, $before_contexts, $sections_hash, $final_codes);
+      }
+      elsif ($code->isa ('SectionCode'))
+      {
+        $self->_handle_section_code ($code, $markers, $before_contexts, $sections_hash, $final_codes);
+      }
+      else
+      {
+        die 'SHOULD NOT HAPPEN'
+      }
     }
 
     # Cleanup context of each final code and try to merge every
@@ -2278,6 +2364,238 @@ sub _adapt_markers
       }
     }
   }
+}
+
+sub _handle_section_overlapped_code
+{
+  my ($self, $code, $markers, $before_contexts, $sections_hash, $final_codes) = @_;
+  my $section = $code->get_section ();
+  my $section_name = $section->get_name ();
+  my $lines_of_end_context_count = 0;
+  my $final_marker = $markers->{$section_name}->clone ();
+  my $final_code = FinalCode->new ($final_marker);
+  my $overlap_info = $code->get_overlap_info ();
+
+  # Setup initial context for final code - will be used when
+  # cleaning up context of the final code later.
+  {
+    my @context_copy = @{$before_contexts->{$section_name}};
+
+    $final_code->set_before_context (\@context_copy);
+  }
+  # Reset final code's marker line counts to zero. They will be
+  # updated as we iterate through lines in code chunk.
+  $final_marker->set_old_line_count (0);
+  $final_marker->set_new_line_count (0);
+
+  foreach my $line (@{$code->get_lines ()})
+  {
+    $final_code->push_line ($line->get_sigil (), $line->get_line ());
+    # Adapt markers for other sections.
+    $self->_adapt_overlapping_markers ($section, $line, $markers, $sections_hash, $overlap_info);
+    # Adapt marker for current final code.
+    $self->_adapt_final_marker ($line, $final_marker);
+    # Adapt initial contexts for other sections.
+    $self->_adapt_overlapping_before_contexts ($section, $line, $before_contexts, $sections_hash, $overlap_info);
+    # Maybe push an after context to previous final codes. Will be
+    # used when cleaning up context of each final code later.
+    $self->_push_overlapping_after_context ($section, $line, $final_codes, $sections_hash, $overlap_info);
+  }
+  push (@{$final_codes->{$section_name}}, $final_code);
+}
+
+sub _adapt_overlapping_markers
+{
+  my ($self, $current_section, $current_line, $markers, $sections_hash, $overlap_info) = @_;
+  my @all_section_names = keys (%{$markers});
+  my $sections_between_overlapping = $self->_get_sections_between_overlapping ($current_section, $overlap_info, $sections_hash);
+  my $sigil = $current_line->get_sigil ();
+  my $current_section_marker = $markers->{$current_section->get_name ()};
+
+  if ($sigil == CodeLine::Plus)
+  {
+    $current_section_marker->inc_new_line_no ();
+  }
+  elsif ($sigil == CodeLine::Minus)
+  {
+    $current_section_marker->inc_old_line_no ()
+  }
+  elsif ($sigil == CodeLine::Space)
+  {
+    $current_section_marker->inc_old_line_no ();
+    $current_section_marker->inc_new_line_no ();
+  }
+
+  foreach my $section (@{$sections_between_overlapping})
+  {
+    my $section_name = $section->get_name ();
+    my $marker = $markers->{$section_name};
+
+    if ($sigil == CodeLine::Plus)
+    {
+      $marker->inc_old_line_no ();
+      $marker->inc_new_line_no ();
+    }
+    elsif ($sigil == CodeLine::Minus)
+    {
+      $marker->dec_old_line_no ();
+      $marker->dec_new_line_no ();
+    }
+    elsif ($sigil == CodeLine::Space)
+    {
+      $marker->inc_old_line_no ();
+      $marker->inc_new_line_no ();
+    }
+  }
+}
+
+sub _adapt_overlapping_before_contexts
+{
+  my ($self, $current_section, $current_line, $before_contexts, $sections_hash, $overlap_info) = @_;
+  my @all_section_names = keys (%{$before_contexts});
+  my $sigil = $current_line->get_sigil ();
+  my $context_line = CodeLine->new (CodeLine::Space, $current_line->get_line ());
+
+  foreach my $code (@{$overlap_info->get_section_overlapped_codes ()})
+  {
+    if ($code->get_section ()->get_index () == $current_section->get_index ())
+    {
+      my $sections_before_first_overlapping = $self->_get_sections_between_overlapping (undef, $overlap_info, $sections_hash);
+
+      for my $section (@{$sections_before_first_overlapping})
+      {
+        if ($sigil == CodeLine::Space or $sigil == CodeLine::Minus)
+        {
+          my $section_name = $section->get_name ();
+          my $before_context = $before_contexts->{$section_name};
+
+          $self->_append_context ($before_context, $context_line);
+        }
+      }
+    }
+    last;
+  }
+
+  if ($sigil == CodeLine::Space)
+  {
+    my $current_before_context = $before_contexts->{$current_section->get_name ()};
+
+    $self->_append_context ($current_before_context, $context_line);
+  }
+
+  my $sections_between_overlapping = $self->_get_sections_between_overlapping ($current_section, $overlap_info, $sections_hash);
+
+  foreach my $section (@{$sections_between_overlapping})
+  {
+    if ($sigil == CodeLine::Space or $sigil == CodeLine::Plus)
+    {
+      my $before_context = $before_contexts->{$section->get_name ()};
+
+      $self->_append_context ($before_context, $context_line);
+    }
+  }
+}
+
+sub _push_overlapping_after_context
+{
+  my ($self, $current_section, $current_line, $final_codes, $sections_hash, $overlap_info) = @_;
+  my $sigil = $current_line->get_sigil ();
+  my $context_line = CodeLine->new (CodeLine::Space, $current_line->get_line ());
+
+  foreach my $code (@{$overlap_info->get_section_overlapped_codes ()})
+  {
+    if ($code->get_section ()->get_index () == $current_section->get_index ())
+    {
+      my $sections_before_first_overlapping = $self->_get_sections_between_overlapping (undef, $overlap_info, $sections_hash);
+
+      for my $section (@{$sections_before_first_overlapping})
+      {
+        if ($sigil == CodeLine::Space or $sigil == CodeLine::Minus)
+        {
+          foreach my $final_code (@{$final_codes->{$section->get_name ()}})
+          {
+            $final_code->push_after_context_line ($context_line);
+          }
+        }
+      }
+    }
+    last;
+  }
+
+  if ($sigil == CodeLine::Space)
+  {
+    foreach my $final_code (@{$final_codes->{$current_section->get_name ()}})
+    {
+      $final_code->push_after_context_line ($context_line);
+    }
+  }
+
+  my $sections_between_overlapping = $self->_get_sections_between_overlapping ($current_section, $overlap_info, $sections_hash);
+
+  foreach my $section (@{$sections_between_overlapping})
+  {
+    if ($sigil == CodeLine::Space or $sigil == CodeLine::Plus)
+    {
+      foreach my $final_code (@{$final_codes->{$section->get_name ()}})
+      {
+        $final_code->push_after_context_line ($context_line);
+      }
+    }
+  }
+}
+
+# $overlapping_section can be undef, will get all sections before the
+# first overlapping section.
+sub _get_sections_between_overlapping
+{
+  my ($self, $overlapping_section, $overlap_info, $sections_hash) = @_;
+  my $next_is_next_overlapping_section = 0;
+  my $next_overlapping_section = undef;
+
+  unless (defined ($overlapping_section))
+  {
+    $next_is_next_overlapping_section = 1;
+  }
+  foreach my $code (@{$overlap_info->get_section_overlapped_codes ()})
+  {
+    my $section = $code->get_section ();
+
+    if ($next_is_next_overlapping_section)
+    {
+      $next_overlapping_section = $section;
+      last;
+    }
+    if ($section->get_index () == $overlapping_section->get_index ())
+    {
+      $next_is_next_overlapping_section = 1;
+    }
+  }
+
+  my @sections_between_overlapping = ();
+
+  foreach my $section_name (keys (%{$sections_hash}))
+  {
+    my $section = $sections_hash->{$section_name};
+
+    if (defined ($overlapping_section))
+    {
+      unless ($section->is_younger_than ($overlapping_section))
+      {
+        next;
+      }
+    }
+    unless (defined ($next_overlapping_section))
+    {
+      push (@sections_between_overlapping, $section);
+      next;
+    }
+    if ($section->is_older_than ($next_overlapping_section))
+    {
+      push (@sections_between_overlapping, $section);
+    }
+  }
+
+  return \@sections_between_overlapping;
 }
 
 sub _adapt_final_marker
@@ -3855,6 +4173,7 @@ sub _handle_text_patch
   my $sections_hash = $patch->get_sections_unordered ();
   my $sections_array = $patch->get_sections_ordered ();
   my $code = undef;
+  my $just_ended_overlap = 0;
 
   while ($pc->read_next_line ())
   {
@@ -3868,11 +4187,18 @@ sub _handle_text_patch
       $self->_read_next_line_or_die ();
       if ($pc->get_line () =~ /^\d+\.\d+\.\d+$/)
       {
-        if ($just_got_location_marker)
+        if ($just_ended_overlap)
         {
-          $pc->die ("End of patch just after location marker.");
+          $just_ended_overlap = 0;
         }
-        $self->_push_section_code_to_cluster_or_die ($code, $last_cluster);
+        else
+        {
+          if ($just_got_location_marker)
+          {
+            $pc->die ("End of patch just after location marker.");
+          }
+          $self->_push_section_code_to_cluster_or_die ($code, $last_cluster);
+        }
         $diff->push_cluster ($last_cluster);
         $continue_parsing_rest = 0;
         last;
@@ -3897,8 +4223,15 @@ sub _handle_text_patch
 
       my $marker = LocationMarker->new ();
 
-      $self->_push_section_code_to_cluster_or_die ($code, $last_cluster);
-      $code = undef;
+      if ($just_ended_overlap)
+      {
+        $just_ended_overlap = 0;
+      }
+      else
+      {
+        $self->_push_section_code_to_cluster_or_die ($code, $last_cluster);
+        $code = undef;
+      }
       $diff->push_cluster ($last_cluster);
       unless ($marker->parse_line ($line))
       {
@@ -3926,9 +4259,10 @@ sub _handle_text_patch
         }
         else
         {
-          if ($just_got_location_marker)
+          if ($just_got_location_marker or $just_ended_overlap)
           {
             $just_got_location_marker = 0;
+            $just_ended_overlap = 0;
           }
           else
           {
@@ -3936,6 +4270,22 @@ sub _handle_text_patch
           }
           $code = SectionCode->new ($section);
         }
+      }
+      elsif ($line =~ /^#\s*OVERLAP$/a)
+      {
+        if ($just_got_location_marker or $just_ended_overlap)
+        {
+          $just_got_location_marker = 0;
+          $just_ended_overlap = 0;
+        }
+        else
+        {
+          $self->_push_section_code_to_cluster_or_die ($code, $last_cluster);
+          $just_got_location_marker = 1;
+        }
+        $code = undef;
+        $self->_handle_overlap ($last_cluster);
+        $just_ended_overlap = 1;
       }
       elsif ($self->_line_is_comment ($line))
       {
@@ -3957,12 +4307,13 @@ sub _handle_text_patch
         $pc->die ("Unknown type of line: $sigil.");
       }
 
-      if ($just_got_location_marker)
+      if ($just_got_location_marker or $just_ended_overlap)
       {
         my $last = $sections_array->[-1];
 
         $code = SectionCode->new ($last);
         $just_got_location_marker = 0;
+        $just_ended_overlap = 0;
       }
       $code->push_line ($type, $code_line);
     }
@@ -3982,6 +4333,220 @@ sub _handle_text_patch
   }
 
   return $continue_parsing_rest;
+}
+
+sub _handle_overlap
+{
+  my ($self, $cluster) = @_;
+  my $pc = $self->_get_pc ();
+  my $stage = 'expect-outcome';
+  my $outcome = [];
+  my $context = [];
+  my $new_context = [];
+  my $section = undef;
+  my $patch = $pc->get_patch ();
+  my $sections_hash = $patch->get_sections_unordered ();
+  my $context_line_idx = 0;
+  my $code = undef;
+  my $overlap_info = OverlapInfo->new ();
+
+  while ($stage ne 'done')
+  {
+    $self->_read_next_line_or_die ();
+
+    my $line = $pc->get_line ();
+
+    if ($stage eq 'expect-outcome')
+    {
+      if ($line =~ /^#\s*OUTCOME$/a)
+      {
+        $stage = 'outcome';
+      }
+      elsif ($line =~ /^#\s*SECTION:\s*\w+$/a)
+      {
+        $pc->die ("'#OUTCOME' should come before the first section");
+      }
+      else
+      {
+        $pc->die ("Expected #OUTCOME, got '$line'");
+      }
+    }
+    elsif ($stage eq 'outcome')
+    {
+      if ($line =~ /^#\s*SECTION:\s*(\w+)$/a)
+      {
+        my $name = $1;
+
+        unless (exists ($sections_hash->{$name}))
+        {
+          $pc->die ("Unknown section '$name'");
+        }
+        $section = $sections_hash->{$name};
+        $stage = 'sections';
+        $code = SectionOverlappedCode->new ($section, $overlap_info);
+      }
+      elsif ($line =~ /^([- +])(.*)$/)
+      {
+        my $raw_sigil = $1;
+        my $raw_line = $2;
+        my $sigil = CodeLine::get_type ($raw_sigil);
+
+        unless (defined ($sigil))
+        {
+          $pc->die ("Unknown type of line: $raw_sigil.");
+        }
+
+        if ($sigil == CodeLine::Minus or $sigil == CodeLine::Space)
+        {
+          push (@{$context}, $raw_line);
+        }
+
+        if ($sigil == CodeLine::Plus or $sigil == CodeLine::Space)
+        {
+          push (@{$outcome}, $raw_line);
+        }
+      }
+      elsif ($line =~ /^#\s*END_OVERLAP$/a)
+      {
+        $pc->die ("Premature end of overlapped patches, no sections specified");
+      }
+      elsif ($line =~ /^@@/)
+      {
+        $pc->die ("Overlapped patches across location markers are not supported.");
+      }
+      else
+      {
+        $pc->die ("Unknown line '$line' in overlap");
+      }
+    }
+    elsif ($stage eq 'sections')
+    {
+      if ($line =~ /^#\s*SECTION:\s*(\w+)$/a)
+      {
+        my $new_name = $1;
+        my $name = $section->get_name ();
+
+        if ($new_name eq $name)
+        {
+          $pc->die ("Section '$name' again?");
+        }
+
+        unless (exists ($sections_hash->{$new_name}))
+        {
+          $pc->die ("Unknown section '$new_name'");
+        }
+        my $new_section = $sections_hash->{$new_name};
+
+        if ($new_section->is_older_than ($section))
+        {
+          $pc->die ("Sections are out of order - section '$new_name' should come before section '$name' in overlap");
+        }
+
+        my $lines = $code->get_lines ();
+
+        unless (scalar (@{$lines}) > 0)
+        {
+          $pc->die ("Empty section '$name' in overlap");
+        }
+        $self->_push_section_code_to_cluster_or_die ($code, $cluster);
+        $section = $new_section;
+        $context_line_idx = 0;
+        $context = $new_context;
+        $new_context = [];
+        $code = SectionOverlappedCode->new ($section, $overlap_info);
+      }
+      elsif ($line =~ /^([- +])(.*)$/)
+      {
+        my $raw_sigil = $1;
+        my $raw_line = $2;
+        my $sigil = CodeLine::get_type ($raw_sigil);
+
+        if ($sigil == CodeLine::Space)
+        {
+          my $expected = $context->[$context_line_idx];
+
+          if ($raw_line ne $expected)
+          {
+            $pc->die ("Got context '$raw_line', but expected '$expected'");
+          }
+          ++$context_line_idx;
+          $code->push_line ($sigil, $raw_line);
+          push (@{$new_context}, $raw_line);
+        }
+        elsif ($sigil == CodeLine::Minus)
+        {
+          my $expected = $context->[$context_line_idx];
+
+          if ($raw_line ne $expected)
+          {
+            $pc->die ("Got removed line '$raw_line', but expected '$expected'");
+          }
+          ++$context_line_idx;
+          $code->push_line ($sigil, $raw_line);
+        }
+        elsif ($sigil == CodeLine::Plus)
+        {
+          $code->push_line ($sigil, $raw_line);
+          push (@{$new_context}, $raw_line);
+        }
+      }
+      elsif ($line =~ /^#\s*END_OVERLAP$/a)
+      {
+        my $lines = $code->get_lines ();
+
+        unless (scalar (@{$lines}) > 0)
+        {
+          my $name = $section->get_name ();
+
+          $pc->die ("Empty section '$name' in overlap");
+        }
+        $self->_push_section_code_to_cluster_or_die ($code, $cluster);
+
+        $context = $new_context;
+        $new_context = [];
+
+        my $context_len = scalar (@{$context});
+        my $outcome_len = scalar (@{$outcome});
+        my $min_length = $context_len;
+
+        if ($min_length > $outcome_len)
+        {
+          $min_length = $outcome_len;
+        }
+
+        for my $line_idx (0 .. $min_length - 1)
+        {
+          my $context_line = $context->[$line_idx];
+          my $outcome_line = $outcome->[$line_idx];
+
+          if ($context_line ne $outcome_line)
+          {
+            $pc->die ("Overlapped patches do not produce the expected outcome. Expected '$outcome_line', got '$context_line'");
+          }
+        }
+
+        if ($context_len > $outcome_len)
+        {
+          my $superfluous_line = $context->[$min_length];
+          $pc->die ("Overlapped patches do not produce the expected outcome. Got too many lines, starting with '$superfluous_line'");
+        }
+        elsif ($outcome_len > $context_len)
+        {
+          my $missing_line = $outcome->[$min_length];
+          $pc->die ("Overlapped patches do not produce the expected outcome. Missing some lines, starting with '$missing_line'");
+        }
+        $stage = 'done';
+      }
+      elsif ($line =~ /^@@/)
+      {
+        $pc->die ("Overlapped patches across location markers are not supported.");
+      }
+      else
+      {
+        $pc->die ("Unknown line '$line' in overlap");
+      }
+    }
+  }
 }
 
 sub _push_section_code_to_cluster_or_die
