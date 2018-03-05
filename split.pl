@@ -4494,11 +4494,22 @@ sub generate_git_patches {
   }
 }
 
-my $input_patch = 'old-gnome-3.4.patch';
 my $output_directory = '.';
 
-Options::get({'output-directory=s' => \$output_directory,
-              'input-patch=s' => \$input_patch}, \@ARGV);
+Options::get({'output-directory=s' => \$output_directory}, \@ARGV);
+
+if (scalar (@ARGV) == 0)
+{
+  say "No path to annotated git patch given";
+  die;
+}
+if (scalar (@ARGV) > 1)
+{
+  say "Too many paths passed";
+  die;
+}
+
+my $input_patch = $ARGV[0];
 
 my $mp_error;
 make_path($output_directory, {'error' => \$mp_error});
