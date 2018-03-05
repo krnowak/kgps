@@ -4496,7 +4496,7 @@ sub generate_git_patches {
 
 my $output_directory = '.';
 
-Options::get({'output-directory=s' => \$output_directory}, \@ARGV);
+Options::get({'output-directory|o=s' => \$output_directory}, \@ARGV);
 
 if (scalar (@ARGV) == 0)
 {
