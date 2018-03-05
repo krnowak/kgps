@@ -12,7 +12,6 @@ use v5.16;
 
 use File::Path qw(make_path);
 use File::Spec;
-use Getopt::Long;
 use IO::File;
 
 # LocationMarker is a representation of a line that describes a
@@ -4498,8 +4497,8 @@ sub generate_git_patches {
 my $input_patch = 'old-gnome-3.4.patch';
 my $output_directory = '.';
 
-GetOptions ('output-directory=s' => \$output_directory,
-            'input-patch=s' => \$input_patch) or die ('Error in command line arguments');
+Options::get({'output-directory=s' => \$output_directory,
+              'input-patch=s' => \$input_patch}, \@ARGV);
 
 my $mp_error;
 make_path($output_directory, {'error' => \$mp_error});
