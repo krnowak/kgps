@@ -150,6 +150,50 @@ function git_patch_diff
     diff "${stripped_real}" "${stripped_generated}"
 }
 
+# Expects cmdoutputfile and failreasons variables to be set
+# up. Returns 1 if command failed.
+function call_and_log
+{
+    local quoted=()
+    local param=''
+    local cmd_basename=$(basename "${1}")
+
+    for param in "$@"
+    do
+        quoted+=("'${param}'")
+    done
+    echo "###" >>"${cmdoutputfile}"
+    echo "${quoted[@]}" >>"${cmdoutputfile}"
+    echo "###" >>"${cmdoutputfile}"
+    if ! "$@" >>"${cmdoutputfile}" 2>&1
+    then
+        failreasons+=("${cmd_basename} failed, see ${cmdoutputfile}")
+        return 1
+    fi
+    return 0
+}
+
+# Expects failreasons, statusfile, name, debugdir variables to be set
+# up, variables for colored output are optional. Sets the exitstatus
+# variable to 1 if there were any reasons for failure.
+function print_status
+{
+    if [[ ${#failreasons[@]} -gt 0 ]]
+    then
+        exitstatus=1
+        echo 'FAILURE' >"${statusfile}"
+        echo -e "${name} ${red}${bold}FAILURE${unbold}${uncolor}"
+        for reason in "${failreasons[@]}"
+        do
+            echo "  - ${reason}" | tee --append "${debugdir}/reasons"
+        done
+    else
+        echo 'SUCCESS' >"${statusfile}"
+        echo -e "${name} ${green}${bold}SUCCESS${unbold}${uncolor}"
+    fi
+    return 0
+}
+
 shopt -s nullglob globstar failglob
 
 red=''
@@ -199,6 +243,7 @@ do
     # not creating ${gittestdir}, it will be a copy of ${gitinitdir}
     statusfile="${debugdir}/status"
     gittestpatch="${debugdir}/test.patch"
+    cmdoutputfile="${debugdir}/cmd-output"
     if [[ "${name}" == 'SKIP'* ]]
     then
         echo 'SKIP' >"${statusfile}"
@@ -206,13 +251,15 @@ do
         continue
     fi
     failreasons=()
-    if ! "${splitter}" \
+    if ! call_and_log \
+         "${splitter}" \
          --output-directory "${patchesdir}" \
-         "${testpatch}" \
-         >"${debugdir}/splitter-output" 2>&1
+         "${testpatch}"
     then
-        failreasons+=("splitter failed to process the patch")
-    else
+        print_status
+        continue
+    fi
+
         for expectedpatch in "${expectedfilesdir}"/*
         do
             patchname=$(basename "${expectedpatch}")
@@ -241,14 +288,54 @@ do
         done
         if [[ -d "${gitinitdir}" ]]
         then
-            cp -a "${gitinitdir}" "${gittestdir}"
-            git -C "${gittestdir}" init --quiet
-            git -C "${gittestdir}" add .
-            git -C "${gittestdir}" commit --message='foo' --quiet
-            cp -a "${gittestdir}" "${gitsplittestdir}"
-            grep -v '^#' "${testpatch}" >"${gittestpatch}"
-            git -C "${gittestdir}" am --quiet "$(rel2rel "${gittestdir}" "${gittestpatch}")"
-            git -C "${gitsplittestdir}" am --quiet $(rel2rel "${gitsplittestdir}" "${patchesdir}"/*.patch)
+            if ! call_and_log \
+                 cp -a "${gitinitdir}" "${gittestdir}"
+            then
+                print_status
+                continue
+            fi
+            if ! call_and_log \
+                 git -C "${gittestdir}" init
+            then
+                print_status
+                continue
+            fi
+            if ! call_and_log \
+                 git -C "${gittestdir}" add .
+            then
+                print_status
+                continue
+            fi
+            if ! call_and_log \
+                 git -C "${gittestdir}" commit --message='foo'
+            then
+                print_status
+                continue
+            fi
+            if ! call_and_log \
+               cp -a "${gittestdir}" "${gitsplittestdir}"
+            then
+                print_status
+                continue
+            fi
+            if ! grep -v '^#' "${testpatch}" >"${gittestpatch}"
+            then
+                failreasons+=("is ${testpatch} an annotated git patch really?")
+                print_status
+                continue
+            fi
+            if ! call_and_log \
+                 git -C "${gittestdir}" am "$(rel2rel "${gittestdir}" "${gittestpatch}")"
+            then
+                print_status
+                continue
+            fi
+            if ! call_and_log \
+                 git -C "${gitsplittestdir}" am $(rel2rel "${gitsplittestdir}" "${patchesdir}"/*.patch)
+            then
+                print_status
+                continue
+            fi
 
             for gittestfile in "${gittestdir}"/**
             do
@@ -285,10 +372,14 @@ do
                 fi
             done
             generated_patches=("${patchesdir}"/*.patch)
-            git -C "${gitsplittestdir}" format-patch \
-                --quiet \
-                --output-directory="$(rel2rel "${gitsplittestdir}" "${gitrealpatchesdir}")" \
-                HEAD~${#generated_patches[@]}
+            if ! call_and_log \
+                 git -C "${gitsplittestdir}" format-patch \
+                 --output-directory="$(rel2rel "${gitsplittestdir}" "${gitrealpatchesdir}")" \
+                 HEAD~${#generated_patches[@]}
+            then
+                print_status
+                continue
+            fi
             for idx in $(seq 1 ${#generated_patches[@]})
             do
                 num=$(printf '%04d' ${idx})
@@ -313,19 +404,6 @@ do
                 fi
             done
         fi
-    fi
-    if [[ ${#failreasons[@]} -gt 0 ]]
-    then
-        exitstatus=1
-        echo 'FAILURE' >"${statusfile}"
-        echo -e "${name} ${red}${bold}FAILURE${unbold}${uncolor}"
-        for reason in "${failreasons[@]}"
-        do
-            echo "  - ${reason}" | tee --append "${debugdir}/reasons"
-        done
-    else
-        echo 'SUCCESS' >"${statusfile}"
-        echo -e "${name} ${green}${bold}SUCCESS${unbold}${uncolor}"
-    fi
+    print_status
 done
 exit ${exitstatus}
