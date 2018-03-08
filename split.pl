@@ -1918,38 +1918,7 @@ sub _postprocess_vfunc
 
     foreach my $code (@{$cluster->get_section_codes ()})
     {
-      my $section = $code->get_section ();
-      my $section_name = $section->get_name ();
-      my $lines_of_end_context_count = 0;
-      my $final_marker = $markers->{$section_name}->clone ();
-      my $final_code = FinalCode->new ($final_marker);
-
-      # Setup initial context for final code - will be used when
-      # cleaning up context of the final code later.
-      {
-        my @context_copy = @{$before_contexts->{$section_name}};
-
-        $final_code->set_before_context (\@context_copy);
-      }
-      # Reset final code's marker line counts to zero. They will be
-      # updated as we iterate through lines in code chunk.
-      $final_marker->set_old_line_count (0);
-      $final_marker->set_new_line_count (0);
-
-      foreach my $line (@{$code->get_lines ()})
-      {
-        $final_code->push_line ($line->get_sigil (), $line->get_line ());
-        # Adapt markers for other sections.
-        $self->_adapt_markers ($section, $line, $markers, $sections_hash);
-        # Adapt marker for current final code.
-        $self->_adapt_final_marker ($line, $final_marker);
-        # Adapt initial contexts for other sections.
-        $self->_adapt_before_contexts ($section, $line, $before_contexts, $sections_hash);
-        # Maybe push an after context to previous final codes. Will be
-        # used when cleaning up context of each final code later.
-        $self->_push_after_context ($section, $line, $final_codes, $sections_hash);
-      }
-      push (@{$final_codes->{$section_name}}, $final_code);
+      $self->_handle_section_overlapped_code ($code, $markers, $before_contexts, $sections_hash, $final_codes);
     }
 
     # Cleanup context of each final code and try to merge every
@@ -2200,6 +2169,43 @@ sub _create_markers_for_each_section
   }
 
   return $markers;
+}
+
+sub _handle_section_code
+{
+  my ($self, $code, $markers, $before_contexts, $sections_hash, $final_codes) = @_;
+  my $section = $code->get_section ();
+  my $section_name = $section->get_name ();
+  my $lines_of_end_context_count = 0;
+  my $final_marker = $markers->{$section_name}->clone ();
+  my $final_code = FinalCode->new ($final_marker);
+
+  # Setup initial context for final code - will be used when
+  # cleaning up context of the final code later.
+  {
+    my @context_copy = @{$before_contexts->{$section_name}};
+
+    $final_code->set_before_context (\@context_copy);
+  }
+  # Reset final code's marker line counts to zero. They will be
+  # updated as we iterate through lines in code chunk.
+  $final_marker->set_old_line_count (0);
+  $final_marker->set_new_line_count (0);
+
+  foreach my $line (@{$code->get_lines ()})
+  {
+    $final_code->push_line ($line->get_sigil (), $line->get_line ());
+    # Adapt markers for other sections.
+    $self->_adapt_markers ($section, $line, $markers, $sections_hash);
+    # Adapt marker for current final code.
+    $self->_adapt_final_marker ($line, $final_marker);
+    # Adapt initial contexts for other sections.
+    $self->_adapt_before_contexts ($section, $line, $before_contexts, $sections_hash);
+    # Maybe push an after context to previous final codes. Will be
+    # used when cleaning up context of each final code later.
+    $self->_push_after_context ($section, $line, $final_codes, $sections_hash);
+  }
+  push (@{$final_codes->{$section_name}}, $final_code);
 }
 
 sub _adapt_markers
