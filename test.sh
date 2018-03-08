@@ -122,6 +122,10 @@ function git_strip_patch
             elif [[ $line =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
             then
                 echo '0.0.0' >>"${target_path}"
+            elif [[ $line = '@@'* ]]
+            then
+                sed -e 's/^\(@@[^@]\+@@\).*/\1/g' \
+                    <<<"${line}" >>"${target_path}"
             else
                 echo "${line}" >>"${target_path}"
             fi
