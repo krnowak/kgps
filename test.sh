@@ -260,150 +260,150 @@ do
         continue
     fi
 
-        for expectedpatch in "${expectedfilesdir}"/*
-        do
-            patchname=$(basename "${expectedpatch}")
-            actualpatch="${patchesdir}/${patchname}"
-            if [[ -e "${actualpatch}" ]]
+    for expectedpatch in "${expectedfilesdir}"/*
+    do
+        patchname=$(basename "${expectedpatch}")
+        actualpatch="${patchesdir}/${patchname}"
+        if [[ -e "${actualpatch}" ]]
+        then
+            patchdiff="${patchdiffdir}/${patchname}.diff"
+            if diff "${expectedpatch}" "${actualpatch}" >"${patchdiff}"
             then
-                patchdiff="${patchdiffdir}/${patchname}.diff"
-                if diff "${expectedpatch}" "${actualpatch}" >"${patchdiff}"
+                rm -f "${patchdiff}"
+            else
+                failreasons+=("generated patch '${patchname}' differs from the expected one")
+            fi
+        else
+            failreasons+=("missing expected patch '${patchname}'")
+        fi
+    done
+    for actualpatch in "${patchesdir}"/*
+    do
+        patchname=$(basename "${actualpatch}")
+        expectedpatch="${expectedfilesdir}/${patchname}"
+        if [[ ! -e "${expectedpatch}" ]]
+        then
+            failreasons+=("unexpected generated patch '${patchname}'")
+        fi
+    done
+    if [[ -d "${gitinitdir}" ]]
+    then
+        if ! call_and_log \
+             cp -a "${gitinitdir}" "${gittestdir}"
+        then
+            print_status
+            continue
+        fi
+        if ! call_and_log \
+             git -C "${gittestdir}" init
+        then
+            print_status
+            continue
+        fi
+        if ! call_and_log \
+             git -C "${gittestdir}" add .
+        then
+            print_status
+            continue
+        fi
+        if ! call_and_log \
+             git -C "${gittestdir}" commit --message='foo'
+        then
+            print_status
+            continue
+        fi
+        if ! call_and_log \
+             cp -a "${gittestdir}" "${gitsplittestdir}"
+        then
+            print_status
+            continue
+        fi
+        if ! grep -v '^#' "${testpatch}" >"${gittestpatch}"
+        then
+            failreasons+=("is ${testpatch} an annotated git patch really?")
+            print_status
+            continue
+        fi
+        if ! call_and_log \
+             git -C "${gittestdir}" am "$(rel2rel "${gittestdir}" "${gittestpatch}")"
+        then
+            print_status
+            continue
+        fi
+        if ! call_and_log \
+             git -C "${gitsplittestdir}" am $(rel2rel "${gitsplittestdir}" "${patchesdir}"/*.patch)
+        then
+            print_status
+            continue
+        fi
+
+        for gittestfile in "${gittestdir}"/**
+        do
+            gittestfilename=${gittestfile#${gittestdir}/}
+            if [[ -z "${gittestfilename}" ]]
+            then
+                continue
+            fi
+            gitsplittestfile="${gitsplittestdir}/${gittestfilename}"
+            if [[ -d "${gittestfile}" ]]
+            then
+                if [[ ! -d "${gitsplittestfile}" ]]
                 then
-                    rm -f "${patchdiff}"
+                    failreasons+=("expected '${gitsplittestfile}' to be a directory")
+                fi
+            elif [[ -f "${gittestfile}" ]]
+            then
+                if [[ ! -f "${gitsplittestfile}" ]]
+                then
+                    failreasons+=("expected '${gitsplittestfile}' to be a regular file")
                 else
-                    failreasons+=("generated patch '${patchname}' differs from the expected one")
+                    gitrepofilediff="${gitrepodiffdir}/${gittestfilename}.diff"
+                    gitrepofilediffdir=$(dirname "${gitrepofilediff}")
+                    mkdir -p "${gitrepofilediffdir}"
+                    if diff "${gittestfile}" "${gitsplittestfile}" >"${gitrepofilediff}"
+                    then
+                        rm -f "${gitrepofilediff}"
+                    else
+                        failreasons+=("file '${gittestfilename}' in '${gitsplittestdir}' differs from the one in '${gittestdir}'")
+                    fi
                 fi
             else
-                failreasons+=("missing expected patch '${patchname}'")
+                failreasons+=("unhandled file '${gittestfile}'")
             fi
         done
-        for actualpatch in "${patchesdir}"/*
-        do
-            patchname=$(basename "${actualpatch}")
-            expectedpatch="${expectedfilesdir}/${patchname}"
-            if [[ ! -e "${expectedpatch}" ]]
-            then
-                failreasons+=("unexpected generated patch '${patchname}'")
-            fi
-        done
-        if [[ -d "${gitinitdir}" ]]
+        generated_patches=("${patchesdir}"/*.patch)
+        if ! call_and_log \
+             git -C "${gitsplittestdir}" format-patch \
+             --output-directory="$(rel2rel "${gitsplittestdir}" "${gitrealpatchesdir}")" \
+             HEAD~${#generated_patches[@]}
         then
-            if ! call_and_log \
-                 cp -a "${gitinitdir}" "${gittestdir}"
-            then
-                print_status
-                continue
-            fi
-            if ! call_and_log \
-                 git -C "${gittestdir}" init
-            then
-                print_status
-                continue
-            fi
-            if ! call_and_log \
-                 git -C "${gittestdir}" add .
-            then
-                print_status
-                continue
-            fi
-            if ! call_and_log \
-                 git -C "${gittestdir}" commit --message='foo'
-            then
-                print_status
-                continue
-            fi
-            if ! call_and_log \
-               cp -a "${gittestdir}" "${gitsplittestdir}"
-            then
-                print_status
-                continue
-            fi
-            if ! grep -v '^#' "${testpatch}" >"${gittestpatch}"
-            then
-                failreasons+=("is ${testpatch} an annotated git patch really?")
-                print_status
-                continue
-            fi
-            if ! call_and_log \
-                 git -C "${gittestdir}" am "$(rel2rel "${gittestdir}" "${gittestpatch}")"
-            then
-                print_status
-                continue
-            fi
-            if ! call_and_log \
-                 git -C "${gitsplittestdir}" am $(rel2rel "${gitsplittestdir}" "${patchesdir}"/*.patch)
-            then
-                print_status
-                continue
-            fi
-
-            for gittestfile in "${gittestdir}"/**
-            do
-                gittestfilename=${gittestfile#${gittestdir}/}
-                if [[ -z "${gittestfilename}" ]]
-                then
-                    continue
-                fi
-                gitsplittestfile="${gitsplittestdir}/${gittestfilename}"
-                if [[ -d "${gittestfile}" ]]
-                then
-                    if [[ ! -d "${gitsplittestfile}" ]]
-                    then
-                        failreasons+=("expected '${gitsplittestfile}' to be a directory")
-                    fi
-                elif [[ -f "${gittestfile}" ]]
-                then
-                    if [[ ! -f "${gitsplittestfile}" ]]
-                    then
-                        failreasons+=("expected '${gitsplittestfile}' to be a regular file")
-                    else
-                        gitrepofilediff="${gitrepodiffdir}/${gittestfilename}.diff"
-                        gitrepofilediffdir=$(dirname "${gitrepofilediff}")
-                        mkdir -p "${gitrepofilediffdir}"
-                        if diff "${gittestfile}" "${gitsplittestfile}" >"${gitrepofilediff}"
-                        then
-                            rm -f "${gitrepofilediff}"
-                        else
-                            failreasons+=("file '${gittestfilename}' in '${gitsplittestdir}' differs from the one in '${gittestdir}'")
-                        fi
-                    fi
-                else
-                    failreasons+=("unhandled file '${gittestfile}'")
-                fi
-            done
-            generated_patches=("${patchesdir}"/*.patch)
-            if ! call_and_log \
-                 git -C "${gitsplittestdir}" format-patch \
-                 --output-directory="$(rel2rel "${gitsplittestdir}" "${gitrealpatchesdir}")" \
-                 HEAD~${#generated_patches[@]}
-            then
-                print_status
-                continue
-            fi
-            for idx in $(seq 1 ${#generated_patches[@]})
-            do
-                num=$(printf '%04d' ${idx})
-                generated_patch_name=$(basename "${patchesdir}/${num}"*.patch)
-                real_patch_name=$(basename "${gitrealpatchesdir}/${num}"*.patch)
-                if [[ "${generated_patch_name}" = "${real_patch_name}" ]]
-                then
-                    gitcomparefilediff="${gitcomparediffdir}/${real_patch_name}.diff"
-                    if git_patch_diff \
-                           "${real_patch_name}" \
-                           "${gitrealpatchesdir}" \
-                           "${patchesdir}" \
-                           "${debugdir}/git-patch-diff-help" \
-                           >"${gitcomparefilediff}"
-                    then
-                        rm -f "${gitcomparefilediff}"
-                    else
-                        failreasons+=("generated patch '${real_patch_name}' in '${patchesdir}' differs from the real one in '${gitrealpatchesdir}'")
-                    fi
-                else
-                    failreasons+=("the generated patch should be named '${real_patch_name}', but it is named '${generated_patch_name}'")
-                fi
-            done
+            print_status
+            continue
         fi
+        for idx in $(seq 1 ${#generated_patches[@]})
+        do
+            num=$(printf '%04d' ${idx})
+            generated_patch_name=$(basename "${patchesdir}/${num}"*.patch)
+            real_patch_name=$(basename "${gitrealpatchesdir}/${num}"*.patch)
+            if [[ "${generated_patch_name}" = "${real_patch_name}" ]]
+            then
+                gitcomparefilediff="${gitcomparediffdir}/${real_patch_name}.diff"
+                if git_patch_diff \
+                       "${real_patch_name}" \
+                       "${gitrealpatchesdir}" \
+                       "${patchesdir}" \
+                       "${debugdir}/git-patch-diff-help" \
+                       >"${gitcomparefilediff}"
+                then
+                    rm -f "${gitcomparefilediff}"
+                else
+                    failreasons+=("generated patch '${real_patch_name}' in '${patchesdir}' differs from the real one in '${gitrealpatchesdir}'")
+                fi
+            else
+                failreasons+=("the generated patch should be named '${real_patch_name}', but it is named '${generated_patch_name}'")
+            fi
+        done
+    fi
     print_status
 done
 exit ${exitstatus}
