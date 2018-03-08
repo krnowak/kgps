@@ -1,0 +1,107 @@
+From fcf5c16060225feb040ebe9cb9a0a236f1e0d9fd Mon Sep 17 00:00:00 2001
+From: Krzesimir Nowak <qdlacz@gmail.com>
+Date: Thu, 8 Mar 2018 13:01:01 +0100
+Subject: [PATCH] foo
+
+---
+#SECTION: ADD_B
+# SUBJECT: Add "b"s
+#SECTION: CAPITALIZE_NON_A
+# SUBJECT: Capitalize all "b"s and "c"s
+#SECTION: DROP_C
+# SUBJECT: Drop all "c"s regardless of case
+ foo | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/foo b/foo
+index 18dbda9..220ea8c 100644
+--- a/foo
++++ b/foo
+@@ -1,15 +1,15 @@
+#OVERLAP
+# OUTCOME
+ a
+ a
+ a
++B
++B
++B
+ a
+ a
+ a
+ a
+ a
+ a
+-c
+-c
+-c
+ a
+ a
+ a
+# SECTION: ADD_B
+ a
+ a
+ a
++b
++b
++b
+ a
+ a
+ a
+ a
+ a
+ a
+ c
+ c
+ c
+ a
+ a
+ a
+# SECTION: CAPITALIZE_NON_A
+ a
+ a
+ a
+-b
+-b
+-b
++B
++B
++B
+ a
+ a
+ a
+ a
+ a
+ a
+-c
+-c
+-c
++C
++C
++C
+ a
+ a
+ a
+# SECTION: DROP_C
+ a
+ a
+ a
+ B
+ B
+ B
+ a
+ a
+ a
+ a
+ a
+ a
+-C
+-C
+-C
+ a
+ a
+ a
+#END_OVERLAP
+-- 
+2.14.3
+

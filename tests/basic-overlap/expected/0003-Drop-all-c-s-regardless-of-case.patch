@@ -1,0 +1,26 @@
+From 1111111111111111111111111111111111111111 Mon Sep 17 00:00:00 2001
+From: Krzesimir Nowak <qdlacz@gmail.com>
+Date: Thu, 8 Mar 2018 13:01:01 +0100
+Subject: [PATCH 3/3] Drop all "c"s regardless of case
+
+---
+ foo | 3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/foo b/foo
+index 111111..222222 100644
+--- a/foo
++++ b/foo
+@@ -10,9 +10,6 @@
+ a
+ a
+ a
+-C
+-C
+-C
+ a
+ a
+ a
+-- 
+0.0.0
+

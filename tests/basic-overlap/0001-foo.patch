@@ -1,0 +1,35 @@
+From 3274736b99d5904f69e7cc995e576b82ad45c091 Mon Sep 17 00:00:00 2001
+From: Krzesimir Nowak <qdlacz@gmail.com>
+Date: Thu, 8 Mar 2018 14:56:18 +0100
+Subject: [PATCH] foo
+
+---
+ foo | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/foo b/foo
+index 85d6db0..1b448df 100644
+--- a/foo
++++ b/foo
+@@ -1,15 +1,15 @@
+ a
+ a
+ a
++B
++B
++B
+ a
+ a
+ a
+ a
+ a
+ a
+-c
+-c
+-c
+ a
+ a
+ a
+-- 
+2.14.3
+

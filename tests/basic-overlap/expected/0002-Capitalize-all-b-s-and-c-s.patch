@@ -1,0 +1,41 @@
+From 1111111111111111111111111111111111111111 Mon Sep 17 00:00:00 2001
+From: Krzesimir Nowak <qdlacz@gmail.com>
+Date: Thu, 8 Mar 2018 13:01:01 +0100
+Subject: [PATCH 2/3] Capitalize all "b"s and "c"s
+
+---
+ foo | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/foo b/foo
+index 111111..222222 100644
+--- a/foo
++++ b/foo
+@@ -1,18 +1,18 @@
+ a
+ a
+ a
+-b
+-b
+-b
++B
++B
++B
+ a
+ a
+ a
+ a
+ a
+ a
+-c
+-c
+-c
++C
++C
++C
+ a
+ a
+ a
+-- 
+0.0.0
+
