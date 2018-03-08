@@ -2262,7 +2262,6 @@ sub _handle_section_code
   my ($self, $code, $markers, $before_contexts, $sections_hash, $final_codes) = @_;
   my $section = $code->get_section ();
   my $section_name = $section->get_name ();
-  my $lines_of_end_context_count = 0;
   my $final_marker = $markers->{$section_name}->clone ();
   my $final_code = FinalCode->new ($final_marker);
 
@@ -2371,7 +2370,6 @@ sub _handle_section_overlapped_code
   my ($self, $code, $markers, $before_contexts, $sections_hash, $final_codes) = @_;
   my $section = $code->get_section ();
   my $section_name = $section->get_name ();
-  my $lines_of_end_context_count = 0;
   my $final_marker = $markers->{$section_name}->clone ();
   my $final_code = FinalCode->new ($final_marker);
   my $overlap_info = $code->get_overlap_info ();
@@ -3187,10 +3185,8 @@ sub new
     'eof' => 1,
     'reached_eof' => 1,
     'filename' => undef,
-    'chunks' => [],
     'mode' => $initial_mode,
     'line_number' => 0,
-    'current_chunk' => undef,
     'ops' => $ops,
     'line' => undef,
     'unread_lines' => [],
