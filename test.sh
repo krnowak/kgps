@@ -207,8 +207,8 @@ do
     fi
     failreasons=()
     if ! "${splitter}" \
-         --input-patch "${testpatch}" \
          --output-directory "${patchesdir}" \
+         "${testpatch}" \
          >"${debugdir}/splitter-output" 2>&1
     then
         failreasons+=("splitter failed to process the patch")
