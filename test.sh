@@ -194,6 +194,51 @@ function print_status
     return 0
 }
 
+function strip_annotations
+{
+    local path="${1}"
+    local target_path="${2}"
+    local stage='non-overlap'
+    local line=''
+
+    truncate --size=0 "${target_path}"
+    while IFS='' read -r line || [[ -n "$line" ]]
+    do
+        line=${line%\\n}
+        if [[ $stage = 'non-overlap' ]]
+        then
+            if [[ ${line} =~ ^#[[:space:]]*OVERLAP ]]
+            then
+                stage='overlap-expect-outcome'
+            elif ! [[ ${line} =~ ^# ]]
+            then
+                echo "${line}" >>"${target_path}"
+            fi
+        elif [[ $stage = 'overlap-expect-outcome' ]]
+        then
+            if [[ ${line} =~ ^#[[:space:]]*OUTCOME ]]
+            then
+               stage='overlap-outcome'
+            fi
+        elif [[ $stage = 'overlap-outcome' ]]
+        then
+            if [[ ${line} =~ ^#[[:space:]]*SECTION: ]]
+            then
+                stage='overlap-sections'
+            elif ! [[ ${line} =~ ^# ]]
+            then
+                echo "${line}" >>"${target_path}"
+            fi
+        elif [[ $stage = 'overlap-sections' ]]
+        then
+            if [[ ${line} =~ ^#[[:space:]]*END_OVERLAP ]]
+            then
+                stage='non-overlap'
+            fi
+        fi
+    done < "${path}"
+}
+
 shopt -s nullglob globstar failglob
 
 red=''
@@ -318,12 +363,7 @@ do
             print_status
             continue
         fi
-        if ! grep -v '^#' "${testpatch}" >"${gittestpatch}"
-        then
-            failreasons+=("is ${testpatch} an annotated git patch really?")
-            print_status
-            continue
-        fi
+        strip_annotations "${testpatch}" "${gittestpatch}"
         if ! call_and_log \
              git -C "${gittestdir}" am "$(rel2rel "${gittestdir}" "${gittestpatch}")"
         then
