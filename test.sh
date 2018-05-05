@@ -10,7 +10,7 @@ set -u
 #set -x
 
 dir=$(dirname $0)
-splitter="${dir}/split.pl"
+splitter="${dir}/kgps"
 alltestsdir="${dir}/tests"
 resultsdirbase='test-results'
 allresultsdir="${resultsdirbase}-$(date '+%Y-%m-%d-%H-%M-%S')"
