@@ -299,6 +299,8 @@ do
     fi
     failreasons=()
     if ! call_and_log \
+         perl \
+         "-I${dir}" \
          "${splitter}" \
          --output-directory "${patchesdir}" \
          "${testpatch}"
