@@ -813,12 +813,13 @@ package LocationCodeCluster;
 
 sub new
 {
-  my ($type, $marker) = @_;
+  my ($type, $marker, $first_cluster_in_diff) = @_;
   my $class = (ref ($type) or $type or 'LocationCodeCluster');
   my $self =
   {
     'marker' => $marker,
-    'section_codes' => []
+    'section_codes' => [],
+    'first_cluster_in_diff' => $first_cluster_in_diff
   };
 
   $self = bless ($self, $class);
@@ -831,6 +832,14 @@ sub get_section_codes
   my ($self) = @_;
 
   return $self->{'section_codes'};
+}
+
+sub get_section_codes_count
+{
+  my ($self) = @_;
+  my $codes = $self->get_section_codes ();
+
+  return scalar (@{$codes});
 }
 
 sub push_section_code
@@ -846,6 +855,13 @@ sub get_marker
   my ($self) = @_;
 
   return $self->{'marker'};
+}
+
+sub is_first_cluster_in_diff
+{
+  my ($self) = @_;
+
+  return $self->{'first_cluster_in_diff'};
 }
 
 1;
@@ -870,7 +886,30 @@ sub new
     'action' => undef,
     'mode' => undef,
     'index_from' => undef,
-    'index_to' => undef
+    'index_to' => undef,
+    'first_word_ops' => {
+      # old mode
+      'old' => \&_handle_old,
+      # new mode
+      # new file mode
+      'new' => \&_handle_new,
+      # deleted file mode
+      'deleted' => \&_handle_deleted,
+      # copy from
+      # copy to
+      'copy' => \&_handle_copy,
+      # rename old
+      # rename new
+      # rename from
+      # rename to
+      'rename' => \&_handle_rename,
+      # similarity index
+      'similarity' => \&_handle_similarity,
+      # dissimilarity index
+      'dissimilarity' => \&_handle_dissimilarity,
+      # index
+      'index' => \&_handle_index
+    },
   };
 
   $self = bless ($self, $class);
@@ -891,6 +930,87 @@ sub parse_diff_line
   }
 
   return 0;
+}
+
+sub parse_line
+{
+  my ($self, $line) = @_;
+
+  unless ($line =~ /^(\w+)\s(\w+)?/a)
+  {
+    return 0;
+  }
+
+  my $first_word = $1;
+  my $second_word = $2;
+  my $ops = $self->_get_first_word_ops ();
+
+  unless (exists ($ops->{$first_word}))
+  {
+    return 1;
+  }
+
+  return $ops->{$first_word} ($self, $first_word, $second_word, $line);
+}
+
+# old mode
+sub _handle_old
+{
+  my ($self, $first_word, $second_word, $line) = @_;
+}
+
+# new mode
+# new file mode
+sub _handle_new
+{
+  my ($self, $first_word, $second_word, $line) = @_;
+}
+
+# deleted file mode
+sub _handle_deleted
+{
+  my ($self, $first_word, $second_word, $line) = @_;
+}
+
+# copy from
+# copy to
+sub _handle_copy
+{
+  my ($self, $first_word, $second_word, $line) = @_;
+}
+
+# rename old
+# rename new
+# rename from
+# rename to
+sub _handle_rename
+{
+  my ($self, $first_word, $second_word, $line) = @_;
+}
+
+# similarity index
+sub _handle_similarity
+{
+  my ($self, $first_word, $second_word, $line) = @_;
+}
+
+# dissimilarity index
+sub _handle_dissimilarity
+{
+  my ($self, $first_word, $second_word, $line) = @_;
+}
+
+# index
+sub _handle_index
+{
+  my ($self, $first_word, $second_word, $line) = @_;
+}
+
+sub _get_first_word_ops
+{
+  my ($self) = @_;
+
+  return $self->{'first_word_ops'};
 }
 
 sub parse_mode_line
@@ -4064,17 +4184,20 @@ sub _handle_index_lines
       $pc->die ("Malformed diff line.");
     }
 
-    $self->_read_next_line_or_die ();
-    $line = $pc->get_line ();
-    if ($diff_header->parse_mode_line ($line))
+    while (1)
     {
       $self->_read_next_line_or_die ();
+      $word = $self->_get_first_word ();
+      unless (defined ($word))
+      {
+        $pc->unread_line ();
+        last;
+      }
       $line = $pc->get_line ();
-    }
-
-    unless ($diff_header->parse_index_line ($line))
-    {
-      $pc->die ("Expected 'index'.");
+      unless ($diff_header->parse_line ($line))
+      {
+        $pc->die ("Malformed diff line '$line'");
+      }
     }
 
     $pc->set_current_diff_header ($diff_header);
@@ -4162,7 +4285,7 @@ sub _handle_text_patch
     $pc->die ("Expected '\@\@'.");
   }
 
-  my $last_cluster = LocationCodeCluster->new ($initial_marker);
+  my $last_cluster = LocationCodeCluster->new ($initial_marker, 1);
   my $continue_parsing_rest = 1;
   my $just_got_location_marker = 1;
   my $patch = $pc->get_patch ();
@@ -4233,7 +4356,7 @@ sub _handle_text_patch
       {
         $pc->die ("Failed to parse location marker.");
       }
-      $last_cluster = LocationCodeCluster->new ($marker);
+      $last_cluster = LocationCodeCluster->new ($marker, 0);
       $just_got_location_marker = 1;
     }
     elsif ($line =~ /^#/)
@@ -4561,7 +4684,15 @@ sub _push_section_code_to_cluster_or_die
   }
   if ($useless)
   {
-    $pc->die ("Useless section.");
+    # TODO: Later verify that the section for action is an oldest one
+    # for for "old mode", "new mode", "new file mode", "copy from",
+    # "copy to", "rename old", "rename new", "rename from", "rename
+    # to", "similarity index". Or youngest one for "deleted file
+    # mode". Not sure about "dissimilarity index". Probably ignore it.
+    unless ($cluster->is_first_cluster_in_diff () and $cluster->get_section_codes_count () == 0)
+    {
+      $pc->die ("Useless section.");
+    }
   }
   else
   {
