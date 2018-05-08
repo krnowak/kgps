@@ -10,11 +10,28 @@ set -u
 #set -x
 
 dir=$(dirname $0)
-splitter="${dir}/kgps"
+use_standalone=0
 alltestsdir="${dir}/tests"
 resultsdirbase='test-results'
 allresultsdir="${resultsdirbase}-$(date '+%Y-%m-%d-%H-%M-%S')"
 exitstatus=0
+
+while [[ ${#} -gt 0 ]]
+do
+    case "${1}" in
+        -s)
+            use_standalone=1;
+            ;;
+        --use-standalone)
+            use_standalone=1;
+            ;;
+        *)
+            echo "unknown flag '${1}'"
+            exit 1
+            ;;
+    esac
+    shift
+done
 
 function join_path
 {
@@ -177,6 +194,30 @@ function call_and_log
     return 0
 }
 
+# See call_and_log function, this one calls the splitter script.
+function call_and_log_splitter
+{
+    if [[ $use_standalone -eq 1 ]]
+    then
+        if ! call_and_log \
+             "${dir}/kgps-standalone" \
+             "${@}"
+        then
+            return 1
+        fi
+    else
+        if ! call_and_log \
+             perl \
+             "-I${dir}" \
+             "${dir}/kgps" \
+             "${@}"
+        then
+            return 1
+        fi
+    fi
+    return 0
+}
+
 # Expects failreasons, statusfile, name, debugdir variables to be set
 # up, variables for colored output are optional. Sets the exitstatus
 # variable to 1 if there were any reasons for failure.
@@ -298,10 +339,7 @@ do
         continue
     fi
     failreasons=()
-    if ! call_and_log \
-         perl \
-         "-I${dir}" \
-         "${splitter}" \
+    if ! call_and_log_splitter \
          --output-directory "${patchesdir}" \
          "${testpatch}"
     then
