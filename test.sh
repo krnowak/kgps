@@ -186,14 +186,14 @@ function print_status
     then
         exitstatus=1
         echo 'FAILURE' >"${statusfile}"
-        echo -e "${name} ${red}${bold}FAILURE${unbold}${uncolor}"
+        echo -e "${name} ${redbold}FAILURE${defaultunbold}"
         for reason in "${failreasons[@]}"
         do
             echo "  - ${reason}" | tee --append "${debugdir}/reasons"
         done
     else
         echo 'SUCCESS' >"${statusfile}"
-        echo -e "${name} ${green}${bold}SUCCESS${unbold}${uncolor}"
+        echo -e "${name} ${greenbold}SUCCESS${defaultunbold}"
     fi
     return 0
 }
@@ -245,18 +245,16 @@ function strip_annotations
 
 shopt -s nullglob globstar failglob
 
-red=''
-green=''
-uncolor=''
-bold=''
-unbold=''
+redbold=''
+greenbold=''
+whitebold=''
+defaultunbold=''
 if [[ -t 1 ]]
 then
-    red='\e[31m'
-    green='\e[32m'
-    uncolor='\e[39m'
-    bold='\e[1m'
-    unbold='\e[21m'
+    redbold='\e[31;1m'
+    greenbold='\e[32;1m'
+    whitebold='\e[97;1m'
+    defaultunbold='\e[39;0m'
 fi
 
 mkdir -p "${allresultsdir}"
@@ -296,7 +294,7 @@ do
     if [[ "${name}" == 'SKIP'* ]]
     then
         echo 'SKIP' >"${statusfile}"
-        echo -e "${name} ${bold}SKIP${unbold}"
+        echo -e "${name} ${whitebold}SKIP${defaultunbold}"
         continue
     fi
     failreasons=()
