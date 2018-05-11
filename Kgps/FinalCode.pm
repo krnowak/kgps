@@ -17,6 +17,7 @@ use warnings;
 
 use Kgps::CodeLine;
 use Kgps::LocationMarker;
+use Kgps::Misc;
 
 sub new
 {
@@ -238,9 +239,8 @@ sub _get_before_context_from_lines
   my $lines = $self->get_lines ();
   my @context = ();
 
-  foreach my $line (@{$lines}[0 .. 2])
+  foreach my $line (Kgps::Misc::first_n ($lines, 3))
   {
-    last unless (defined ($line));
     last if ($line->get_sigil () != Kgps::CodeLine::Space);
     push (@context, $line);
   }
@@ -255,9 +255,8 @@ sub _get_after_context_from_lines
   my $lines = $self->get_lines ();
   my @context = ();
 
-  foreach my $line (reverse (@{$lines}[-3 .. -1]))
+  foreach my $line (reverse (Kgps::Misc::last_n ($lines, 3)))
   {
-    last unless (defined ($line));
     last if ($line->get_sigil () != Kgps::CodeLine::Space);
     unshift (@context, $line);
   }
