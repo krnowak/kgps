@@ -1,0 +1,57 @@
+From fecc6385233b5dd3acd41ed0bcdc01b61499212b Mon Sep 17 00:00:00 2001
+From: Krzesimir Nowak <qdlacz@gmail.com>
+Date: Fri, 11 May 2018 22:47:53 +0200
+Subject: [PATCH] foo
+
+---
+# DATE_INC: :::10 UPTO
+# SECTION: FIRST
+#  SUBJECT: FIRST
+# SECTION: SECOND
+#  SUBJECT: SECOND
+#  DATE: Fri, 11 May 2018 21:47:53 +0200
+# SECTION: THIRD
+#  SUBJECT: THIRD
+# SECTION: FOURTH
+#  SUBJECT: FOURTH
+ a | 21 +++++++++++++++++++++
+ 1 file changed, 21 insertions(+)
+
+diff --git a/a b/a
+index e69de29..d4a8d5c 100644
+--- a/a
++++ b/a
+@@ -0,0 +1,21 @@
+# SECTION: SECOND
++1
++2
++3
+# SECTION: FOURTH
++43
++4
++54
++56
+# SECTION: FIRST
++456
++
++5768
+# SECTION: THIRD
++68
++
+# SECTION: FOURTH
++34
++3
++3
+# SECTION: FIRST
++098
+# SECTION: FOURTH
++4
++6
+# SECTION: SECOND
++7
+# SECTION: THIRD
++87
++5
+-- 
+2.17.0
+

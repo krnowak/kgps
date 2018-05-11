@@ -1,0 +1,25 @@
+From 1111111111111111111111111111111111111111 Mon Sep 17 00:00:00 2001
+From: Krzesimir Nowak <qdlacz@gmail.com>
+Date: Fri, 11 May 2018 22:48:03 +0200
+Subject: [PATCH 2/4] SECOND
+
+---
+ a | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/a b/a
+index 111111..222222 100644
+--- a/a
++++ b/a
+@@ -1,4 +1,8 @@
++1
++2
++3
+ 456
+ 
+ 5768
+ 098
++7
+-- 
+0.0.0
+
