@@ -798,12 +798,12 @@ for my $line (@{$script->get_init ()})
 $out->say ('');
 $out->say ('# THIS FILE IS GENERATED, DO NOT EDIT!');
 $out->say ('');
-for my $line (@{$script->get_pragmas ()})
+for my $line (sort (@{$script->get_pragmas ()}))
 {
   $out->say ($line);
 }
 $out->say ('');
-for my $pkg (@{$generation_data->get_std ()})
+for my $pkg (sort (@{$generation_data->get_std ()}))
 {
   $out->say ('use ', $pkg, ';');
 }
