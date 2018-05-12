@@ -9,7 +9,7 @@ set -u
 # expand commands
 #set -x
 
-dir=$(dirname $0)
+dir=$(dirname "${0}")
 use_standalone=0
 alltestsdir="${dir}/tests"
 resultsdirbase='test-results'
