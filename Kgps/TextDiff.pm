@@ -161,18 +161,13 @@ sub _postprocess_vfunc
   # Prepare raw representations of final codes. When file is added or
   # deleted the code doing it has to have a different header - the
   # outer one. The rest of codes are making changes to already/still
-  # existing file, so they need ordinary header - the inner one. Also,
-  # for such files small corrections are needed to inner codes,
-  # because of using special 0,0 marker value denoting file
-  # creation/deletion. That special value is causing off-by-one errors
-  # if not corrected in inner patches.
+  # existing file, so they need ordinary header - the inner one.
   my $header = $self->get_header ();
   my $action = $header->get_action ();
   my $inner_index_first = 0;
   my $inner_index_last = @{$sections_array} - 1;
   my $outer_section_index = undef;
   my $git_raw = {};
-  my $final_inner_correction = Kgps::LocationMarker->new_zero ();
   # Git version of a special header for sections doing the file
   # creation or deletion.
   my $git_header_outer = $self->_get_git_unidiff_header_for_outer ($header);
@@ -211,7 +206,6 @@ sub _postprocess_vfunc
     die "SHOULD NOT HAPPEN" if $oldest_section_index_in_this_diff >= @{$sections_array};
     $inner_index_first = $oldest_section_index_in_this_diff + 1;
     $outer_section_index = $oldest_section_index_in_this_diff;
-    $final_inner_correction->inc_old_line_no ();
   }
   elsif ($action eq "deleted file")
   {
@@ -229,7 +223,6 @@ sub _postprocess_vfunc
     die "SHOULD NOT HAPPEN" if -$youngest_section_index_in_this_diff > @{$sections_array};
     $inner_index_last = @{$sections_array} - 1 + $youngest_section_index_in_this_diff;
     $outer_section_index = $youngest_section_index_in_this_diff;
-    $final_inner_correction->inc_new_line_no ();
   }
 
   my $stats = {};
@@ -249,13 +242,6 @@ sub _postprocess_vfunc
   {
     my $section_name = $section->get_name ();
     my $final_codes = $for_raw->{$section_name};
-
-    foreach my $final_code (@{$final_codes})
-    {
-      my $final_marker = $final_code->get_marker ();
-
-      $final_marker->add_marker ($final_inner_correction);
-    }
 
     next unless (@{$final_codes});
     $git_raw->{$section_name} = $self->_get_raw_text_for_final_codes ($git_header_inner, $final_codes);
@@ -420,10 +406,8 @@ sub _adapt_markers
     {
       if ($section->is_younger_than ($current_section))
       {
-        # old line no + 1
-        # new line no + 1
-        $marker->inc_old_line_no ();
-        $marker->inc_new_line_no ();
+        _double_old_inc ($marker);
+        _double_new_inc ($marker);
       }
       elsif ($section->is_older_than ($current_section))
       {
@@ -431,8 +415,7 @@ sub _adapt_markers
       }
       else # same section
       {
-        $marker->inc_new_line_no ();
-        # new line no + 1
+        _double_new_inc ($marker);
       }
     }
     elsif ($sigil == Kgps::CodeLine::Minus)
@@ -443,37 +426,39 @@ sub _adapt_markers
       }
       elsif ($section->is_older_than ($current_section))
       {
-        $marker->inc_old_line_no ();
-        $marker->inc_new_line_no ();
-        # old line no + 1
-        # new line no + 1
+        _double_old_inc ($marker);
+        _double_new_inc ($marker);
       }
       else # same section
       {
-        $marker->inc_old_line_no ()
-        # old line no + 1
+        _double_old_inc ($marker);
       }
     }
     elsif ($sigil == Kgps::CodeLine::Space)
     {
-      $marker->inc_old_line_no ();
-      $marker->inc_new_line_no ();
-      if ($section->is_younger_than ($current_section))
-      {
-        # old line no + 1
-        # new line no + 1
-      }
-      elsif ($section->is_older_than ($current_section))
-      {
-        # old line no + 1
-        # new line no + 1
-      }
-      else # same section
-      {
-        # old line no + 1
-        # new line no + 1
-      }
+      _double_old_inc ($marker);
+      _double_new_inc ($marker);
     }
+  }
+}
+
+sub _double_old_inc
+{
+  my ($marker) = @_;
+
+  if ($marker->inc_old_line_no () == 1)
+  {
+    $marker->inc_old_line_no ();
+  }
+}
+
+sub _double_new_inc
+{
+  my ($marker) = @_;
+
+  if ($marker->inc_new_line_no () == 1)
+  {
+    $marker->inc_new_line_no ();
   }
 }
 

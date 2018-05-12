@@ -146,11 +146,12 @@ sub cleanup_context
   }
 
   # Update marker.
-  $additions->set_old_line_count ($count);
   $additions->set_old_line_no ($line_no);
-  $additions->set_new_line_count ($count);
+  $additions->set_old_line_count ($count);
   $additions->set_new_line_no ($line_no);
+  $additions->set_new_line_count ($count);
   $marker->add_marker ($additions);
+  $marker->sanitize ();
 
   # Setup bare marker (for easy computing whether two final codes can be merged).
   my $bare_marker = $marker->clone ();
