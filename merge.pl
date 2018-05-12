@@ -389,7 +389,7 @@ sub parse_kgps
         $script->add_kgps ($trunc_pkg);
         $stage = 'kgps';
       }
-      elsif ($line =~ /^use\s+(\w+::\S+);$/)
+      elsif ($line =~ /^use\s+([A-Z]\S+);$/)
       {
         my $pkg = $1;
 
@@ -551,7 +551,7 @@ sub parse_kgps_pm
         $pm->add_kgps ($trunc_pkg);
         $stage = 'kgps';
       }
-      elsif ($line =~ /^use\s+(\w+::\S+);$/)
+      elsif ($line =~ /^use\s+([A-Z]\S+);$/)
       {
         my $pkg = $1;
 
