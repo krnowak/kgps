@@ -34,4 +34,14 @@ sub last_n
   return ();
 }
 
+sub to_num
+{
+  my ($stuff) = @_;
+
+  return 0 unless (defined ($stuff));
+  return 0 if ($stuff eq '');
+
+  return 0 + $stuff;
+}
+
 1;

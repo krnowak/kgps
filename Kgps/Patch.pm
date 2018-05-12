@@ -25,6 +25,7 @@ sub new
     'patch_date' => undef,
     'subject' => undef,
     'message_lines' => [],
+    'date_inc' => undef,
     'diffs' => [],
     'sections_ordered' => [],
     'sections_unordered' => {},
@@ -105,6 +106,20 @@ sub add_message_line
   my $lines = $self->get_message_lines ();
 
   push (@{$lines}, $line);
+}
+
+sub get_date_inc
+{
+  my ($self) = @_;
+
+  return $self->{'date_inc'};
+}
+
+sub set_date_inc
+{
+  my ($self, $date_inc) = @_;
+
+  $self->{'date_inc'} = $date_inc;
 }
 
 sub get_diffs

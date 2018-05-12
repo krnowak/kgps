@@ -96,6 +96,13 @@ sub get_message_lines
   $self->{'message_lines'}
 }
 
+sub set_message_lines
+{
+  my ($self, $lines) = @_;
+
+  $self->{'message_lines'} = $lines;
+}
+
 sub add_message_line
 {
   my ($self, $line) = @_;

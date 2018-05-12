@@ -18,10 +18,13 @@ use IO::File;
 
 use Kgps::BinaryDiff;
 use Kgps::CodeLine;
+use Kgps::Date;
+use Kgps::DateInc;
 use Kgps::DiffHeader;
 use Kgps::ListingInfo;
 use Kgps::LocationCodeCluster;
 use Kgps::LocationMarker;
+use Kgps::Misc;
 use Kgps::NewAndGoneDetails;
 use Kgps::OverlapInfo;
 use Kgps::ParseContext;
@@ -159,7 +162,13 @@ sub _on_intro
     {
       if ($line =~ /^\s*Date:\s*(\S.*)$/)
       {
-        $patch->set_patch_date ($1);
+        my $date = Kgps::Date->create ($1);
+
+        unless (defined ($date))
+        {
+          $pc->die ("Invalid date in a Date line");
+        }
+        $patch->set_patch_date ($date);
         $stage = 'subject';
       }
       else
@@ -227,7 +236,41 @@ sub _on_listing
     }
     elsif ($stage eq 'sections')
     {
-      if ($line =~ /^#\s*SECTION:\s*(\w+)\s*$/a)
+      if ($line =~ /^#\s*DATE_INC:\s*(\d*):(\d*):(\d*):(\d*)(?:\s+(\w+))?\s*$/a)
+      {
+        my $days = Kgps::Misc::to_num ($1);
+        my $hours = Kgps::Misc::to_num ($2);
+        my $minutes = Kgps::Misc::to_num ($3);
+        my $seconds = Kgps::Misc::to_num ($4);
+        my $mode = $5;
+
+        if ($mode eq '')
+        {
+          $mode = 'UPTO';
+        }
+        if ($mode eq 'UPTO')
+        {
+          $mode = Kgps::DateInc::Upto;
+        }
+        elsif ($mode eq 'FROM')
+        {
+          $mode = Kgps::DateInc::From;
+        }
+        else
+        {
+          $pc->die ('Invalid increment mode in DATE_INC clause, needs to be either FROM or UPTO');
+        }
+        if ($patch->get_sections_count ())
+        {
+          $pc->die ("'DATE_INC' clause needs to precede any 'SECTION' clause");
+        }
+        if (defined ($patch->get_date_inc ()))
+        {
+          $pc->die ("Multiple 'DATE_INC' clauses for a patch");
+        }
+        $patch->set_date_inc (Kgps::DateInc->new ($days, $hours, $minutes, $seconds, $mode));
+      }
+      elsif ($line =~ /^#\s*SECTION:\s*(\w+)\s*$/a)
       {
         my $name = $1;
         my $sections_count = $patch->get_sections_count ();
@@ -260,7 +303,8 @@ sub _on_listing
       }
       elsif ($line =~ /^#\s*DATE:\s*(\S.*)$/)
       {
-        my $date = $1;
+        my $raw = $1;
+
         unless ($patch->get_sections_count ())
         {
           $pc->die ("'DATE' clause needs to follow the 'SECTION' clause");
@@ -269,7 +313,14 @@ sub _on_listing
         {
           $pc->die ("Multiple 'DATE' clauses for a single 'SECTION' clause");
         }
+
         my $section = @{$patch->get_sections_ordered ()}[-1];
+        my $date = Kgps::Date->create ($raw);
+
+        unless (defined ($date))
+        {
+          $pc->die ("Invalid date in 'DATE' clause");
+        }
 
         $section->set_date ($date);
         $got_date = 1;
@@ -1085,6 +1136,7 @@ sub _cleanup
     'subject' => $patch->get_subject (),
     'from_date' => $patch->get_from_date (),
     'patch_date' => $patch->get_patch_date (),
+    'date_inc' => $patch->get_date_inc (),
     'message' => $patch->get_message_lines (),
   };
   delete ($self->{'p_c'});

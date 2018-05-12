@@ -14,6 +14,7 @@ use File::Path;
 use File::Spec;
 use IO::File;
 
+use Kgps::DateInc;
 use Kgps::GnomePatch;
 use Kgps::Options;
 use Kgps::StatRenderContext;
@@ -23,7 +24,14 @@ sub generate_git_patches {
   my $default_data = $p->get_default_data ();
   my $entries = $p->get_raw_diffs ();
   my $patches_count = @{$entries};
+  my $date_inc = $default_data->{'date_inc'};
 
+  unless (defined ($date_inc))
+  {
+    $date_inc = Kgps::DateInc->new_ignore ();
+  }
+
+  figure_out_patch_metadata ($entries, $default_data);
   foreach my $entry (@{$entries})
   {
     my $diff = join ('', @{$entry->{'git-diffs'}});
@@ -33,17 +41,8 @@ sub generate_git_patches {
     my $patch_index = $section->get_index () + 1;
     my $number = sprintf ("%04d", $patch_index);
     my $subject = $section->get_subject ();
-
-    unless (defined ($subject))
-    {
-      $subject = $default_data->{'subject'};
-      unless (defined ($subject))
-      {
-        die "no subject for section $section_name";
-      }
-    }
-
     my $subject_for_patch_name = $subject;
+
     $subject_for_patch_name =~ s/[^\w.]+/-/ag;
     $subject_for_patch_name =~ s/^-+//ag;
     $subject_for_patch_name =~ s/-+$//ag;
@@ -60,32 +59,8 @@ sub generate_git_patches {
 
     my $from_date = $default_data->{'from_date'};
     my $author = $section->get_author ();
-    unless (defined ($author))
-    {
-      $author = $default_data->{'author'};
-      unless (defined ($author))
-      {
-        die "no author for section $section_name";
-      }
-    }
-
     my $patch_date = $section->get_date ();
-    unless (defined ($patch_date))
-    {
-      $patch_date = $default_data->{'patch_date'};
-      unless (defined ($patch_date))
-      {
-        die "no patch date for section $section_name";
-      }
-    }
-
     my $message_lines = $section->get_message_lines ();
-    unless (defined ($message_lines))
-    {
-      $message_lines = $default_data->{'message'};
-      # This is never undef, it can be just an empty arrayref.
-    }
-
     my $stat_render_context = Kgps::StatRenderContext->new ();
     my $per_basename_stats = $stats->get_per_basename_stats ();
     my $summary = $stats->get_summary ();
@@ -93,10 +68,11 @@ sub generate_git_patches {
 
     $per_basename_stats->fill_context_info ($stat_render_context);
 
+    my $patch_date_str = $patch_date->to_string ();
     my $contents = join ("\n",
                          "From 1111111111111111111111111111111111111111 $from_date",
                          "From: $author",
-                         "Date: $patch_date",
+                         "Date: $patch_date_str",
                          "Subject: [PATCH $patch_index/$patches_count] $subject",
                          '',
                          @{$message_lines},
@@ -113,6 +89,139 @@ sub generate_git_patches {
 
     $file->binmode (':utf8');
     $file->print ($contents);
+  }
+}
+
+sub figure_out_patch_metadata
+{
+  my ($entries, $default_data) = @_;
+  my $date_inc = $default_data->{'date_inc'};
+
+  unless (defined ($date_inc))
+  {
+    $date_inc = Kgps::DateInc->new_ignore ();
+  }
+
+  my $mode = $date_inc->get_mode ();
+
+  if ($mode == Kgps::DateInc::Ignore)
+  {
+    my $current_patch_date = $default_data->{'patch_date'};
+
+    unless (defined ($current_patch_date))
+    {
+      die "SHOULD NOT HAPPEN, no patch date";
+    }
+    foreach my $entry (@{$entries})
+    {
+      my $section = $entry->{'section'};
+      my $section_date = $section->get_date ();
+
+      if (defined ($section_date))
+      {
+        $current_patch_date = $section_date;
+      }
+      else
+      {
+        $section->set_date ($current_patch_date);
+      }
+    }
+  }
+  elsif ($mode == Kgps::DateInc::From)
+  {
+    my $current_patch_date = undef;
+
+    foreach my $entry (@{$entries})
+    {
+      my $section = $entry->{'section'};
+      my $section_date = $section->get_date ();
+
+      if (defined ($section_date))
+      {
+        $current_patch_date = $section_date;
+      }
+      else
+      {
+        if (defined ($current_patch_date))
+        {
+          $current_patch_date = $current_patch_date->incremented ($date_inc);
+        }
+        else
+        {
+          $current_patch_date = $default_data->{'patch_date'};
+          unless (defined ($current_patch_date))
+          {
+            die "SHOULD NOT HAPPEN, no patch date";
+          }
+        }
+        $section->set_date ($current_patch_date);
+      }
+    }
+  }
+  elsif ($mode == Kgps::DateInc::Upto)
+  {
+    my $current_patch_date = undef;
+
+    foreach my $entry (reverse (@{$entries}))
+    {
+      my $section = $entry->{'section'};
+      my $section_date = $section->get_date ();
+
+      if (defined ($section_date))
+      {
+        $current_patch_date = $section_date;
+      }
+      else
+      {
+        if (defined ($current_patch_date))
+        {
+          $current_patch_date = $current_patch_date->decremented ($date_inc);
+        }
+        else
+        {
+          $current_patch_date = $default_data->{'patch_date'};
+          unless (defined ($current_patch_date))
+          {
+            die "SHOULD NOT HAPPEN, no patch date";
+          }
+        }
+        $section->set_date ($current_patch_date);
+      }
+    }
+  }
+
+  foreach my $entry (@{$entries})
+  {
+    my $section = $entry->{'section'};
+    my $section_name = $section->get_name ();
+
+    unless (defined ($section->get_subject ()))
+    {
+      my $subject = $default_data->{'subject'};
+
+      unless (defined ($subject))
+      {
+        die "no subject for section $section_name";
+      }
+      $section->set_subject ($subject);
+    }
+
+    unless (defined ($section->get_author ()))
+    {
+      my $author = $default_data->{'author'};
+
+      unless (defined ($author))
+      {
+        die "no author for section $section_name";
+      }
+      $section->set_author ($author);
+    }
+
+    unless (defined ($section->get_message_lines ()))
+    {
+      # This is never undef, it can be just an empty arrayref.
+      $section->set_message_lines ($default_data->{'message'});
+    }
   }
 }
 
