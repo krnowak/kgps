@@ -1,0 +1,22 @@
+From 1111111111111111111111111111111111111111 Mon Sep 17 00:00:00 2001
+From: Krzesimir Nowak <qdlacz@gmail.com>
+Date: Sat, 12 May 2018 09:16:00 +0200
+Subject: [PATCH 1/2] bar
+
+---
+ a | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/a b/a
+index 111111..222222 100644
+--- a/a
++++ b/a
+@@ -0,0 +1,5 @@
++6
++7
++8
++9
++10
+-- 
+0.0.0
+

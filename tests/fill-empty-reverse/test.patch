@@ -1,0 +1,31 @@
+From cced2f2fa6e4a1362df4c608e2705de4b1f109ed Mon Sep 17 00:00:00 2001
+From: Krzesimir Nowak <qdlacz@gmail.com>
+Date: Sat, 12 May 2018 09:16:00 +0200
+Subject: [PATCH] bar
+
+---
+# SECTION: FIRST
+# SECTION: SECOND
+ a | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/a b/a
+index e69de29..f00c965 100644
+--- a/a
++++ b/a
+@@ -0,0 +1,10 @@
+# SECTION: SECOND
++1
++2
++3
++4
++5
+# SECTION: FIRST
++6
++7
++8
++9
++10
+-- 
+2.17.0
+
