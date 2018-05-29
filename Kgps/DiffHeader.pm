@@ -34,6 +34,24 @@ sub new_relaxed
   return _new_full ($type, $diff_common, $diff_specific, 0);
 }
 
+sub get_text_from
+{
+  my ($self) = @_;
+  my $diff_common = $self->get_diff_common ();
+  my $diff_specific = $self->_get_diff_specific ();
+
+  return $diff_specific->get_text_from ($diff_common);
+}
+
+sub get_text_to
+{
+  my ($self) = @_;
+  my $diff_common = $self->get_diff_common ();
+  my $diff_specific = $self->_get_diff_specific ();
+
+  return $diff_specific->get_text_to ($diff_common);
+}
+
 sub to_lines
 {
   my ($self) = @_;

@@ -26,6 +26,20 @@ sub new
   return $self;
 }
 
+sub get_text_from
+{
+  my ($self, $diff_common) = @_;
+
+  return $self->_get_text_from_vfunc ($diff_common);
+}
+
+sub get_text_to
+{
+  my ($self, $diff_common) = @_;
+
+  return $self->_get_text_to_vfunc ($diff_common);
+}
+
 sub has_index
 {
   my ($self) = @_;

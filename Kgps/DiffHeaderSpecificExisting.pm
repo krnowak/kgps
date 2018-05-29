@@ -76,6 +76,20 @@ sub set_part_contents
   $self->{'part_contents'} = $part;
 }
 
+sub _get_text_from_vfunc
+{
+  my ($self, $diff_common) = @_;
+
+  return $diff_common->get_a ();
+}
+
+sub _get_text_to_vfunc
+{
+  my ($self, $diff_common) = @_;
+
+  return $diff_common->get_b ();
+}
+
 sub _has_index_vfunc
 {
   my ($self) = @_;

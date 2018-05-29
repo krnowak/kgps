@@ -122,14 +122,19 @@ function git_strip_patch
                 sed -e 's/[a-f0-9]\{40\}/1111111111111111111111111111111111111111/' <<<"${line}" >>"${target_path}"
             else
                 echo "${line}" >>"${target_path}"
-                if [[ ${line} == '---' ]]
+                if [[ ${line} = '---' ]]
                 then
                     stage='listing'
                 fi
             fi
         elif [[ $stage = 'listing' ]]
         then
-            echo "${line}" >>"${target_path}"
+            if [[ ${line} = ' rename '* ]]
+            then
+                sed -e 's/([[:digit:]]\+%)$/(42%)/' <<<"${line}" >>"${target_path}"
+            else
+                echo "${line}" >>"${target_path}"
+            fi
             if [[ -z $line ]]
             then
                 stage='diffs'
@@ -145,6 +150,9 @@ function git_strip_patch
                     -e 's/\.[0-9a-f]\+/.333333/' \
                     -e 's/xxx/000000/g' \
                     <<<"${line}" >>"${target_path}"
+            elif [[ $line = 'similarity index '* ]]
+            then
+                echo 'similarity index 42%' >>"${target_path}"
             elif [[ $line =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
             then
                 echo '0.0.0' >>"${target_path}"

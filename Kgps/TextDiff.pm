@@ -788,9 +788,8 @@ sub _get_raw_text_for_final_codes
   if (scalar (@{$final_codes}))
   {
     my @raw_codes = map { $self->_get_raw_text_for_final_code ($_) } @{$final_codes};
-    my $diff_common = $diff_header->get_diff_common ();
-    my $from = $diff_common->get_a ();
-    my $to = $diff_common->get_b ();
+    my $from = $diff_header->get_text_from ();
+    my $to = $diff_header->get_text_to ();
 
     push (@text_diff_lines,
           "--- $from",
