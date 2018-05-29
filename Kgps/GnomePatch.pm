@@ -18,19 +18,30 @@ use IO::File;
 
 use Kgps::BinaryDiff;
 use Kgps::CodeLine;
+use Kgps::CustomizationCreate;
+use Kgps::CustomizationDelete;
+use Kgps::CustomizationIndex;
+use Kgps::CustomizationMode;
+use Kgps::CustomizationRename;
 use Kgps::Date;
 use Kgps::DateInc;
-use Kgps::DiffHeader;
+use Kgps::DiffHeaderParser;
+use Kgps::FileStateBuilder;
+use Kgps::ListingAuxChangesDetailsCreate;
+use Kgps::ListingAuxChangesDetailsDelete;
+use Kgps::ListingAuxChangesDetailsMode;
+use Kgps::ListingAuxChangesDetailsModeRename;
+use Kgps::ListingAuxChangesDetailsRename;
 use Kgps::ListingInfo;
 use Kgps::LocationCodeCluster;
 use Kgps::LocationMarker;
 use Kgps::Misc;
-use Kgps::NewAndGoneDetails;
 use Kgps::OverlapInfo;
 use Kgps::ParseContext;
 use Kgps::Section;
 use Kgps::SectionCode;
 use Kgps::SectionOverlappedCode;
+use Kgps::SectionRanges;
 use Kgps::TextDiff;
 
 sub new
@@ -225,6 +236,7 @@ sub _on_listing
   my $got_date = 0;
   my $got_subject = 0;
   my $got_message = 0;
+  my $last_rename_aux_data = undef;
 
   while ($stage ne 'done')
   {
@@ -414,31 +426,130 @@ sub _on_listing
         {
           $summary->set_deletions ($3);
         }
-        $stage = 'listing-new-and-gone-files'
+        $stage = 'listing-aux-changes'
       }
       else
       {
         $pc->die ("Unknown line in listing, expected either file stats or changes summary");
       }
     }
-    elsif ($stage eq 'listing-new-and-gone-files')
+    elsif ($stage eq 'listing-aux-changes')
     {
-      if ($line =~ /^ (\w+) mode (\d+) (.+)$/)
+      if ($line =~ /^ create mode (\d+) (.+)$/)
       {
-        my $new_and_gone_files = $listing_info->get_new_and_gone_files ();
-        my $details = Kgps::NewAndGoneDetails->new ($1, $2);
-        unless ($new_and_gone_files->add_details ($3, $details))
+        my $mode = $1;
+        my $path = $2;
+        my $listing_aux_changes = $listing_info->get_aux_changes ();
+
+        if (defined ($last_rename_aux_data))
         {
-          $pc->die ("Duplicated new or gone file details for path '$3'");
+          my $last_old_path = $last_rename_aux_data->{'old_path'};
+          my $last_new_path = $last_rename_aux_data->{'new_path'};
+          my $last_similarity_index = $last_rename_aux_data->{'similarity_index'};
+          my $details = Kgps::ListingAuxChangesDetailsRename->new ($last_old_path, $last_new_path, $last_similarity_index);
+
+          $listing_aux_changes->add_details ($details);
+          $last_rename_aux_data = undef;
         }
+
+        my $details = Kgps::ListingAuxChangesDetailsCreate->new ($mode, $path);
+
+        $listing_aux_changes->add_details ($details);
+      }
+      elsif ($line =~ /^ delete mode (\d+) (.+)$/)
+      {
+        my $mode = $1;
+        my $path = $2;
+        my $listing_aux_changes = $listing_info->get_aux_changes ();
+
+        if (defined ($last_rename_aux_data))
+        {
+          my $last_old_path = $last_rename_aux_data->{'old_path'};
+          my $last_new_path = $last_rename_aux_data->{'new_path'};
+          my $last_similarity_index = $last_rename_aux_data->{'similarity_index'};
+          my $details = Kgps::ListingAuxChangesDetailsRename->new ($last_old_path, $last_new_path, $last_similarity_index);
+
+          $listing_aux_changes->add_details ($details);
+          $last_rename_aux_data = undef;
+        }
+
+        my $details = Kgps::ListingAuxChangesDetailsDelete->new ($mode, $path);
+
+        $listing_aux_changes->add_details ($details);
+      }
+      elsif ($line =~ /^ rename (.+) => (.+) \((\d{1,3})%\)$/)
+      {
+        my $old_path = $1;
+        my $new_path = $2;
+        my $similarity_index = $3;
+        my $listing_aux_changes = $listing_info->get_aux_changes ();
+
+        if (defined ($last_rename_aux_data))
+        {
+          my $last_old_path = $last_rename_aux_data->{'old_path'};
+          my $last_new_path = $last_rename_aux_data->{'new_path'};
+          my $last_similarity_index = $last_rename_aux_data->{'similarity_index'};
+          my $details = Kgps::ListingAuxChangesDetailsRename->new ($last_old_path, $last_new_path, $last_similarity_index);
+
+          $listing_aux_changes->add_details ($details);
+          $last_rename_aux_data = undef;
+        }
+
+        $last_rename_aux_data = {
+          'old_path' => $old_path,
+          'new_path' => $new_path,
+          'similarity_index' => $similarity_index,
+        };
+      }
+      elsif ($line =~ /^ mode change (\d{6}) => (\d{6}) (.+)$/)
+      {
+        my $old_mode = $1;
+        my $new_mode = $2;
+        my $path = $3;
+        my $listing_aux_changes = $listing_info->get_aux_changes ();
+
+        if (defined ($last_rename_aux_data))
+        {
+          my $last_old_path = $last_rename_aux_data->{'old_path'};
+          my $last_new_path = $last_rename_aux_data->{'new_path'};
+          my $last_similarity_index = $last_rename_aux_data->{'similarity_index'};
+          my $details = Kgps::ListingAuxChangesDetailsRename->new ($last_old_path, $last_new_path, $last_similarity_index);
+
+          $listing_aux_changes->add_details ($details);
+          $last_rename_aux_data = undef;
+        }
+
+        my $details = Kgps::ListingAuxChangesDetailsMode->new ($old_mode, $new_mode, $path);
+
+        $listing_aux_changes->add_details ($details);
+      }
+      elsif ($line =~ /^ mode change (\d{6}) => (\d{6})$/)
+      {
+        my $old_mode = $1;
+        my $new_mode = $2;
+        my $listing_aux_changes = $listing_info->get_aux_changes ();
+
+        unless (defined ($last_rename_aux_data))
+        {
+          $pc->die ("Expected a preceding line to contain rename info");
+        }
+
+        my $last_old_path = $last_rename_aux_data->{'old_path'};
+        my $last_new_path = $last_rename_aux_data->{'new_path'};
+        my $last_similarity_index = $last_rename_aux_data->{'similarity_index'};
+        my $details = Kgps::ListingAuxChangesDetailsModeRename->new ($last_old_path, $last_new_path, $last_similarity_index, $old_mode, $new_mode);
+
+        $listing_aux_changes->add_details ($details);
+        $last_rename_aux_data = undef;
       }
       elsif ($line eq '')
       {
+        $patch->wrap_sections ();
         $stage = 'done';
       }
       else
       {
-        $pc->die ("Unknown line in listing, expected new or gone file details");
+        $pc->die ("Unknown line in listing, expected auxiliary details");
       }
     }
   }
@@ -452,53 +563,341 @@ sub _on_rest
 
   while ($loop)
   {
-    $self->_handle_index_lines ();
+    $self->_handle_diff_header_lines ();
     $loop = $self->_handle_diff_lines ();
     $self->_postprocess_diff ();
   }
 }
 
-sub _handle_index_lines
+sub _handle_diff_header_lines
 {
   my ($self) = @_;
   my $pc = $self->_get_pc ();
+  my $mode = 'basic';
 
   $self->_read_next_line_or_die ();
 
-  my $word = $self->_get_first_word ();
-
-  if (defined ($word) and $word eq 'diff')
+  if ($pc->get_line () =~ /^#\s*DIFF_HEADER$/a)
   {
-    # XXX: This section of code is rather incorrect - there can be
-    # more lines in this part of diff. But for my ordinary use no such
-    # diffs existed.
-    my $diff_header = Kgps::DiffHeader->new ();
-    my $line = $pc->get_line ();
-
-    unless ($diff_header->parse_diff_line ($line))
-    {
-      $pc->die ("Malformed diff line.");
-    }
-
-    $self->_read_next_line_or_die ();
-    $line = $pc->get_line ();
-    if ($diff_header->parse_mode_line ($line))
-    {
-      $self->_read_next_line_or_die ();
-      $line = $pc->get_line ();
-    }
-
-    unless ($diff_header->parse_index_line ($line))
-    {
-      $pc->die ("Expected 'index'.");
-    }
-
-    $pc->set_current_diff_header ($diff_header);
+    $mode = 'full';
   }
   else
   {
-    $pc->die ("Expected 'diff --git'.");
+    $pc->unread_line ();
   }
+
+  my $diff_header_parser = Kgps::DiffHeaderParser->new ();
+  my $result = Kgps::DiffHeaderParser::ParseMoreLinesNeeded;
+
+  while ($result == Kgps::DiffHeaderParser::ParseMoreLinesNeeded)
+  {
+    $self->_read_next_line_or_die ();
+    $result = $diff_header_parser->feed_line ($pc->get_line ());
+  }
+  if ($result == Kgps::DiffHeaderParser::ParseFail)
+  {
+    $pc->die ($diff_header_parser->get_failure ());
+  }
+  if ($result == Kgps::DiffHeaderParser::ParseDoneNotConsumed)
+  {
+    $pc->unread_line ();
+  }
+
+  my $header = $diff_header_parser->get_diff_header ();
+  $pc->set_current_diff_header ($header);
+  if ($mode eq 'basic')
+  {
+    my $patch = $pc->get_patch ();
+    my $sections_array = $patch->get_sections_ordered ();
+    my $default_section = $header->pick_default_section ($sections_array);
+    my $headers_for_sections = {};
+    my $allowed_section_ranges = $header->get_initial_section_ranges ($sections_array, $default_section);
+
+    $pc->set_headers_for_sections ($headers_for_sections);
+    $pc->set_allowed_section_ranges ($allowed_section_ranges);
+    return;
+  }
+
+  my $stage = 'section-line';
+  my $allowed_customizations = $header->get_allowed_customizations ();
+  my $builder = Kgps::FileStateBuilder->new ();
+  my $file_state = $header->get_pre_file_state ($builder);
+  my $got_rename_customization_for_section = 0;
+  my $got_mode_customization_for_section = 0;
+  my $got_index_customization_for_section = 0;
+  my $got_no_customization_for_section = 1;
+  my $got_section_in_last_line = 0;
+  my $got_at_least_one_customization = 0;
+  my $last_section = undef;
+  my $last_section_file_state = undef;
+  my $headers_for_sections = {};
+  my $allowed_section_ranges = undef;
+
+  while ($stage ne 'done')
+  {
+    $self->_read_next_line_or_die ();
+
+    my $line = $pc->get_line ();
+
+    if ($stage eq 'section-line')
+    {
+    HACK_HACK:
+      if ($line =~ /^#\s*END_DIFF_HEADER\s*$/a)
+      {
+        if ($got_at_least_one_customization)
+        {
+          if ($got_section_in_last_line)
+          {
+            $pc->die ('TODO: something about an empty section while we arely have some customizations');
+          }
+
+          my $post_file_state = $header->get_post_file_state ($builder);
+
+          unless ($file_state->is_same ($post_file_state))
+          {
+            $pc->die ('TODO: file state is diff');
+          }
+
+          $headers_for_sections->{$last_section->get_name ()} = $file_state->generate_diff_header ($last_section_file_state);
+          unless (defined ($allowed_section_ranges))
+          {
+            my $patch = $pc->get_patch ();
+            my $sections_array = $patch->get_sections_ordered ();
+            my $start_section = $sections_array->[0];
+            my $end_section = $sections_array->[-1];
+
+            $allowed_section_ranges = Kgps::SectionRanges->new ($start_section, $end_section);
+          }
+        }
+        elsif ($got_section_in_last_line)
+        {
+          my $patch = $pc->get_patch ();
+          my $sections_array = $patch->get_sections_ordered ();
+
+          $headers_for_sections->{$last_section->get_name ()} = $header->with_bogus_values ();
+          $allowed_section_ranges = $header->get_initial_section_ranges ($sections_array, $last_section);
+        }
+        else
+        {
+          my $patch = $pc->get_patch ();
+          my $sections_array = $patch->get_sections_ordered ();
+          my $default_section = $header->pick_default_section ($sections_array);
+
+          $headers_for_sections = {};
+          $allowed_section_ranges = $header->get_initial_section_ranges ($sections_array, $default_section);
+        }
+        $stage = 'done';
+      }
+      elsif ($line =~ /^#\s*SECTION:\s+(\S+)\s*$/a)
+      {
+        my $section_name = $1;
+
+        if ($got_section_in_last_line)
+        {
+          $pc->die ('TODO: something about an empty section while another one was specified');
+        }
+
+        my $patch = $pc->get_patch ();
+        my $sections_hash = $patch->get_sections_unordered ();
+
+        unless (exists ($sections_hash->{$section_name}))
+        {
+          $pc->die ("Unknown section '$section_name'.");
+        }
+
+        my $section = $sections_hash->{$section_name};
+
+        $got_rename_customization_for_section = 0;
+        $got_mode_customization_for_section = 0;
+        $got_index_customization_for_section = 0;
+        $got_no_customization_for_section = 1;
+        $got_section_in_last_line = 1;
+        if (defined ($last_section))
+        {
+          if ($last_section->get_name () eq $section_name)
+          {
+            $pc->die ('TODO: Something about duplicated section clauses');
+          }
+          if ($last_section->is_younger_than ($section))
+          {
+            $pc->die ('TODO: something about previous section being younger than the following one, lack of order, yadda yadda');
+          }
+          $headers_for_sections->{$last_section->get_name ()} = $file_state->generate_diff_header ($last_section_file_state);
+        }
+        $last_section = $section;
+        $last_section_file_state = $file_state;
+        $stage = 'sections';
+      }
+      else
+      {
+        $pc->die ('TODO: unknown line');
+      }
+    }
+    elsif ($stage eq 'sections')
+    {
+      if ($line =~ /^#\s*END_DIFF_HEADER$/a)
+      {
+        goto HACK_HACK;
+      }
+      elsif ($line =~ /^#\s*SECTION:\s+(\S+)$/a)
+      {
+        goto HACK_HACK;
+      }
+      elsif ($line =~ /^#\s*CREATE\s+(\S+)\s+(\d{6})$/a)
+      {
+        my $path = $1;
+        my $mode = $2;
+
+        unless ($allowed_customizations->is_create_allowed ())
+        {
+          $pc->die ('CREATE customization is not allowed for this diff header');
+        }
+
+        my $customization = Kgps::CustomizationCreate->new ($path, $mode);
+
+        $file_state = $file_state->apply_create_customization ($customization, $got_no_customization_for_section);
+        $got_no_customization_for_section = 0;
+        unless (defined ($file_state))
+        {
+          $pc->die ('TODO: undefined file state in create');
+        }
+        $stage = 'section-line';
+        $got_at_least_one_customization = 1;
+        $got_section_in_last_line = 0;
+
+        my $patch = $pc->get_patch ();
+        my $sections_array = $patch->get_sections_ordered ();
+        my $end_section = $sections_array->[-1];
+
+        unless (defined ($allowed_section_ranges))
+        {
+          $allowed_section_ranges = Kgps::SectionRanges->new_empty ();
+        }
+        $allowed_section_ranges->add_range ($last_section, $end_section);
+      }
+      elsif ($line =~ /^#\s*DELETE\s+(\S+)\s+(\d{6})$/a)
+      {
+        my $path = $1;
+        my $mode = $2;
+
+        unless ($allowed_customizations->is_delete_allowed ())
+        {
+          $pc->die ('DELETE customization is not allowed for this diff header');
+        }
+
+        my $customization = Kgps::CustomizationDelete->new ($path, $mode);
+
+        $file_state = $file_state->apply_delete_customization ($customization, $got_no_customization_for_section);
+        $got_no_customization_for_section = 0;
+        unless (defined ($file_state))
+        {
+          $pc->die ('TODO: undefined file state in delete');
+        }
+        $stage = 'section-line';
+        $got_at_least_one_customization = 1;
+        $got_section_in_last_line = 0;
+
+        my $patch = $pc->get_patch ();
+        my $sections_array = $patch->get_sections_ordered ();
+        my $start_section = $sections_array->[0];
+
+        if (defined ($allowed_section_ranges))
+        {
+          $allowed_section_ranges->terminate_last_range_at ($last_section);
+        }
+        else
+        {
+          $allowed_section_ranges = Kgps::SectionRanges->new ($start_section, $last_section);
+        }
+      }
+      elsif ($line =~ /^#\s*MODE\s+(\d{6})\s+(\d{6})$/a)
+      {
+        my $old_mode = $1;
+        my $new_mode = $2;
+
+        unless ($allowed_customizations->is_mode_allowed ())
+        {
+          $pc->die ('MODE customization is not allowed for this diff header');
+        }
+        if ($got_mode_customization_for_section)
+        {
+          $pc->die ('TODO: mode duplicated');
+        }
+        $got_mode_customization_for_section = 1;
+
+        my $customization = Kgps::CustomizationMode->new ($old_mode, $new_mode);
+
+        $file_state = $file_state->apply_mode_customization ($customization, $got_no_customization_for_section);
+        $got_no_customization_for_section = 0;
+        unless (defined ($file_state))
+        {
+          $pc->die ('TODO: undefined file state in mode');
+        }
+        $got_at_least_one_customization = 1;
+        $got_section_in_last_line = 0;
+      }
+      elsif ($line =~ /^#\s*RENAME\s+(\S+)\s+(\S+)$/a)
+      {
+        my $old_path = $1;
+        my $new_path = $2;
+
+        unless ($allowed_customizations->is_rename_allowed ())
+        {
+          $pc->die ('RENAME customization is not allowed for this diff header');
+        }
+        if ($got_rename_customization_for_section)
+        {
+          $pc->die ('TODO: rename duplicated');
+        }
+        $got_rename_customization_for_section = 1;
+
+        my $customization = Kgps::CustomizationRename->new ($old_path, $new_path);
+
+        $file_state = $file_state->apply_rename_customization ($customization, $got_no_customization_for_section);
+        $got_no_customization_for_section = 0;
+        unless (defined ($file_state))
+        {
+          $pc->die ('TODO: undefined file state in rename');
+        }
+        $got_at_least_one_customization = 1;
+        $got_section_in_last_line = 0;
+      }
+      elsif ($line =~ /^#\s*INDEX$/a)
+      {
+        unless ($allowed_customizations->is_index_allowed ())
+        {
+          $pc->die ('INDEX customization is not allowed for this diff header');
+        }
+        if ($got_index_customization_for_section)
+        {
+          $pc->die ('TODO: index duplicated');
+        }
+        $got_index_customization_for_section = 1;
+
+        my $customization = Kgps::CustomizationIndex->new ();
+
+        $file_state = $file_state->apply_index_customization ($customization, $got_no_customization_for_section);
+        $got_no_customization_for_section = 0;
+        unless (defined ($file_state))
+        {
+          $pc->die ('TODO: undefined file state in index');
+        }
+        $got_at_least_one_customization = 1;
+        $got_section_in_last_line = 0;
+      }
+      else
+      {
+        $pc->die ('TODO: unknown line');
+      }
+    }
+    else
+    {
+      $pc->die ('TODO: unknown stage');
+    }
+  }
+
+  $pc->set_headers_for_sections ($headers_for_sections);
+  $pc->set_allowed_section_ranges ($allowed_section_ranges);
 }
 
 sub _handle_diff_lines
@@ -586,6 +985,8 @@ sub _handle_text_patch
   my $sections_array = $patch->get_sections_ordered ();
   my $code = undef;
   my $just_ended_overlap = 0;
+  my $allowed_section_ranges = $pc->get_allowed_section_ranges ();
+  my $allowed_types_of_lines = Kgps::SectionRanges::NotInRange;
 
   while ($pc->read_next_line ())
   {
@@ -617,7 +1018,7 @@ sub _handle_text_patch
       }
       if ($just_got_location_marker)
       {
-        my $last = $sections_array->[-1];
+        my $last = $allowed_section_ranges->get_last_allowed_section ();
 
         $code = Kgps::SectionCode->new ($last);
         $just_got_location_marker = 0;
@@ -665,6 +1066,11 @@ sub _handle_text_patch
 
         my $section = $sections_hash->{$name};
 
+        $allowed_types_of_lines = $allowed_section_ranges->is_in_range ($section);
+        if ($allowed_types_of_lines == Kgps::SectionRanges::NotInRange)
+        {
+          $pc->die ("Section '$name' is not allowed in this diff");
+        }
         if (defined ($code) and $code->get_section ()->get_name () eq $name)
         {
           # ignore the sections line, we already are in this section.
@@ -719,9 +1125,18 @@ sub _handle_text_patch
         $pc->die ("Unknown type of line: $sigil.");
       }
 
+      if ($type != Kgps::CodeLine::Plus and $allowed_types_of_lines == Kgps::SectionRanges::AdditionsOnly)
+      {
+        $pc->die ("Only additions are allowed in section TODO_SOME_SECTION_NAME");
+      }
+      if ($type != Kgps::CodeLine::Minus and $allowed_types_of_lines == Kgps::SectionRanges::DeletionsOnly)
+      {
+        $pc->die ("Only deletions are allowed in section TODO_SOME_SECTION_NAME");
+      }
+
       if ($just_got_location_marker or $just_ended_overlap)
       {
-        my $last = $sections_array->[-1];
+        my $last = $allowed_section_ranges->get_last_allowed_section ();
 
         $code = Kgps::SectionCode->new ($last);
         $just_got_location_marker = 0;
@@ -761,6 +1176,8 @@ sub _handle_overlap
   my $context_line_idx = 0;
   my $code = undef;
   my $overlap_info = Kgps::OverlapInfo->new ();
+  my $allowed_section_ranges = $pc->get_allowed_section_ranges ();
+  my $allowed_types_of_lines = Kgps::SectionRanges::NotInRange;
 
   while ($stage ne 'done')
   {
@@ -794,6 +1211,11 @@ sub _handle_overlap
           $pc->die ("Unknown section '$name'");
         }
         $section = $sections_hash->{$name};
+        $allowed_types_of_lines = $allowed_section_ranges->is_in_range ($section);
+        if ($allowed_types_of_lines == Kgps::SectionRanges::NotInRange)
+        {
+          $pc->die ("Section '$name' is not allowed in this diff");
+        }
         $stage = 'sections';
         $code = Kgps::SectionOverlappedCode->new ($section, $overlap_info);
       }
@@ -854,6 +1276,12 @@ sub _handle_overlap
           $pc->die ("Sections are out of order - section '$new_name' should come before section '$name' in overlap");
         }
 
+        $allowed_types_of_lines = $allowed_section_ranges->is_in_range ($new_section);
+        if ($allowed_types_of_lines == Kgps::SectionRanges::NotInRange)
+        {
+          $pc->die ("Section '$new_name' is not allowed in this diff");
+        }
+
         my $lines = $code->get_lines ();
 
         unless (scalar (@{$lines}) > 0)
@@ -872,6 +1300,15 @@ sub _handle_overlap
         my $raw_sigil = $1;
         my $raw_line = $2;
         my $sigil = Kgps::CodeLine::get_type ($raw_sigil);
+
+        if ($sigil != Kgps::CodeLine::Plus and $allowed_types_of_lines == Kgps::SectionRanges::AdditionsOnly)
+        {
+          $pc->die ("Only additions are allowed in section TODO_SOME_SECTION_NAME");
+        }
+        if ($sigil != Kgps::CodeLine::Minus and $allowed_types_of_lines == Kgps::SectionRanges::DeletionsOnly)
+        {
+          $pc->die ("Only deletions are allowed in section TODO_SOME_SECTION_NAME");
+        }
 
         if ($sigil == Kgps::CodeLine::Space)
         {
@@ -991,65 +1428,48 @@ sub _handle_binary_patch
   my $pc = $self->_get_pc ();
   my $continue_parsing_rest = 1;
   my $first_try = 1;
-  my $code = undef;
-  my $diff_header = $pc->get_current_diff_header_or_die ();
   my $diff = Kgps::BinaryDiff->new ();
   my $patch = $pc->get_patch ();
+  my $headers_for_sections = $pc->get_headers_for_sections ();
+  my @section_names = keys (%{$headers_for_sections});
 
-  $diff->set_header ($diff_header);
+  if (scalar (@section_names) > 1)
+  {
+    $pc->die ('Specifying alternate diff headers for binary patches is not supported');
+  }
+  unless (scalar (@section_names))
+  {
+    my $allowed_section_ranges = $pc->get_allowed_section_ranges ();
+    my $last_allowed = $allowed_section_ranges->get_last_allowed_section ();
+    my $diff_header = $pc->get_current_diff_header_or_die ();
+
+    @section_names = ($last_allowed->get_name ());
+    $headers_for_sections = {$section_names[0] => $diff_header->with_bogus_values ()};
+  }
+
+  my $section_name = $section_names[0];
+  my $sections_hash = $patch->get_sections_unordered ();
+  my $section = $sections_hash->{$section_name};
+  my $code = Kgps::SectionCode->new ($section);
+
+  $diff->set_header ($headers_for_sections->{$section_name});
   $diff->set_listing_info ($self->get_listing_info ());
   while ($pc->read_next_line ())
   {
     my $line = $pc->get_line ();
 
-    if ($first_try)
-    {
-      my $sections_hash = $patch->get_sections_unordered ();
-      my $sections_array = $patch->get_sections_ordered ();
-
-      if ($line =~ /^#/)
-      {
-        if ($line =~ /^#\s*SECTION:\s*(\w+)$/a)
-        {
-          my $name = $1;
-
-          $first_try = 0;
-          unless (exists ($sections_hash->{$name}))
-          {
-            $pc->die ("Unknown section '$name'.");
-          }
-
-          $code = Kgps::SectionCode->new ($sections_hash->{$name});
-        }
-        elsif ($self->_line_is_comment ($line))
-        {
-          # just a comment, skip it
-        }
-        else
-        {
-          $pc->die ("Malformed comment.");
-        }
-        next;
-      }
-      $first_try = 0;
-      $code = Kgps::SectionCode->new ($sections_array->[-1]);
-      redo;
-    }
     if ($line eq '-- ')
     {
       $continue_parsing_rest = 0;
       last;
     }
+    elsif ($self->_line_is_comment ($line))
+    {
+      # just a comment, skip it
+    }
     elsif ($line =~ /^#/)
     {
-      if ($line =~ /^#\s*SECTION:/)
-      {
-        $pc->die ("Section comment in the middle of binary patch.");
-      }
-      elsif ($line =~ /\s/)
-      {
-        $pc->die ("Malformed comment in the middle of binary patch.");
-      }
+      $pc->die ("Invalid clause in the middle of binary patch.");
     }
     else
     {
@@ -1095,7 +1515,8 @@ sub _postprocess_diff
   my $patch = $pc->get_patch ();
   my $sections_array = $patch->get_sections_ordered ();
   my $sections_hash = $patch->get_sections_unordered ();
-  my $raw_diffs_and_mode = $diff->postprocess ($sections_array, $sections_hash);
+  my $headers_for_sections = $pc->get_headers_for_sections ();
+  my $raw_diffs_and_mode = $diff->postprocess ($sections_array, $sections_hash, $headers_for_sections);
 
   $patch->add_raw_diffs_and_mode ($raw_diffs_and_mode);
 }
@@ -1105,12 +1526,7 @@ sub _get_first_word
   my ($self) = @_;
   my $pc = $self->_get_pc ();
 
-  if ($pc->get_line () =~ /^(\w+)\s/a)
-  {
-    return $1;
-  }
-
-  return undef;
+  return Misc::first_word ($pc->get_line ());
 }
 
 sub _read_next_line_or_die

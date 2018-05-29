@@ -13,6 +13,13 @@ use v5.16;
 use warnings;
 
 use Kgps::ListingInfo;
+use Kgps::Section;
+
+use constant
+{
+  SpecialStart => '^START^',
+  SpecialEnd => '^END^',
+};
 
 sub new
 {
@@ -255,6 +262,36 @@ sub get_ordered_sectioned_raw_diffs_and_modes
   }
 
   return \@sectioned_diffs_and_modes;
+}
+
+sub wrap_sections
+{
+  my ($self) = @_;
+  my $sections_array = $self->get_sections_ordered ();
+  my $sections_hash = $self->get_sections_unordered ();
+
+  if (exists ($sections_hash->{SpecialStart ()}))
+  {
+    die;
+  }
+  if (exists ($sections_hash->{SpecialEnd ()}))
+  {
+    die;
+  }
+  unless (@{$sections_array})
+  {
+    die;
+  }
+
+  my $first_section = $sections_array->[0];
+  my $last_section = $sections_array->[-1];
+  my $start_section = Kgps::Section->new_special (SpecialStart, $first_section->get_index () - 1, $first_section);
+  my $end_section = Kgps::Section->new_special (SpecialEnd, $last_section->get_index () + 1, $last_section);
+
+  unshift (@{$sections_array}, $start_section);
+  push (@{$sections_array}, $end_section);
+  $sections_hash->{SpecialStart ()} = $start_section;
+  $sections_hash->{SpecialEnd ()} = $end_section;
 }
 
 1;

@@ -5,20 +5,22 @@
 # This Source Code Form is "Incompatible With Secondary Licenses", as
 # defined by the Mozilla Public License, v. 2.0.
 
-# DiffBase is a base package for either textual or binary diffs.
-package Kgps::DiffBase;
+package Kgps::FileStateBuilder;
 
 use strict;
 use v5.16;
 use warnings;
 
+use Kgps::FileStateEmpty;
+use Kgps::FileStateExisting;
+use Kgps::FileStateModified;
+
 sub new
 {
   my ($type) = @_;
-  my $class = (ref ($type) or $type or 'Kgps::DiffBase');
+  my $class = (ref ($type) or $type or 'Kgps::FileStateBuilder');
   my $self =
   {
-    'header' => undef,
   };
 
   $self = bless ($self, $class);
@@ -26,25 +28,25 @@ sub new
   return $self;
 }
 
-sub get_header
+sub build_empty_file_state
 {
   my ($self) = @_;
 
-  return $self->{'header'};
+  return Kgps::FileStateEmpty->new ($self);
 }
 
-sub set_header
+sub build_existing_file_state
 {
-  my ($self, $header) = @_;
+  my ($self, $mode, $path) = @_;
 
-  $self->{'header'} = $header;
+  return Kgps::FileStateExisting->new ($self, $mode, $path);
 }
 
-sub postprocess
+sub build_modified_file_state
 {
-  my ($self, $sections_array, $sections_hash, $headers_for_sections) = @_;
+  my ($self, $mode, $path) = @_;
 
-  return $self->_postprocess_vfunc ($sections_array, $sections_hash, $headers_for_sections);
+  return Kgps::FileStateModified->new ($self, $mode, $path);
 }
 
 1;

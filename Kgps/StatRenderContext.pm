@@ -101,12 +101,27 @@ sub _log10plus1
 sub render_text_rest
 {
   my ($self, $changed_lines_count, $plus_count, $minus_count) = @_;
-  my $count_length = _log10plus1 ($self->_get_greatest_lines_changed_count ());
-  my $pluses = '+' x $plus_count;
-  my $minuses = '-' x $minus_count;
-  my $str = sprintf ('%*2$d %3$s%4$s', $changed_lines_count, $count_length, $pluses, $minuses);
+  my $count_length = 0;
+  my $greatest_count = $self->_get_greatest_lines_changed_count ();
+  if ($greatest_count > 0)
+  {
+    $count_length = _log10plus1 ($greatest_count);
+  }
+  else
+  {
+    $count_length = 1;
+  }
+  if ($plus_count + $minus_count > 0)
+  {
+    my $pluses = '+' x $plus_count;
+    my $minuses = '-' x $minus_count;
 
-  return $str;
+    return sprintf ('%*2$d %3$s%4$s', $changed_lines_count, $count_length, $pluses, $minuses);
+  }
+  else
+  {
+    return sprintf ('%*2$d', $changed_lines_count, $count_length);
+  }
 }
 
 sub _shorten_path_if_needed

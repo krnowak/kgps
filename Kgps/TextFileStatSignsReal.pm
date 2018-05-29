@@ -43,6 +43,20 @@ sub _to_string_vfunc
   return $stat_render_context->render_text_rest ($total, $insertions, $deletions);
 }
 
+sub _get_insertions_vfunc
+{
+  my ($self) = @_;
+
+  return $self->_get_insertions ();
+}
+
+sub _get_deletions_vfunc
+{
+  my ($self) = @_;
+
+  return $self->_get_deletions ();
+}
+
 sub _get_insertions
 {
   my ($self) = @_;

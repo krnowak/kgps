@@ -64,7 +64,7 @@ sub generate_git_patches {
     my $stat_render_context = Kgps::StatRenderContext->new ();
     my $per_basename_stats = $stats->get_per_basename_stats ();
     my $summary = $stats->get_summary ();
-    my $new_and_gone_files = $stats->get_new_and_gone_files ();
+    my $listing_aux_changes = $stats->get_aux_changes ();
 
     $per_basename_stats->fill_context_info ($stat_render_context);
 
@@ -79,7 +79,7 @@ sub generate_git_patches {
                          '---',
                          $per_basename_stats->to_lines ($stat_render_context),
                          $summary->to_string (),
-                         $new_and_gone_files->to_lines (),
+                         $listing_aux_changes->to_lines (),
                          '',
                          $diff,
                          '-- ',

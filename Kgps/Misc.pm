@@ -44,4 +44,16 @@ sub to_num
   return 0 + $stuff;
 }
 
+sub first_word
+{
+  my ($line) = @_;
+
+  if ($line =~ /^(\w+)\s/a)
+  {
+    return $1;
+  }
+
+  return undef;
+}
+
 1;

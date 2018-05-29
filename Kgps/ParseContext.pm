@@ -38,6 +38,8 @@ sub new
     'previous_lines' => [],
     'patch' => Kgps::Patch->new (),
     'current_diff_header' => undef,
+    'headers_for_sections' => undef,
+    'allowed_section_ranges' => undef,
   };
 
   $self = bless ($self, $class);
@@ -318,6 +320,34 @@ sub get_current_diff_header_or_die
   }
 
   return $diff_header;
+}
+
+sub get_headers_for_sections
+{
+  my ($self) = @_;
+
+  return $self->{'headers_for_sections'};
+}
+
+sub set_headers_for_sections
+{
+  my ($self, $headers_for_sections) = @_;
+
+  $self->{'headers_for_sections'} = $headers_for_sections;
+}
+
+sub get_allowed_section_ranges
+{
+  my ($self) = @_;
+
+  return $self->{'allowed_section_ranges'};
+}
+
+sub set_allowed_section_ranges
+{
+  my ($self, $allowed_section_ranges) = @_;
+
+  $self->{'allowed_section_ranges'} = $allowed_section_ranges;
 }
 
 1;

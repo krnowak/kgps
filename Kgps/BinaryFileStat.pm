@@ -62,4 +62,11 @@ sub _to_string_vfunc
   return "Bin $from_size -> $to_size $bytes_word";
 }
 
+sub _fill_summary_vfunc
+{
+  my ($self, $summary) = @_;
+
+  $summary->set_files_changed_count (1);
+}
+
 1;

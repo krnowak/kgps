@@ -17,7 +17,6 @@ use File::Spec;
 
 use Kgps::BinaryFileStat;
 use Kgps::FileStatBase;
-use Kgps::ListingInfo;
 
 sub new
 {
@@ -62,25 +61,19 @@ sub set_listing_info
 
 sub _postprocess_vfunc
 {
-  my ($self, $sections_array, $sections_hash) = @_;
+  my ($self, $sections_array, $sections_hash, $headers_for_sections) = @_;
   my $code = $self->get_code ();
   my $name = $code->get_section ()->get_name ();
+  my $header = $self->get_header ();
   my $raw = join ("\n",
-                  $self->_get_diff_git_header (),
+                  $self->_get_diff_git_header ($header),
                   "GIT binary patch",
                   @{$self->_get_raw_lines ($code->get_lines ())},
                   "");
   my $raw_diff = {$name => $raw};
   my $big_listing_info = $self->get_listing_info ();
-  my $big_new_and_gone_files = $big_listing_info->new_and_gone_files ();
   my $big_per_basename_stats = $big_listing_info->get_per_basename_stats ();
-  my $listing_info = Kgps::ListingInfo->new ();
-  my $per_basename_stats = $listing_info->get_per_basename_stats ();
-  my $summary = $listing_info->get_summary ();
-  my $new_and_gone_files = $listing_info->new_and_gone_files ();
-  my $header = $self->get_header ();
-  my $path = $header->get_a ();
-  my $details_from_big = $big_new_and_gone_files->get_details_for_path ($path);
+  my $path = $header->get_basename_stat_path ();
   my $basename = (File::Spec->splitpath ($path))[2];
   my $maybe_relevant = undef;
 
@@ -90,8 +83,7 @@ sub _postprocess_vfunc
 
     if ($relevancy == Kgps::FileStatBase::RelevantYes)
     {
-      $per_basename_stats->add_stat ($bin_stat);
-      $maybe_relevant = undef;
+      $maybe_relevant = Kgps::BinaryFileStat->new ($bin_stat->get_path (), $bin_stat->get_from_size (), $bin_stat->get_to_size ());
       last;
     }
     if ($relevancy == Kgps::FileStatBase::RelevantMaybe)
@@ -104,6 +96,8 @@ sub _postprocess_vfunc
         # Try more heuristics with checking if the file is created or
         # deleted. Created files usually have from size 0, and deleted
         # files have to size 0.
+        # TODO: Do something else.
+        $maybe_relevant = Kgps::BinaryFileStat->new ($path, -1, -1);
       }
       else
       {
@@ -111,17 +105,8 @@ sub _postprocess_vfunc
       }
     }
   }
-  if (defined ($maybe_relevant))
-  {
-    $per_basename_stats->add_stat ($maybe_relevant);
-  }
 
-  $summary->set_files_changed_count (1);
-  if (defined ($details_from_big))
-  {
-    $new_and_gone_files->add_details ($path, $details_from_big);
-  }
-
+  my $listing_info = $header->get_stats ($maybe_relevant);
   my $stats = {$name => $listing_info};
   my $raw_diffs_and_modes = {
     'git-raw' => $raw_diff,
@@ -133,25 +118,10 @@ sub _postprocess_vfunc
 
 sub _get_diff_git_header
 {
-  my ($self) = @_;
-  my $header = $self->get_header ();
-  my $a = 'a/' . $header->get_a ();
-  my $b = 'b/' . $header->get_b ();
-  my $action = $header->get_action ();
-  my $mode = $header->get_mode ();
-  my $index_from = $header->get_index_from ();
-  my $index_to = $header->get_index_to ();
+  my ($self, $header) = @_;
 
-  if (defined ($action))
-  {
-    return join ("\n",
-                 "diff --git $a $b",
-                 "$action mode $mode",
-                 "index $index_from..$index_to");
-  }
   return join ("\n",
-               "diff --git $a $b",
-               "index $index_from..$index_to $mode");
+               $header->to_lines ());
 }
 
 sub _get_raw_lines

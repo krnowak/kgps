@@ -19,14 +19,14 @@ use v5.16;
 use warnings;
 
 use Kgps::BasenameStats;
+use Kgps::ListingAuxChanges;
 use Kgps::ListingSummary;
-use Kgps::NewAndGoneFiles;
 
 sub new
 {
   my ($type) = @_;
 
-  return _new_with_items ($type, Kgps::BasenameStats->new (), Kgps::ListingSummary->new (), Kgps::NewAndGoneFiles->new ());
+  return _new_with_items ($type, Kgps::BasenameStats->new (), Kgps::ListingSummary->new (), Kgps::ListingAuxChanges->new ());
 }
 
 sub get_per_basename_stats
@@ -43,11 +43,11 @@ sub get_summary
   return $self->{'summary'};
 }
 
-sub get_new_and_gone_files
+sub get_aux_changes
 {
   my ($self) = @_;
 
-  return $self->{'new_and_gone_files'};
+  return $self->{'aux_changes'};
 }
 
 sub merge
@@ -55,24 +55,24 @@ sub merge
   my ($self, $other) = @_;
   my $merged_per_basename_stats = $self->get_per_basename_stats ()->merge ($other->get_per_basename_stats ());
   my $merged_summary = $self->get_summary ()->merge ($other->get_summary ());
-  my $merged_new_and_gone_files = $self->get_new_and_gone_files ()->merge ($other->get_new_and_gone_files ());
+  my $merged_aux_changes = $self->get_aux_changes ()->merge ($other->get_aux_changes ());
 
-  unless (defined ($merged_per_basename_stats) and defined ($merged_summary) and defined ($merged_new_and_gone_files))
+  unless (defined ($merged_per_basename_stats) and defined ($merged_summary) and defined ($merged_aux_changes))
   {
     return undef;
   }
 
-  return Kgps::ListingInfo->_new_with_items ($merged_per_basename_stats, $merged_summary, $merged_new_and_gone_files);
+  return Kgps::ListingInfo->_new_with_items ($merged_per_basename_stats, $merged_summary, $merged_aux_changes);
 }
 
 sub _new_with_items
 {
-  my ($type, $per_basename_stats, $summary, $new_and_gone_files) = @_;
+  my ($type, $per_basename_stats, $summary, $aux_changes) = @_;
   my $class = (ref ($type) or $type or 'Kgps::ListingInfo');
   my $self = {
     'per_basename_stats' => $per_basename_stats,
     'summary' => $summary,
-    'new_and_gone_files' => $new_and_gone_files,
+    'aux_changes' => $aux_changes,
   };
 
   $self = bless ($self, $class);

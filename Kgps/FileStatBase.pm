@@ -116,4 +116,11 @@ sub to_string
   return $self->_to_string_vfunc ($stat_render_context);
 }
 
+sub fill_summary
+{
+  my ($self, $summary) = @_;
+
+  $self->_fill_summary_vfunc ($summary);
+}
+
 1;

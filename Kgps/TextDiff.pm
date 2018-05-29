@@ -14,10 +14,13 @@ use warnings;
 use v5.16;
 
 use Kgps::CodeLine;
+use Kgps::DiffHeader;
+use Kgps::DiffHeaderCommon;
+use Kgps::DiffHeaderPartContentsMode;
+use Kgps::DiffHeaderSpecificExisting;
+use Kgps::FileStateBuilder;
 use Kgps::FinalCode;
-use Kgps::ListingInfo;
 use Kgps::LocationMarker;
-use Kgps::NewAndGoneDetails;
 use Kgps::TextFileStat;
 use Kgps::TextFileStatSignsReal;
 
@@ -81,7 +84,7 @@ sub push_cluster
 
 sub _postprocess_vfunc
 {
-  my ($self, $sections_array, $sections_hash) = @_;
+  my ($self, $sections_array, $sections_hash, $headers_for_sections) = @_;
   # Keeps arrays of final codes.
   my $for_raw = $self->_create_array_for_each_section ($sections_array);
   # Additions for markers in code clusters in file to propagate line
@@ -158,140 +161,151 @@ sub _postprocess_vfunc
     }
   }
 
-  # Prepare raw representations of final codes. When file is added or
-  # deleted the code doing it has to have a different header - the
-  # outer one. The rest of codes are making changes to already/still
-  # existing file, so they need ordinary header - the inner one.
   my $header = $self->get_header ();
-  my $action = $header->get_action ();
-  my $inner_index_first = 0;
-  my $inner_index_last = @{$sections_array} - 1;
-  my $outer_section_index = undef;
   my $git_raw = {};
-  # Git version of a special header for sections doing the file
-  # creation or deletion.
-  my $git_header_outer = $self->_get_git_unidiff_header_for_outer ($header);
-  # Git version of a typical header for section doing some changes to
-  # a file.
-  my $git_header_inner = $self->_get_git_unidiff_header_for_inner ($header);
+  my @used_section_names = ();
 
-  unless (defined ($action))
-  {
-    my $oldest_section_index_in_this_diff = 0;
-
-    foreach my $section (@{$sections_array})
-    {
-      my $section_name = $section->get_name ();
-
-      last if (@{$for_raw->{$section_name}});
-
-      ++$oldest_section_index_in_this_diff;
-    }
-
-    die "SHOULD NOT HAPPEN" if $oldest_section_index_in_this_diff >= @{$sections_array};
-  }
-  elsif ($action eq "new file")
-  {
-    my $oldest_section_index_in_this_diff = 0;
-
-    foreach my $section (@{$sections_array})
-    {
-      my $section_name = $section->get_name ();
-
-      last if (@{$for_raw->{$section_name}});
-
-      ++$oldest_section_index_in_this_diff;
-    }
-
-    die "SHOULD NOT HAPPEN" if $oldest_section_index_in_this_diff >= @{$sections_array};
-    $inner_index_first = $oldest_section_index_in_this_diff + 1;
-    $outer_section_index = $oldest_section_index_in_this_diff;
-  }
-  elsif ($action eq "deleted file")
-  {
-    my $youngest_section_index_in_this_diff = -1;
-
-    foreach my $section (reverse (@{$sections_array}))
-    {
-      my $section_name = $section->get_name ();
-
-      last if (@{$for_raw->{$section_name}});
-
-      --$youngest_section_index_in_this_diff;
-    }
-
-    die "SHOULD NOT HAPPEN" if -$youngest_section_index_in_this_diff > @{$sections_array};
-    $inner_index_last = @{$sections_array} - 1 + $youngest_section_index_in_this_diff;
-    $outer_section_index = $youngest_section_index_in_this_diff;
-  }
-
-  my $stats = {};
-
-  if (defined ($outer_section_index))
-  {
-    my $outer_section_name = $sections_array->[$outer_section_index]->get_name ();
-    my $final_codes = $for_raw->{$outer_section_name};
-
-    $git_raw->{$outer_section_name} = $self->_get_raw_text_for_final_codes ($git_header_outer, $final_codes);
-    $stats->{$outer_section_name} = $self->_get_stats_for_final_codes ($final_codes);
-  }
-
-  my @inner_sections_slice = @{$sections_array}[$inner_index_first .. $inner_index_last];
-
-  foreach my $section (@inner_sections_slice)
+  for my $section (@{$sections_array})
   {
     my $section_name = $section->get_name ();
+    if (scalar (@{$for_raw->{$section_name}}))
+    {
+      push (@used_section_names, $section_name);
+    }
+  }
+
+  my %headers_for_used_sections = $self->_get_headers_for_used_sections ($sections_hash, \@used_section_names, $headers_for_sections);
+  my $stats = {};
+
+  for my $section_name (keys (%headers_for_used_sections))
+  {
+    my $diff_header = $headers_for_used_sections{$section_name};
     my $final_codes = $for_raw->{$section_name};
 
-    next unless (@{$final_codes});
-    $git_raw->{$section_name} = $self->_get_raw_text_for_final_codes ($git_header_inner, $final_codes);
-    $stats->{$section_name} = $self->_get_stats_for_final_codes ($final_codes);
+    $git_raw->{$section_name} = $self->_get_raw_text_for_final_codes ($diff_header, $final_codes);
+    $stats->{$section_name} = $self->_get_stats_for_final_codes ($diff_header, $final_codes);
   }
 
   return {'git-raw' => $git_raw, 'stats' => $stats};
 }
 
-sub _get_git_unidiff_header_for_outer
+sub _get_headers_for_used_sections
 {
-  my ($self, $header) = @_;
-  my $from = $self->_maybe_prefix ('a', $self->get_from ());
-  my $to = $self->_maybe_prefix ('b', $self->get_to ());
-  my $action = $header->get_action ();
-  my $mode = $header->get_mode ();
-  my @lines = (
-    "diff --git $from $to"
-  );
+  my ($self, $sections_hash, $used_section_names, $headers_for_sections) = @_;
+  my %used_section_name_to_header = map { $_ => undef } @{$used_section_names};
 
-  if (defined ($action))
+  unless (scalar (keys (%{$headers_for_sections})))
   {
-    push (@lines,
-          "$action mode $mode",
-          "index 111111..222222");
+    my $header = $self->get_header ();
+    my @sections = map { $sections_hash->{$_} } @{$used_section_names};
+    my $default_section = $header->pick_default_section (\@sections);
+
+    $headers_for_sections =
+    {
+      $default_section->get_name () => $header->with_bogus_values (),
+    };
   }
-  else
+
+  my %section_name_to_header = (%used_section_name_to_header, %{$headers_for_sections});
+  my @sorted_section_header_pairs =
+      map { $_->[0] }
+      sort { $a->[1] <=> $b->[1] }
+      map { [[$sections_hash->{$_}, $section_name_to_header{$_}], $sections_hash->{$_}->get_index ()] }
+      keys (%section_name_to_header);
+  my @sorted_defined_headers = map { $_->[1] } grep { defined ($_->[1]) } @sorted_section_header_pairs;
+  my $header_idx = 0;
+  my $any_idx = 0;
+  my $have_headers = 1;
+  my $builder = Kgps::FileStateBuilder->new ();
+
+  unless (scalar (@sorted_defined_headers))
   {
-    push (@lines,
-          "index 111111..222222 $mode");
+    die;
   }
-  push (@lines,
-        "--- $from",
-        "+++ $to");
-  return join ("\n", @lines);
+
+  while ($any_idx < scalar (@sorted_section_header_pairs) and $have_headers)
+  {
+    my $pair = $sorted_section_header_pairs[$any_idx];
+
+    if (defined ($pair->[1]))
+    {
+      $header_idx++;
+      if ($header_idx == scalar (@sorted_defined_headers))
+      {
+        $header_idx--;
+        $have_headers = 0;
+      }
+
+      my $section_name = $pair->[0]->get_name ();
+      if (exists ($used_section_name_to_header{$section_name}))
+      {
+        $pair->[1] = $pair->[1]->with_index ();
+      }
+      else
+      {
+        $pair->[1] = $pair->[1]->without_index ();
+      }
+    }
+    else
+    {
+      my $header = $sorted_defined_headers[$header_idx];
+      my $common = $header->get_diff_common ();
+      my $specific = $header->_get_diff_specific ();
+      my $file_state = $specific->get_pre_file_state ($builder, $common);
+      my $wrapper = $file_state->get_wrapper ();
+      my $data = $wrapper->get_data_or_undef ();
+
+      unless (defined ($data))
+      {
+        die;
+      }
+
+      my $path = $data->get_path ();
+      my $mode = $data->get_mode ();
+
+      $pair->[1] = _create_contents_only_diff_header ($path, $mode);
+    }
+    $any_idx++;
+  }
+  while ($any_idx < scalar (@sorted_section_header_pairs))
+  {
+    my $pair = $sorted_section_header_pairs[$any_idx];
+
+    if (defined ($pair->[1]))
+    {
+      die;
+    }
+
+    my $header = $sorted_defined_headers[$header_idx];
+    my $common = $header->get_diff_common ();
+    my $specific = $header->_get_diff_specific ();
+    my $file_state = $specific->get_post_file_state ($builder, $common);
+    my $wrapper = $file_state->get_wrapper ();
+    my $data = $wrapper->get_data_or_undef ();
+
+    unless (defined ($data))
+    {
+      die;
+    }
+
+    my $path = $data->get_path ();
+    my $mode = $data->get_mode ();
+
+    $pair->[1] = _create_contents_only_diff_header ($path, $mode);
+    $any_idx++;
+  }
+
+  return map { $_->[0]->get_name () => $_->[1] } @sorted_section_header_pairs;
 }
 
-sub _get_git_unidiff_header_for_inner
+sub _create_contents_only_diff_header
 {
-  my ($self, $header) = @_;
-  my $file = $self->_get_changed_file ();
-  my $from = $self->_maybe_prefix ('a', $file);
-  my $to = $self->_maybe_prefix ('b', $file);
-  my $mode = $header->get_mode ();
+  my ($path, $mode) = @_;
+  my $common = Kgps::DiffHeaderCommon->new ($path, $path);
+  my $part_contents_mode = Kgps::DiffHeaderPartContentsMode->new ('1' x 7, '2' x 7, $mode);
+  my $specific = Kgps::DiffHeaderSpecificExisting->new (undef, undef, $part_contents_mode);
 
-  return join ("\n",
-               "diff --git $from $to",
-               "index 111111..222222 $mode",
-               "--- $from",
-               "+++ $to");
+  return Kgps::DiffHeader->new_strict ($common, $specific);
 }
 
 sub _get_changed_file
@@ -768,12 +782,26 @@ sub _append_context
 
 sub _get_raw_text_for_final_codes
 {
-  my ($self, $header, $final_codes) = @_;
-  my @raw_codes = map { $self->_get_raw_text_for_final_code ($_) } @{$final_codes};
+  my ($self, $diff_header, $final_codes) = @_;
+  my @text_diff_lines = ();
+
+  if (scalar (@{$final_codes}))
+  {
+    my @raw_codes = map { $self->_get_raw_text_for_final_code ($_) } @{$final_codes};
+    my $diff_common = $diff_header->get_diff_common ();
+    my $from = $diff_common->get_a ();
+    my $to = $diff_common->get_b ();
+
+    push (@text_diff_lines,
+          "--- $from",
+          "+++ $to",
+          @raw_codes);
+  }
 
   return join ("\n",
-               $header,
-               @raw_codes);
+               $diff_header->to_lines (),
+               @text_diff_lines,
+               '');
 }
 
 sub _get_raw_text_for_final_code
@@ -797,13 +825,7 @@ sub _lines_to_string
 
 sub _get_stats_for_final_codes
 {
-  my ($self, $final_codes) = @_;
-  my $listing_info = Kgps::ListingInfo->new ();
-  my $per_basename_stats = $listing_info->get_per_basename_stats ();
-  my $summary = $listing_info->get_summary ();
-  my $new_and_gone_files = $listing_info->get_new_and_gone_files ();
-  my $header = $self->get_header ();
-  my $mode = $header->get_mode ();
+  my ($self, $header, $final_codes) = @_;
   my $insertions = 0;
   my $deletions = 0;
 
@@ -827,27 +849,10 @@ sub _get_stats_for_final_codes
   }
 
   my $signs = Kgps::TextFileStatSignsReal->new ($insertions, $deletions);
-  my $path = $self->_get_changed_file ();
+  my $path = $header->get_basename_stat_path ();
+  my $stat = Kgps::TextFileStat->new_with_real_signs ($path, $signs);
 
-  $summary->set_files_changed_count (1);
-  $summary->set_insertions ($insertions);
-  $summary->set_deletions ($deletions);
-  $per_basename_stats->add_stat (Kgps::TextFileStat->new ($path, $signs));
-
-  if ($self->get_from () eq '/dev/null')
-  {
-    my $details = Kgps::NewAndGoneDetails->new (Kgps::NewAndGoneDetails::Create, $mode);
-
-    $new_and_gone_files->add_details ($self->get_to (), $details);
-  }
-  elsif ($self->get_to () eq '/dev/null')
-  {
-    my $details = Kgps::NewAndGoneDetails->new (Kgps::NewAndGoneDetails::Delete, $mode);
-
-    $new_and_gone_files->add_details ($self->get_from (), $details);
-  }
-
-  return $listing_info;
+  return $header->get_stats ($stat);
 }
 
 sub _marker_to_string

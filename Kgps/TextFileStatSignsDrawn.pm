@@ -29,23 +29,29 @@ sub new
 sub _fill_context_info_vfunc
 {
   my ($self, $stat_render_context) = @_;
-  my $lines_changed_count = $self->_get_lines_changed_count ();
 
-  $stat_render_context->feed_lines_changed_count ($lines_changed_count);
+  # do nothing, this shouldn't be used
 }
 
 sub _to_string_vfunc
 {
   my ($self, $stat_render_context) = @_;
 
-  return '';
+  return '<wrong>';
 }
 
-sub _get_lines_changed_count
+sub _get_insertions_vfunc
 {
   my ($self) = @_;
 
-  return $self->{'lines_changed_count'};
+  return -1;
+}
+
+sub _get_deletions_vfunc
+{
+  my ($self) = @_;
+
+  return -1;
 }
 
 1;

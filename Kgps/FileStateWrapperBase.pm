@@ -5,8 +5,7 @@
 # This Source Code Form is "Incompatible With Secondary Licenses", as
 # defined by the Mozilla Public License, v. 2.0.
 
-# DiffBase is a base package for either textual or binary diffs.
-package Kgps::DiffBase;
+package Kgps::FileStateWrapperBase;
 
 use strict;
 use v5.16;
@@ -15,10 +14,9 @@ use warnings;
 sub new
 {
   my ($type) = @_;
-  my $class = (ref ($type) or $type or 'Kgps::DiffBase');
+  my $class = (ref ($type) or $type or 'Kgps::FileStateWrapperBase');
   my $self =
   {
-    'header' => undef,
   };
 
   $self = bless ($self, $class);
@@ -26,25 +24,11 @@ sub new
   return $self;
 }
 
-sub get_header
+sub get_data_or_undef
 {
   my ($self) = @_;
 
-  return $self->{'header'};
-}
-
-sub set_header
-{
-  my ($self, $header) = @_;
-
-  $self->{'header'} = $header;
-}
-
-sub postprocess
-{
-  my ($self, $sections_array, $sections_hash, $headers_for_sections) = @_;
-
-  return $self->_postprocess_vfunc ($sections_array, $sections_hash, $headers_for_sections);
+  return $self->_get_data_or_undef_vfunc ();
 }
 
 1;

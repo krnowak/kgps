@@ -18,18 +18,193 @@ use strict;
 use v5.16;
 use warnings;
 
-sub new
+use Kgps::ListingInfo;
+
+sub new_strict
 {
-  my ($type) = @_;
+  my ($type, $diff_common, $diff_specific) = @_;
+
+  return _new_full ($type, $diff_common, $diff_specific, 1);
+}
+
+sub new_relaxed
+{
+  my ($type, $diff_common, $diff_specific) = @_;
+
+  return _new_full ($type, $diff_common, $diff_specific, 0);
+}
+
+sub to_lines
+{
+  my ($self) = @_;
+  my $diff_common = $self->get_diff_common ();
+  my $diff_specific = $self->_get_diff_specific ();
+  my @lines = ();
+
+  push (@lines,
+        $diff_common->to_lines (),
+        $diff_specific->to_lines ());
+
+  return @lines;
+}
+
+sub get_basename_stat_path
+{
+  my ($self) = @_;
+  my $common = $self->get_diff_common ();
+  my $a = $common->get_a_no_prefix ();
+  my $b = $common->get_b_no_prefix ();
+
+  if ($a eq $b)
+  {
+    return $a;
+  }
+  else
+  {
+    return "$a => $b";
+  }
+}
+
+sub get_stats
+{
+  my ($self, $file_stat) = @_;
+  my $listing_info = Kgps::ListingInfo->new ();
+  my $per_basename_stats = $listing_info->get_per_basename_stats ();
+  my $summary = $listing_info->get_summary ();
+  my $listing_aux_changes = $listing_info->get_aux_changes ();
+  my $common = $self->get_diff_common ();
+  my $specific = $self->_get_diff_specific ();
+
+  $per_basename_stats->add_stat ($file_stat);
+  $file_stat->fill_summary ($summary);
+  $specific->fill_aux_changes ($common, $listing_aux_changes);
+
+  return $listing_info;
+}
+
+sub get_allowed_customizations
+{
+  my ($self) = @_;
+  my $specific = $self->_get_diff_specific ();
+
+  return $specific->get_allowed_customizations ();
+}
+
+sub get_pre_file_state
+{
+  my ($self, $builder) = @_;
+  my $common = $self->get_diff_common ();
+  my $specific = $self->_get_diff_specific ();
+
+  return $specific->get_pre_file_state ($builder, $common);
+}
+
+sub get_post_file_state
+{
+  my ($self, $builder) = @_;
+  my $common = $self->get_diff_common ();
+  my $specific = $self->_get_diff_specific ();
+
+  return $specific->get_post_file_state ($builder, $common);
+}
+
+sub get_initial_section_ranges
+{
+  my ($self, $sections_array, $border_section_or_undef) = @_;
+  my $specific = $self->_get_diff_specific ();
+
+  return $specific->get_initial_section_ranges ($sections_array, $border_section_or_undef);
+}
+
+sub pick_default_section
+{
+  my ($self, $sections_array) = @_;
+  my $specific = $self->_get_diff_specific ();
+
+  return $specific->pick_default_section ($sections_array);
+}
+
+sub without_index
+{
+  my ($self) = @_;
+  my $specific = $self->_get_diff_specific ();
+
+  unless ($specific->has_index ())
+  {
+    return $self;
+  }
+  if ($self->_get_strict ())
+  {
+    die 'changes are required';
+  }
+
+  my $specific_without_index = $specific->without_index ();
+  my $common = $self->get_diff_common ();
+
+  return Kgps::DiffHeader->new_strict ($common, $specific_without_index);
+}
+
+sub with_index
+{
+  my ($self) = @_;
+  my $specific = $self->_get_diff_specific ();
+
+  if ($specific->has_index ())
+  {
+    return $self;
+  }
+
+  if ($self->_get_strict ())
+  {
+    die 'changes are forbidden';
+  }
+
+  my $specific_with_index = $specific->with_index ();
+  my $common = $self->get_diff_common ();
+
+  return Kgps::DiffHeader->new_strict ($common, $specific_with_index);
+}
+
+sub with_bogus_values
+{
+  my ($self) = @_;
+  my $common = $self->get_diff_common ();
+  my $specific = $self->_get_diff_specific ();
+  my $bogus_specific = $specific->with_bogus_values ();
+
+  if ($self->_get_strict ())
+  {
+    return Kgps::DiffHeader->new_strict ($common, $bogus_specific);
+  }
+  else
+  {
+    return Kgps::DiffHeader->new_relaxed ($common, $bogus_specific);
+  }
+}
+
+sub get_diff_common
+{
+  my ($self) = @_;
+
+  return $self->{'diff_common'};
+}
+
+sub _get_diff_specific
+{
+  my ($self) = @_;
+
+  return $self->{'diff_specific'};
+}
+
+sub _new_full
+{
+  my ($type, $diff_common, $diff_specific, $strict) = @_;
   my $class = (ref ($type) or $type or 'Kgps::DiffHeader');
   my $self =
   {
-    'a' => undef,
-    'b' => undef,
-    'action' => undef,
-    'mode' => undef,
-    'index_from' => undef,
-    'index_to' => undef,
+    'diff_common' => $diff_common,
+    'diff_specific' => $diff_specific,
+    'strict' => $strict,
   };
 
   $self = bless ($self, $class);
@@ -37,137 +212,11 @@ sub new
   return $self;
 }
 
-sub parse_diff_line
-{
-  my ($self, $line) = @_;
-
-  if ($line =~ m!^diff --git a/(.*) b/(.*)$!)
-  {
-    $self->set_a ($1);
-    $self->set_b ($2);
-
-    return 1;
-  }
-
-  return 0;
-}
-
-sub parse_mode_line
-{
-  my ($self, $line) = @_;
-
-  if ($line =~ /^(.*)\s+mode\s+(\d+)$/)
-  {
-    $self->set_action ($1);
-    $self->set_mode ($2);
-
-    return 1;
-  }
-
-  return 0;
-}
-
-sub parse_index_line
-{
-  my ($self, $line) = @_;
-
-  if ($line =~ /^index\s+(\w+)\.\.(\w+)(?:\s+(\d+))?$/)
-  {
-    $self->set_index_from ($1);
-    $self->set_index_to ($2);
-    if (defined ($3))
-    {
-      $self->set_mode ($3);
-    }
-
-    return 1;
-  }
-
-  return 0;
-}
-
-sub get_a
+sub _get_strict
 {
   my ($self) = @_;
 
-  return $self->{'a'};
-}
-
-sub set_a
-{
-  my ($self, $a) = @_;
-
-  $self->{'a'} = $a;
-}
-
-sub get_b
-{
-  my ($self) = @_;
-
-  return $self->{'b'};
-}
-
-sub set_b
-{
-  my ($self, $b) = @_;
-
-  $self->{'b'} = $b;
-}
-
-sub get_action
-{
-  my ($self) = @_;
-
-  return $self->{'action'};
-}
-
-sub set_action
-{
-  my ($self, $action) = @_;
-
-  $self->{'action'} = $action;
-}
-
-sub get_mode
-{
-  my ($self) = @_;
-
-  return $self->{'mode'};
-}
-
-sub set_mode
-{
-  my ($self, $mode) = @_;
-
-  $self->{'mode'} = $mode;
-}
-
-sub get_index_from
-{
-  my ($self) = @_;
-
-  return $self->{'index_from'};
-}
-
-sub set_index_from
-{
-  my ($self, $index_from) = @_;
-
-  $self->{'index_from'} = $index_from;
-}
-
-sub get_index_to
-{
-  my ($self) = @_;
-
-  return $self->{'index_to'};
-}
-
-sub set_index_to
-{
-  my ($self, $index_to) = @_;
-
-  $self->{'index_to'} = $index_to;
+  return $self->{'strict'};
 }
 
 1;

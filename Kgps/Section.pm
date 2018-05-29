@@ -26,9 +26,39 @@ sub new
     'date' => undef,
     'subject' => undef,
     'message_lines' => undef,
+    'special' => 0,
   };
 
   $self = bless ($self, $class);
+
+  return $self;
+}
+
+sub new_special
+{
+  my ($type, $name, $index, $neighbour) = @_;
+  my $class = (ref ($type) or $type or 'Kgps::Section');
+  my $self =
+  {
+    'name' => $name,
+    'index' => $index,
+    'neighbour' => $neighbour,
+    'special' => 1,
+  };
+
+  $self = bless ($self, $class);
+
+  return $self;
+}
+
+sub get_neighbour_if_special
+{
+  my ($self) = @_;
+
+  if ($self->_is_special ())
+  {
+    return $self->_get_neighbour ();
+  }
 
   return $self;
 }
@@ -131,6 +161,29 @@ sub is_younger_than
   my ($self, $other) = @_;
 
   return $other->is_older_than ($self);
+}
+
+sub is_same_as
+{
+  my ($self, $other) = @_;
+  my $index = $self->get_index ();
+  my $other_index = $other->get_index ();
+
+  return ($index == $other_index);
+}
+
+sub _is_special
+{
+  my ($self) = @_;
+
+  return $self->{'special'};
+}
+
+sub _get_neighbour
+{
+  my ($self) = @_;
+
+  return $self->{'neighbour'};
 }
 
 1;
