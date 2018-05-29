@@ -1,0 +1,22 @@
+From 1111111111111111111111111111111111111111 Mon Sep 17 00:00:00 2001
+From: Krzesimir Nowak <qdlacz@gmail.com>
+Date: Tue, 29 May 2018 21:02:31 +0200
+Subject: [PATCH 2/2] mod
+
+---
+ bar | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/bar b/bar
+index 111111..222222 100644
+--- a/bar
++++ b/bar
+@@ -9,3 +9,5 @@
+ 9
+ 10
+ 11
++12
++13
+-- 
+0.0.0
+
