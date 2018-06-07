@@ -1,0 +1,323 @@
+Diff header modes: relaxed and strict
+
+Relaxed happens for basic mode or full mode with a section
+only. Customized diff headers are strict.
+
+Strictness/relaxedness is about accepting or rejecting the change of
+the file contents. Strict headers declare whether the contents must or
+must not change. Relaxed headers declare that either is valid. If
+there are no contents changes for relaxed header, skip generating the
+index line.
+
+Issues to file:
+
+- FileStateModified, FileStateWrapperModified are probably not
+  necessary, dunno.
+- Test cluster line accounting - I dropped some dead code, which
+  should be hooked into the code I believe.
+- Make path, mode parameter order consistent - sometimes it is path
+  then mode, sometimes mode then path.
+- Ensure that each generated patch modifies a file in one diff
+  only. Error situations:
+  - Rename foo to quux in one diff, rename bar to quux in another diff
+  - Rename foo to quux in one diff, edit quux in another diff.
+- Handle empty diffs (just renames and/or mode changes).
+- Update the tester to add expected failures.
+- Add the script for easy testcase creation.
+- Use Moose.
+  - Only if I figure out how to make getters and setters to use get_
+    and set_ notation.
+  - And how to force the constructor to only have positional parameters.
+    - Or maybe actually use hashmaps? It's descriptive at least.
+      - But be strict about them.
+- Statistics handling is handwavy.
+  - Renames.
+  - Overlong filenames.
+  - No scaling of the column widths.
+- Moar tests.
+  - Use notes from below.
+- Figure out if we can do some code coverage.
+- Put those "'1' x 7", "'2' x 7" and "'0' x 7" into some constants.
+  - Likely do the same for the 42 for similarity index.
+- Ephemeral patches
+  - Completely ephemeral patches, that come into existince and
+    disappear with the last section.
+  - Will not be used for the empty diffs.
+    - We have completely no information about the file we just renamed
+      or changed its mode.
+- Error handling
+  - We die in a lot of places.
+  - Need to figure out which deaths are assertions, which are input
+    errors.
+  - Make it nice - use some exception classes or whatever to print a
+    relevant information.
+    - Example of irrelevant information - parsed patch line number
+      when we already are done with parsing it and we do
+      postprocessing.
+- Error messages
+  - Need to come up with some consistent way of writing the error
+    messages.
+  - Error messages can be long and detailed, especially when it comes
+    to diffs.
+    - For example, about expected context, additions or deletions and
+      compare to actual ones.
+
+- Parse an original header.
+- Parse section clause.
+- If next line is END_DIFF_HEADER, we can get a diff with no line
+  changes and the original header.
+  - Will likely need a separate type for this kind of a patch.
+- Otherwise get allowed customizations from the original header.
+  - This could be a bitmask or something.
+    - CREATE = 1 << 0
+    - DELETE = 1 << 1
+    - RENAME = 1 << 2
+    - MODE   = 1 << 3
+    - INDEX  = 1 << 4
+  - Specific "created" and "deleted" would return 0x1f, "existing" 0x1c
+    (no create/delete).
+- Create an initial (pre) file state.
+  - Create file - empty file state
+  - Delete file - path and mode are given
+  - Existing - path and mode are given too
+- For each customization:
+  - Parse it.
+  - Check if it is allowed.
+  - Update file state.
+  - Create a new diff header based on a previous one and the
+    customization.
+    - This operation may fail if the customization is wrong.
+    - For example old mode is different from the actual mode.
+  - Likely create a range of allowed sections to use in the diff lines.
+- In the meantime check if sections are in order.
+- When END_DIFF_HEADER is spotted, compare the resulting diff header
+  with the original one.
+
+
+OK
+# DIFF_HEADER
+diff --git a/y b/y
+new file mode 100644
+index 1111111..2222222
+# END_DIFF_HEADER
+range [first, ^end^]
+
+
+OK
+# DIFF_HEADER
+diff --git a/y b/y
+deleted file mode 100644
+index 1111111..0000000
+# END_DIFF_HEADER
+range [^start^, last]
+
+
+OK
+# DIFF_HEADER
+diff --git a/y b/y
+new file mode 100644
+index 1111111..2222222
+# SECTION FOO
+# END_DIFF_HEADER
+range [FOO, ^end^]
+
+
+OK
+# DIFF_HEADER
+diff --git a/y b/y
+deleted file mode 100644
+index 1111111..0000000
+# SECTION FOO
+# END_DIFF_HEADER
+range [^start^, FOO]
+
+
+OK
+# DIFF_HEADER
+diff --git a/y b/y
+new file mode 100644
+index 1111111..2222222
+# SECTION FOO
+#  CREATE "y" 100644
+# END_DIFF_HEADER
+range [FOO, ^end^]
+
+
+OK
+# DIFF_HEADER
+diff --git a/y b/y
+deleted file mode 100644
+index 1111111..0000000
+# SECTION FOO
+#  DELETE "y" 100644
+# END_DIFF_HEADER
+range [^start^, FOO]
+
+
+OK
+# DIFF_HEADER
+diff --git a/y b/y
+new file mode 100644
+index 1111111..2222222
+# SECTION FOO
+#  CREATE "z" 100755
+# SECTION BAR
+#  DELETE "z" 100755
+# SECTION BAZ
+#  CREATE "y" 10644
+# END_DIFF_HEADER
+range [FOO, BAR; BAZ, ^end^]
+
+
+OK
+# DIFF_HEADER
+diff --git a/y b/y
+deleted file mode 100644
+index 1111111..0000000
+# SECTION FOO
+#  DELETE "y" 100644
+# SECTION BAR
+#  CREATE "z" 100755
+# SECTION BAZ
+#  DELETE "z" 100755
+# END_DIFF_HEADER
+range [^start^, FOO; BAR, BAZ]
+
+
+OK
+# DIFF_HEADER
+diff --git a/y b/y
+new file mode 100644
+index 1111111..2222222
+# SECTION FOO
+#  CREATE "foo" 100755
+# SECTION BAR
+#  RENAME "foo" "y"
+#  MODE 100755 100644
+# END_DIFF_HEADER
+
+
+OK
+# DIFF_HEADER
+diff --git a/y b/y
+old mode 100755
+new mode 100644
+similarity index 42%
+rename from foo
+rename to bar
+index 1111111..2222222
+# SECTION FOO
+#  MODE 100755 100644
+# SECTION BAR
+#  RENAME "foo" "bar"
+# END_DIFF_HEADER
+
+
+FAIL - we don't know contents of the entire file to recreate it as a patch
+# DIFF_HEADER
+diff --git a/y b/y
+old mode 100755
+new mode 100644
+similarity index 42%
+rename from foo
+rename to bar
+index 1111111..2222222
+# SECTION FOO
+#  DELETE "foo" 100755
+# SECTION BAR
+#  CREATE "goo" 100755
+# SECTION BAZ
+#  MODE 100755 100644
+# SECTION QUUX
+#  RENAME "goo" "bar"
+# END_DIFF_HEADER
+
+
+FAIL - just wrong
+# DIFF_HEADER
+diff --git a/y b/y
+old mode 100755
+new mode 100644
+similarity index 42%
+rename from foo
+rename to bar
+index 1111111..2222222
+# SECTION FOO
+#  CREATE 100755 100644
+# SECTION BAR
+#  RENAME "foo" "bar"
+# END_DIFF_HEADER
+
+
+FAIL - empty section FOO
+# DIFF_HEADER
+diff --git a/y b/y
+new file mode 100644
+index 1111111..2222222
+# SECTION FOO
+# SECTION BAR
+#  CREATE "y" 100644
+# END_DIFF_HEADER
+
+
+FAIL - empty section BAR
+# DIFF_HEADER
+diff --git a/y b/y
+new file mode 100644
+index 1111111..2222222
+# SECTION FOO
+#  CREATE "y" 100644
+# SECTION BAR
+# END_DIFF_HEADER
+
+
+FAIL - CREATE can be the only customization in section
+# DIFF_HEADER
+diff --git a/y b/y
+new file mode 100644
+index 1111111..2222222
+# SECTION FOO
+#  CREATE "y" 100644
+#  MODE 100644 100755
+# END_DIFF_HEADER
+
+
+FAIL - DELETE can be the only customization in section
+# DIFF_HEADER
+diff --git a/y b/y
+new file mode 100644
+index 1111111..2222222
+# SECTION FOO
+#  CREATE "y" 100644
+# SECTION BAR
+#  DELETE "y" 100644
+#  MODE 100644 100755
+# SECTION BAZ
+#  CREATE "y" 100644
+# END_DIFF_HEADER
+
+
+FAIL - repeated MODE customization
+# DIFF_HEADER
+diff --git a/y b/y
+new file mode 100644
+index 1111111..2222222
+# SECTION FOO
+#  CREATE "y" 100644
+# SECTION BAR
+#  MODE 100644 100755
+#  MODE 100755 100644
+# END_DIFF_HEADER
+
+
+FAIL - repeated RENAME customization
+# DIFF_HEADER
+diff --git a/y b/y
+new file mode 100644
+index 1111111..2222222
+# SECTION FOO
+#  CREATE "y" 100644
+# SECTION BAR
+#  RENAME "y" "foo"
+#  RENAME "foo" "y"
+# END_DIFF_HEADER
