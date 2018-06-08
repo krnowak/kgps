@@ -12,7 +12,7 @@ diff --git a/foo b/bar
 similarity index 42%
 rename from foo
 rename to bar
-index 111111..222222 100644
+index 1111111..2222222 100644
 --- a/foo
 +++ b/bar
 @@ -8,3 +8,4 @@

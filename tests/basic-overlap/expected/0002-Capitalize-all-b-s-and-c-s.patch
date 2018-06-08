@@ -8,7 +8,7 @@ Subject: [PATCH 2/3] Capitalize all "b"s and "c"s
  1 file changed, 6 insertions(+), 6 deletions(-)
 
 diff --git a/foo b/foo
-index 111111..222222 100644
+index 1111111..2222222 100644
 --- a/foo
 +++ b/foo
 @@ -1,18 +1,18 @@

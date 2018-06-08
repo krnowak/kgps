@@ -11,7 +11,7 @@ message
  1 file changed, 1 insertion(+)
 
 diff --git a/foo b/foo
-index 111111..222222 100644
+index 1111111..2222222 100644
 --- a/foo
 +++ b/foo
 @@ -1,2 +1,3 @@
