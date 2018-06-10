@@ -1,0 +1,47 @@
+From 3f9ce26dd322c0ff719fd5688bba2cda98fee10b Mon Sep 17 00:00:00 2001
+From: Krzesimir Nowak <qdlacz@gmail.com>
+Date: Sun, 10 Jun 2018 07:47:39 +0200
+Subject: [PATCH] merged
+
+---
+#SECTION: ADD1
+# SUBJECT: add1
+# DATE: Sun, 10 Jun 2018 07:47:00 +0200
+#SECTION: RENAME
+# SUBJECT: rename
+# DATE: Sun, 10 Jun 2018 07:47:12 +0200
+#SECTION: ADD2
+# SUBJECT: add2
+# DATE: Sun, 10 Jun 2018 07:47:30 +0200
+ foo => bar | 6 ++++++
+ 1 file changed, 6 insertions(+)
+ rename foo => bar (96%)
+
+#DIFF_HEADER
+diff --git a/foo b/bar
+similarity index 96%
+rename from foo
+rename to bar
+index 190423f..5086a68 100644
+# SECTION: RENAME
+#END_DIFF_HEADER
+--- a/foo
++++ b/bar
+@@ -8,6 +8,12 @@
+# SECTION: ADD1
+ 8
+ 9
+ 10
++a
++b
++c
+# SECTION: ADD2
++d
++e
++f
+ 11
+ 12
+ 13
+-- 
+2.17.1
+

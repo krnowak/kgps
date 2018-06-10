@@ -1,0 +1,17 @@
+From 1111111111111111111111111111111111111111 Mon Sep 17 00:00:00 2001
+From: Krzesimir Nowak <qdlacz@gmail.com>
+Date: Sun, 10 Jun 2018 07:47:12 +0200
+Subject: [PATCH 2/3] rename
+
+---
+ foo => bar | 0
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+ rename foo => bar (42%)
+
+diff --git a/foo b/bar
+similarity index 42%
+rename from foo
+rename to bar
+-- 
+0.0.0
+

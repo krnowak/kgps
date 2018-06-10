@@ -1,0 +1,26 @@
+From 1111111111111111111111111111111111111111 Mon Sep 17 00:00:00 2001
+From: Krzesimir Nowak <qdlacz@gmail.com>
+Date: Sun, 10 Jun 2018 07:47:30 +0200
+Subject: [PATCH 3/3] add2
+
+---
+ bar | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/bar b/bar
+index 1111111..2222222 100644
+--- a/bar
++++ b/bar
+@@ -11,6 +11,9 @@
+ a
+ b
+ c
++d
++e
++f
+ 11
+ 12
+ 13
+-- 
+0.0.0
+
