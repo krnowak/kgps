@@ -13,6 +13,7 @@ set -o pipefail
 
 dir=$(dirname "${0}")
 use_standalone=0
+use_coverage=0
 alltestsdir="${dir}/tests"
 resultsdirbase='test-results'
 allresultsdir="${resultsdirbase}-$(date '+%Y-%m-%d-%H-%M-%S')"
@@ -22,10 +23,16 @@ while [[ ${#} -gt 0 ]]
 do
     case "${1}" in
         -s)
-            use_standalone=1;
+            use_standalone=1
             ;;
         --use-standalone)
-            use_standalone=1;
+            use_standalone=1
+            ;;
+        -c)
+            use_coverage=1
+            ;;
+        --use-coverage)
+            use_coverage=1
             ;;
         *)
             echo "unknown flag '${1}'"
@@ -199,23 +206,23 @@ function call_and_log
 # See call_and_log function, this one calls the splitter script.
 function call_and_log_splitter
 {
+    local args=()
+
+    args=('perl')
+    if [[ $use_coverage -eq 1 ]]
+    then
+        args+=('-MDevel::Cover')
+    fi
     if [[ $use_standalone -eq 1 ]]
     then
-        if ! call_and_log \
-             "${dir}/kgps-standalone" \
-             "${@}"
-        then
-            return 1
-        fi
+        args+=("${dir}/kgps-standalone")
     else
-        if ! call_and_log \
-             perl \
-             "-I${dir}" \
-             "${dir}/kgps" \
-             "${@}"
-        then
-            return 1
-        fi
+        args+=("-I${dir}" "${dir}/kgps")
+    fi
+    args+=("${@}")
+    if ! call_and_log "${args[@]}"
+    then
+        return 1
     fi
     return 0
 }
