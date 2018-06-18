@@ -29,7 +29,7 @@ sub new
     'diffs' => [],
     'sections_ordered' => [],
     'sections_unordered' => {},
-    'raw_diffs_and_modes' => {}
+    'raw_diffs_and_modes' => {},
   };
 
   $self = bless ($self, $class);
@@ -248,7 +248,7 @@ sub get_ordered_sectioned_raw_diffs_and_modes
       {
         'git-diffs' => $raw_diffs_and_modes->{$section_name}->{'git-diffs'},
         'section' => $section,
-        'stats' => $raw_diffs_and_modes->{$section_name}->{'stats'}
+        'stats' => $raw_diffs_and_modes->{$section_name}->{'stats'},
       };
       push (@sectioned_diffs_and_modes, $diffs_and_modes);
     }

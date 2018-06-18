@@ -29,7 +29,7 @@ sub new
     'action' => undef,
     'mode' => undef,
     'index_from' => undef,
-    'index_to' => undef
+    'index_to' => undef,
   };
 
   $self = bless ($self, $class);

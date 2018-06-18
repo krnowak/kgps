@@ -122,7 +122,7 @@ sub _new_with_numbers
   my $self = {
     'files_changed_count' => $files_changed_count,
     'insertions' => $insertions,
-    'deletions' => $deletions
+    'deletions' => $deletions,
   };
 
   $self = bless ($self, $class);

@@ -25,7 +25,7 @@ use constant
 {
   RelevantNo => 0,
   RelevantYes => 1,
-  RelevantMaybe => 2
+  RelevantMaybe => 2,
 };
 
 sub new
@@ -33,7 +33,7 @@ sub new
   my ($type, $path) = @_;
   my $class = (ref ($type) or $type or 'Kgps::FileStatBase');
   my $self = {
-    'path' => $path
+    'path' => $path,
   };
 
   $self = bless ($self, $class);

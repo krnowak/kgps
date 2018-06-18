@@ -44,7 +44,7 @@ sub new
     # truncated Kgps package names (without the 'Kgps::' part)
     'kgps' => [],
     # just lines, without newlines
-    'rest' => []
+    'rest' => [],
   };
 
   $self = bless ($self, $class);
@@ -151,7 +151,7 @@ sub new
     # truncated Kgps package names (without the 'Kgps::' part)
     'kgps' => [],
     # just lines, without newlines
-    'rest' => []
+    'rest' => [],
   };
 
   $self = bless ($self, $class);
@@ -282,7 +282,7 @@ sub new
     # just pkgs
     'std' => [],
     # truncated Kgps package names (without the 'Kgps::' part)
-    'kgps' => []
+    'kgps' => [],
   };
 
   $self = bless ($self, $class);

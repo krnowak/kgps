@@ -19,20 +19,20 @@ use constant
   Plus => 0, # added line
   Minus => 1, # removed line
   Space => 2, # unchanged line
-  Binary => 3  # binary line
+  Binary => 3,  # binary line
 };
 
 my $type_to_char =
 {
   Plus () => '+',
   Minus () => '-',
-  Space () => ' '
+  Space () => ' ',
 };
 my $char_to_type =
 {
   '+' => Plus,
   '-' => Minus,
-  ' ' => Space
+  ' ' => Space,
 };
 
 sub get_char
@@ -66,7 +66,7 @@ sub new
   my $self =
   {
     'sigil' => $sigil,
-    'line' => $line
+    'line' => $line,
   };
 
   $self = bless ($self, $class);

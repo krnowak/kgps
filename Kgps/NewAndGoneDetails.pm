@@ -14,7 +14,7 @@ use warnings;
 use constant
 {
   Create => 0,
-  Delete => 1
+  Delete => 1,
 };
 
 sub new
@@ -23,7 +23,7 @@ sub new
   my $class = (ref ($type) or $type or 'Kgps::NewAndGoneDetails');
   my $self = {
     'action' => $action,
-    'mode' => $mode
+    'mode' => $mode,
   };
 
   $self = bless ($self, $class);

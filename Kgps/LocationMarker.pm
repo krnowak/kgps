@@ -31,7 +31,7 @@ sub new
     'old_line_count' => undef,
     'new_line_no' => undef,
     'new_line_count' => undef,
-    'inline_context' => undef
+    'inline_context' => undef,
   };
 
   $self = bless ($self, $class);

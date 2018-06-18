@@ -41,7 +41,7 @@ sub new
   {
     'listing_info' => Kgps::ListingInfo->new (),
     'raw_diffs' => {},
-    'default_data' => {}
+    'default_data' => {},
   };
 
   $self = bless ($self, $class);

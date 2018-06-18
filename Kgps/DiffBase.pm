@@ -18,7 +18,7 @@ sub new
   my $class = (ref ($type) or $type or 'Kgps::DiffBase');
   my $self =
   {
-    'header' => undef
+    'header' => undef,
   };
 
   $self = bless ($self, $class);

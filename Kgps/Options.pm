@@ -106,7 +106,7 @@ sub get
     my $opt_state = {
       'type' => $type,
       'visited_through' => undef,
-      'value_ref' => $value_ref
+      'value_ref' => $value_ref,
     };
     if (defined ($long_opt))
     {

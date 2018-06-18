@@ -17,7 +17,7 @@ use Kgps::Patch;
 
 use constant
 {
-  PreviousLinesLimit => 3
+  PreviousLinesLimit => 3,
 };
 
 sub new
@@ -37,7 +37,7 @@ sub new
     'unread_lines' => [],
     'previous_lines' => [],
     'patch' => Kgps::Patch->new (),
-    'current_diff_header' => undef
+    'current_diff_header' => undef,
   };
 
   $self = bless ($self, $class);

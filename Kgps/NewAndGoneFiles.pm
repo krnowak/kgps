@@ -108,7 +108,7 @@ sub _new_with_files
   my $class = (ref ($type) or $type or 'Kgps::NewAndGoneFiles');
   my $self = {
     # path to NewAndGoneDetails
-    'files' => $files
+    'files' => $files,
   };
 
   $self = bless ($self, $class);

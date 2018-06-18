@@ -125,7 +125,7 @@ sub _postprocess_vfunc
   my $stats = {$name => $listing_info};
   my $raw_diffs_and_modes = {
     'git-raw' => $raw_diff,
-    'stats' => $stats
+    'stats' => $stats,
   };
 
   return $raw_diffs_and_modes;

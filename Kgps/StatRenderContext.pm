@@ -18,7 +18,7 @@ use constant
   PrefixSpaceLength => 1,
 
   MaxFileStatPathLength => 50,
-  MaxFileStatLineLength => 79
+  MaxFileStatLineLength => 79,
 };
 
 sub new

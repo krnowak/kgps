@@ -16,7 +16,7 @@ use constant
 {
   From => 0,
   Upto => 1,
-  Ignore => 2
+  Ignore => 2,
 };
 
 sub new_ignore
@@ -35,7 +35,7 @@ sub new
     'hours' => $hours,
     'minutes' => $minutes,
     'seconds' => $seconds,
-    'mode' => $mode
+    'mode' => $mode,
   };
 
   $self = bless ($self, $class);

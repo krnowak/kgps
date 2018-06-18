@@ -20,7 +20,7 @@ sub new
   my $self =
   {
     'marker' => $marker,
-    'section_codes' => []
+    'section_codes' => [],
   };
 
   $self = bless ($self, $class);

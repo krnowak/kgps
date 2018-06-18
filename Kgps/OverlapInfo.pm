@@ -18,7 +18,7 @@ sub new
   my ($type) = @_;
   my $class = (ref ($type) or $type or 'Kgps::OverlapInfo');
   my $self = {
-    'codes' => []
+    'codes' => [],
   };
 
   $self = bless ($self, $class);

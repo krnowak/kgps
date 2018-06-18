@@ -42,7 +42,7 @@ sub incremented
     'days' => $date_inc->get_days (),
     'hours' => $date_inc->get_hours (),
     'minutes' => $date_inc->get_minutes (),
-    'seconds' => $date_inc->get_seconds ()
+    'seconds' => $date_inc->get_seconds (),
   );
 
   return Kgps::Date->_new_with_datetime ($new_dt);
@@ -58,7 +58,7 @@ sub decremented
     'days' => $date_inc->get_days (),
     'hours' => $date_inc->get_hours (),
     'minutes' => $date_inc->get_minutes (),
-    'seconds' => $date_inc->get_seconds ()
+    'seconds' => $date_inc->get_seconds (),
   );
 
   return Kgps::Date->_new_with_datetime ($new_dt);
@@ -87,7 +87,7 @@ sub _new_with_datetime
   my ($type, $dt) = @_;
   my $class = (ref ($type) or $type or 'Kgps::Date');
   my $self = {
-    'dt' => $dt
+    'dt' => $dt,
   };
 
   $self = bless ($self, $class);

@@ -20,7 +20,7 @@ sub new
   my $class = (ref ($type) or $type or 'Kgps::CodeBase');
   my $self =
   {
-    'lines' => []
+    'lines' => [],
   };
 
   $self = bless ($self, $class);
