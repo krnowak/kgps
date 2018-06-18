@@ -4,6 +4,8 @@
 set -e
 # fail on expanding unset variable
 set -u
+# fail on some error inside the pipe
+set -o pipefail
 # print shell input line as they are read
 #set -v
 # expand commands
