@@ -146,9 +146,9 @@ function git_strip_patch
                 sed \
                     -e 's/ 0\+\./ xxx./' \
                     -e 's/\.0000000\( \|$\)/.xxx/' \
-                    -e 's/[0-9a-f]\+\./222222./' \
-                    -e 's/\.[0-9a-f]\+/.333333/' \
-                    -e 's/xxx/000000/g' \
+                    -e 's/[0-9a-f]\+\./2222222./' \
+                    -e 's/\.[0-9a-f]\+/.3333333/' \
+                    -e 's/xxx/0000000/g' \
                     <<<"${line}" >>"${target_path}"
             elif [[ $line = 'similarity index '* ]]
             then
