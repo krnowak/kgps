@@ -342,6 +342,10 @@ sub parse_kgps
   my $fd = IO::File->new ($filename, 'r');
   my $stage = 'license';
   my $script = Script->new ();
+  my %kgps_set = ();
+  my %useless_kgps = ();
+  my %std_set = ();
+  my %useless_std = ();
 
   die unless (defined ($fd));
 
@@ -387,6 +391,7 @@ sub parse_kgps
         my $trunc_pkg = $1;
 
         $script->add_kgps ($trunc_pkg);
+        $kgps_set{$trunc_pkg} = 1;
         $stage = 'kgps';
       }
       elsif ($line =~ /^use\s+([A-Z]\S+);$/)
@@ -394,6 +399,7 @@ sub parse_kgps
         my $pkg = $1;
 
         $script->add_std ($pkg);
+        $std_set{$pkg} = 1;
         $stage = 'std';
       }
       else
@@ -413,6 +419,11 @@ sub parse_kgps
         my $pkg = $1;
 
         $script->add_std ($pkg);
+        if (exists ($std_set{$pkg}))
+        {
+          say "duplicated std package $pkg in main script";
+        }
+        $std_set{$pkg} = 1;
       }
       else
       {
@@ -424,6 +435,8 @@ sub parse_kgps
       if ($line eq '')
       {
         die 'expected some use of Kgps pkgs in main script' if (empty_aref ($script->get_kgps ()));
+        %useless_kgps = (%kgps_set);
+        %useless_std = (%std_set);
         $stage = 'rest';
       }
       elsif ($line =~ /^use\s+Kgps::(\S+);$/)
@@ -431,6 +444,11 @@ sub parse_kgps
         my $trunc_pkg = $1;
 
         $script->add_kgps ($trunc_pkg);
+        if (exists ($kgps_set{$trunc_pkg}))
+        {
+          say "duplicated Kgps package $trunc_pkg in main script" ;
+        }
+        $kgps_set{$trunc_pkg} = 1;
       }
       else
       {
@@ -439,11 +457,56 @@ sub parse_kgps
     }
     elsif ($stage eq 'rest')
     {
+      my @matches = $line =~ /(Kgps::(\w+))/ag;
+
+      while (scalar (@matches))
+      {
+        my $pkg = shift (@matches);
+        my $trunc_pkg = shift (@matches);
+
+        if ($line =~ /(["'])$pkg\1/)
+        {
+          next;
+        }
+        unless (exists ($kgps_set{$trunc_pkg}))
+        {
+          say "Unimported $pkg in main script";
+        }
+        delete $useless_kgps{$trunc_pkg};
+      }
+      for my $pkg (keys (%useless_std))
+      {
+        if ($line =~ /$pkg/)
+        {
+          delete $useless_std{$pkg};
+        }
+      }
       $script->add_rest ($line);
     }
     else
     {
       die;
+    }
+  }
+
+  if (scalar (keys (%useless_std)))
+  {
+    say "Unused imported std packages in main script: " . join (' ', keys (%useless_std));
+  }
+  if (scalar (keys (%useless_kgps)))
+  {
+    say "Unused imported Kgps packages in main script: " . join (' ', map { 'Kgps::' . $_ } keys (%useless_kgps));
+  }
+
+  my $kgps_array = $script->get_kgps ();
+  my @sorted_kgps = sort (@{$kgps_array});
+
+  for (my $i = 0; $i < @sorted_kgps; $i++)
+  {
+    if ($kgps_array->[$i] ne $sorted_kgps[$i])
+    {
+      say 'Unsorted kgps imports in main script';
+      last;
     }
   }
 
@@ -470,6 +533,10 @@ sub parse_kgps_pm
   my $fd = IO::File->new ($pm_path, 'r');
   my $stage = 'license';
   my $pm = Pm->new ($trunc_pkg);
+  my %kgps_set = ();
+  my %useless_kgps = ();
+  my %std_set = ();
+  my %useless_std = ();
 
   die unless (defined ($fd));
 
@@ -480,7 +547,7 @@ sub parse_kgps_pm
     {
       if ($line eq '')
       {
-        die 'expected some license blurb in pm' if (empty_aref ($pm->get_init ()));
+        die "expected some license blurb in pm $pm_filename" if (empty_aref ($pm->get_init ()));
         $stage = 'package_part';
       }
       elsif ($line =~ /^#/)
@@ -489,14 +556,14 @@ sub parse_kgps_pm
       }
       else
       {
-        die 'expected only comments in initial part in pm';
+        die "expected only comments in initial part in pm $pm_filename";
       }
     }
     elsif ($stage eq 'package_part')
     {
       if ($line eq '')
       {
-        die 'expected some lines in package part (at least the "package" clause) in pm' if (empty_aref ($pm->get_pkg_part ()));
+        die 'expected some lines in package part (at least the "package" clause) in pm ' . $pm_filename if (empty_aref ($pm->get_pkg_part ()));
         $stage = 'pragmas';
       }
       elsif ($line =~ /^package Kgps::(\S+);$/)
@@ -504,7 +571,7 @@ sub parse_kgps_pm
         my $check_trunc_pkg = $1;
         my $trunc_pkg = $pm->get_trunc_pkg ();
 
-        die "$check_trunc_pkg is not equal $trunc_pkg in pm" if ($check_trunc_pkg ne $trunc_pkg);
+        die "$check_trunc_pkg is not equal $trunc_pkg in pm $pm_filename" if ($check_trunc_pkg ne $trunc_pkg);
 
         $pm->add_pkg_part ($line);
       }
@@ -514,14 +581,14 @@ sub parse_kgps_pm
       }
       else
       {
-        die 'expected either comments or "package" clause in package part in pm';
+        die 'expected either comments or "package" clause in package part in pm ' . $pm_filename;
       }
     }
     elsif ($stage eq 'pragmas')
     {
       if ($line eq '')
       {
-        die 'expected some pragmas in pm' if (empty_aref ($pm->get_pragmas ()));
+        die "expected some pragmas in pm $pm_filename" if (empty_aref ($pm->get_pragmas ()));
         $stage = 'std_kgps_or_rest';
       }
       elsif ($line =~ /^use\s+parent\s+qw\(Kgps::(\S+?)\);$/)
@@ -539,7 +606,7 @@ sub parse_kgps_pm
       }
       else
       {
-        die 'expected a "use" clause with some pragma in pm';
+        die 'expected a "use" clause with some pragma in pm ' . $pm_filename;
       }
     }
     elsif ($stage eq 'std_kgps_or_rest')
@@ -549,6 +616,7 @@ sub parse_kgps_pm
         my $trunc_pkg = $1;
 
         $pm->add_kgps ($trunc_pkg);
+        $kgps_set{$trunc_pkg} = 1;
         $stage = 'kgps';
       }
       elsif ($line =~ /^use\s+([A-Z]\S+);$/)
@@ -556,6 +624,7 @@ sub parse_kgps_pm
         my $pkg = $1;
 
         $pm->add_std ($pkg);
+        $std_set{$pkg} = 1;
         $stage = 'std';
       }
       elsif ($line !~ /^use\s+/ or $line =~ /^use\s+constant/)
@@ -565,14 +634,14 @@ sub parse_kgps_pm
       }
       else
       {
-        die 'expected no "use" clauses in rest in pm';
+        die 'expected no "use" clauses in rest in pm ' . $pm_filename;
       }
     }
     elsif ($stage eq 'std')
     {
       if ($line eq '')
       {
-        die 'expected some use of std pkgs in pm' if (empty_aref ($pm->get_std ()));
+        die "expected some use of std pkgs in pm $pm_filename" if (empty_aref ($pm->get_std ()));
         $stage = 'kgps_or_rest';
       }
       elsif ($line =~ /^use\s+(\S+);$/)
@@ -580,10 +649,15 @@ sub parse_kgps_pm
         my $pkg = $1;
 
         $pm->add_std ($pkg);
+        if (exists ($std_set{$pkg}))
+        {
+          say "duplicated std package $pkg in pm $pm_filename";
+        }
+        $std_set{$pkg} = 1;
       }
       else
       {
-        die 'expected a "use" clause with a package from stdlib in pm';
+        die 'expected a "use" clause with a package from stdlib in pm' . $pm_filename;
       }
     }
     elsif ($stage eq 'kgps_or_rest')
@@ -593,6 +667,11 @@ sub parse_kgps_pm
         my $trunc_pkg = $1;
 
         $pm->add_kgps ($trunc_pkg);
+        if (exists ($kgps_set{$trunc_pkg}))
+        {
+          say "duplicated Kgps package $trunc_pkg in pm $pm_filename" ;
+        }
+        $kgps_set{$trunc_pkg} = 1;
         $stage = 'kgps';
       }
       elsif ($line !~ /^use\s+/ or $line =~ /^use\s+constant/)
@@ -602,34 +681,87 @@ sub parse_kgps_pm
       }
       else
       {
-        die 'expected no "use" clauses in rest in pm';
+        die 'expected no "use" clauses in rest in pm' . $pm_filename;
       }
     }
     elsif ($stage eq 'kgps')
     {
       if ($line eq '')
       {
-        die 'expected some use of Kgps pkgs in pm' if (empty_aref ($pm->get_kgps ()));
+        die "expected some use of Kgps pkgs in pm $pm_filename" if (empty_aref ($pm->get_kgps ()));
         $stage = 'rest';
+        %useless_kgps = (%kgps_set);
+        %useless_std = (%std_set);
       }
       elsif ($line =~ /^use\s+Kgps::(\S+);$/)
       {
         my $trunc_pkg = $1;
 
         $pm->add_kgps ($trunc_pkg);
+        if (exists ($kgps_set{$trunc_pkg}))
+        {
+          say "duplicated Kgps package $trunc_pkg in pm $pm_filename" ;
+        }
+        $kgps_set{$trunc_pkg} = 1;
       }
       else
       {
-        die 'expected a "use" clause with a package from Kgps in pm';
+        die 'expected a "use" clause with a package from Kgps in pm' . $pm_filename;
       }
     }
     elsif ($stage eq 'rest')
     {
+      my @matches = $line =~ /(Kgps::(\w+))/ag;
+      my $this_trunc_pkg = $trunc_pkg;
+
+      while (scalar (@matches))
+      {
+        my $pkg = shift (@matches);
+        my $trunc_pkg = shift (@matches);
+
+        if ($line =~ /(["'])$pkg\1/)
+        {
+          next;
+        }
+        if ($trunc_pkg ne $this_trunc_pkg and not exists ($kgps_set{$trunc_pkg}))
+        {
+          say "Unimported $pkg in pm $pm_filename";
+        }
+        delete $useless_kgps{$trunc_pkg};
+      }
+      for my $pkg (keys (%useless_std))
+      {
+        if ($line =~ /$pkg/)
+        {
+          delete $useless_std{$pkg};
+        }
+      }
       $pm->add_rest ($line);
     }
     else
     {
       die;
+    }
+  }
+
+  if (scalar (keys (%useless_std)))
+  {
+    say "Unused imported std packages in pm $pm_filename: " . join (' ', keys (%useless_std));
+  }
+  if (scalar (keys (%useless_kgps)))
+  {
+    say "Unused imported Kgps packages in pm $pm_filename: " . join (' ', map { 'Kgps::' . $_ } keys (%useless_kgps));
+  }
+
+  my $kgps_array = $pm->get_kgps ();
+  my @sorted_kgps = sort (@{$kgps_array});
+
+  for (my $i = 0; $i < @sorted_kgps; $i++)
+  {
+    if ($kgps_array->[$i] ne $sorted_kgps[$i])
+    {
+      say "Unsorted kgps imports in pm $pm_filename";
+      last;
     }
   }
 
