@@ -1,0 +1,6658 @@
+From a5aa9a870849e6dc5539e011afad6ac3fe9889a8 Mon Sep 17 00:00:00 2001
+From: Krzesimir Nowak <qdlacz@gmail.com>
+Date: Tue, 29 May 2018 23:11:44 +0200
+Subject: [PATCH] big rename stuff
+
+Handle various diff headers
+
+This is a quite large commit, to be splitted using kgps. ;)
+---
+#DATE_INC: ::5: FROM
+##----------##
+#SECTION: AUX_CHANGES_RENAME
+# SUBJECT: Rename new and gone files into something else
+# MESSAGE_BEGIN
+NewAndGoneFiles name was awkward and did not reflect the reality well
+because changes summary can also contain information about renames and
+mode changes.
+# MESSAGE_END
+##----------##
+#SECTION: FIRST_WORD
+# SUBJECT: Move first_word to a separate function
+# MESSAGE_BEGIN
+I'm going to use this function elsewhere later
+# MESSAGE_END
+##----------##
+#SECTION: DROPIT
+# SUBJECT: DROPIT, TODO: REVIEW AFTER SECTIONING
+##----------##
+#SECTION: REST
+# SUBJECT: The yet unsorted changes
+##----------##
+ Kgps/BinaryDiff.pm                            |  52 +-
+ Kgps/BinaryFileStat.pm                        |   7 +
+ ...dGoneDetails.pm => CustomizationCreate.pm} |  25 +-
+ Kgps/CustomizationDelete.pm                   |  43 +
+ Kgps/CustomizationIndex.pm                    |  27 +
+ Kgps/CustomizationMode.pm                     |  43 +
+ Kgps/CustomizationRename.pm                   |  43 +
+ Kgps/DiffBase.pm                              |   4 +-
+ Kgps/DiffHeader.pm                            | 216 ++--
+ Kgps/DiffHeaderAllowedCustomizationsBase.pm   |  62 ++
+ .../DiffHeaderAllowedCustomizationsCreated.pm |  51 +
+ .../DiffHeaderAllowedCustomizationsDeleted.pm |  51 +
+ ...DiffHeaderAllowedCustomizationsExisting.pm |  51 +
+ Kgps/DiffHeaderCommon.pm                      |  84 ++
+ Kgps/DiffHeaderParser.pm                      | 978 ++++++++++++++++++
+ Kgps/DiffHeaderPartContents.pm                |  70 ++
+ Kgps/DiffHeaderPartContentsMode.pm            |  51 +
+ Kgps/DiffHeaderPartMode.pm                    |  71 ++
+ Kgps/DiffHeaderPartRename.pm                  |  88 ++
+ Kgps/DiffHeaderSpecificBase.pm                | 107 ++
+ Kgps/DiffHeaderSpecificCreated.pm             | 154 +++
+ Kgps/DiffHeaderSpecificDeleted.pm             | 154 +++
+ Kgps/DiffHeaderSpecificExisting.pm            | 275 +++++
+ Kgps/FileStatBase.pm                          |   7 +
+ Kgps/FileStateBase.pm                         | 101 ++
+ Kgps/FileStateBuilder.pm                      |  52 +
+ Kgps/FileStateEmpty.pm                        | 110 ++
+ Kgps/FileStateExisting.pm                     | 158 +++
+ Kgps/FileStateModified.pm                     | 181 ++++
+ Kgps/FileStateWrapperBase.pm                  |  34 +
+ Kgps/FileStateWrapperData.pm                  |  51 +
+ Kgps/FileStateWrapperEmpty.pm                 |  33 +
+ Kgps/FileStateWrapperExisting.pm              |  53 +
+ Kgps/FileStateWrapperModified.pm              |  53 +
+ Kgps/GnomePatch.pm                            | 583 +++++++++--
+ Kgps/ListingAuxChanges.pm                     |  75 ++
+ Kgps/ListingAuxChangesDetailsBase.pm          |  41 +
+ Kgps/ListingAuxChangesDetailsCreate.pm        |  47 +
+ Kgps/ListingAuxChangesDetailsDelete.pm        |  47 +
+ Kgps/ListingAuxChangesDetailsMode.pm          |  56 +
+ Kgps/ListingAuxChangesDetailsModeRename.pm    |  82 ++
+ Kgps/ListingAuxChangesDetailsRename.pm        |  63 ++
+ Kgps/ListingInfo.pm                           |  18 +-
+ Kgps/Misc.pm                                  |  13 +
+ Kgps/NewAndGoneFiles.pm                       | 119 ---
+ Kgps/ParseContext.pm                          |  30 +
+ Kgps/Patch.pm                                 |  37 +
+ Kgps/Section.pm                               |  53 +
+ Kgps/SectionRanges.pm                         | 146 +++
+ Kgps/StatRenderContext.pm                     |  25 +-
+ Kgps/TextDiff.pm                              | 265 +++--
+ Kgps/TextFileStat.pm                          |  63 +-
+ Kgps/TextFileStatSignsBase.pm                 |  14 +
+ Kgps/TextFileStatSignsDrawn.pm                |  16 +-
+ Kgps/TextFileStatSignsReal.pm                 |  14 +
+ kgps                                          |   4 +-
+ 56 files changed, 4837 insertions(+), 514 deletions(-)
+ rename Kgps/{NewAndGoneDetails.pm => CustomizationCreate.pm} (66%)
+ create mode 100644 Kgps/CustomizationDelete.pm
+ create mode 100644 Kgps/CustomizationIndex.pm
+ create mode 100644 Kgps/CustomizationMode.pm
+ create mode 100644 Kgps/CustomizationRename.pm
+ create mode 100644 Kgps/DiffHeaderAllowedCustomizationsBase.pm
+ create mode 100644 Kgps/DiffHeaderAllowedCustomizationsCreated.pm
+ create mode 100644 Kgps/DiffHeaderAllowedCustomizationsDeleted.pm
+ create mode 100644 Kgps/DiffHeaderAllowedCustomizationsExisting.pm
+ create mode 100644 Kgps/DiffHeaderCommon.pm
+ create mode 100644 Kgps/DiffHeaderParser.pm
+ create mode 100644 Kgps/DiffHeaderPartContents.pm
+ create mode 100644 Kgps/DiffHeaderPartContentsMode.pm
+ create mode 100644 Kgps/DiffHeaderPartMode.pm
+ create mode 100644 Kgps/DiffHeaderPartRename.pm
+ create mode 100644 Kgps/DiffHeaderSpecificBase.pm
+ create mode 100644 Kgps/DiffHeaderSpecificCreated.pm
+ create mode 100644 Kgps/DiffHeaderSpecificDeleted.pm
+ create mode 100644 Kgps/DiffHeaderSpecificExisting.pm
+ create mode 100644 Kgps/FileStateBase.pm
+ create mode 100644 Kgps/FileStateBuilder.pm
+ create mode 100644 Kgps/FileStateEmpty.pm
+ create mode 100644 Kgps/FileStateExisting.pm
+ create mode 100644 Kgps/FileStateModified.pm
+ create mode 100644 Kgps/FileStateWrapperBase.pm
+ create mode 100644 Kgps/FileStateWrapperData.pm
+ create mode 100644 Kgps/FileStateWrapperEmpty.pm
+ create mode 100644 Kgps/FileStateWrapperExisting.pm
+ create mode 100644 Kgps/FileStateWrapperModified.pm
+ create mode 100644 Kgps/ListingAuxChanges.pm
+ create mode 100644 Kgps/ListingAuxChangesDetailsBase.pm
+ create mode 100644 Kgps/ListingAuxChangesDetailsCreate.pm
+ create mode 100644 Kgps/ListingAuxChangesDetailsDelete.pm
+ create mode 100644 Kgps/ListingAuxChangesDetailsMode.pm
+ create mode 100644 Kgps/ListingAuxChangesDetailsModeRename.pm
+ create mode 100644 Kgps/ListingAuxChangesDetailsRename.pm
+ delete mode 100644 Kgps/NewAndGoneFiles.pm
+ create mode 100644 Kgps/SectionRanges.pm
+
+diff --git a/Kgps/BinaryDiff.pm b/Kgps/BinaryDiff.pm
+index 700d0f2..cfdc52e 100644
+--- a/Kgps/BinaryDiff.pm
++++ b/Kgps/BinaryDiff.pm
+@@ -17,7 +17,6 @@ use File::Spec;
+ 
+ use Kgps::BinaryFileStat;
+ use Kgps::FileStatBase;
+-use Kgps::ListingInfo;
+ 
+ sub new
+ {
+@@ -62,25 +61,19 @@ sub set_listing_info
+ 
+ sub _postprocess_vfunc
+ {
+-  my ($self, $sections_array, $sections_hash) = @_;
++  my ($self, $sections_array, $sections_hash, $headers_for_sections) = @_;
+   my $code = $self->get_code ();
+   my $name = $code->get_section ()->get_name ();
++  my $header = $self->get_header ();
+   my $raw = join ("\n",
+-                  $self->_get_diff_git_header (),
++                  $self->_get_diff_git_header ($header),
+                   "GIT binary patch",
+                   @{$self->_get_raw_lines ($code->get_lines ())},
+                   "");
+   my $raw_diff = {$name => $raw};
+   my $big_listing_info = $self->get_listing_info ();
+#OVERLAP
+# OUTCOME
+-  my $big_new_and_gone_files = $big_listing_info->new_and_gone_files ();
+# SECTION: AUX_CHANGES_RENAME
+-  my $big_new_and_gone_files = $big_listing_info->new_and_gone_files ();
++  my $big_listing_aux_changes = $big_listing_info->get_aux_changes ();
+# SECTION: REST
+-  my $big_listing_aux_changes = $big_listing_info->get_aux_changes ();
+#END_OVERLAP
+   my $big_per_basename_stats = $big_listing_info->get_per_basename_stats ();
+-  my $listing_info = Kgps::ListingInfo->new ();
+-  my $per_basename_stats = $listing_info->get_per_basename_stats ();
+-  my $summary = $listing_info->get_summary ();
+#OVERLAP
+# OUTCOME
+-  my $new_and_gone_files = $listing_info->new_and_gone_files ();
+-  my $header = $self->get_header ();
+-  my $path = $header->get_a ();
+-  my $details_from_big = $big_new_and_gone_files->get_details_for_path ($path);
+# SECTION: AUX_CHANGES_RENAME
+-  my $new_and_gone_files = $listing_info->new_and_gone_files ();
++  my $listing_aux_changes = $listing_info->get_aux_changes ();
+   my $header = $self->get_header ();
+   my $path = $header->get_a ();
+-  my $details_from_big = $big_new_and_gone_files->get_details_for_path ($path);
++  my $details_from_big = $big_listing_aux_changes->get_details_for_path ($path);
+# SECTION: REST
+-  my $listing_aux_changes = $listing_info->get_aux_changes ();
+-  my $header = $self->get_header ();
+-  my $path = $header->get_a ();
+-  my $details_from_big = $big_listing_aux_changes->get_details_for_path ($path);
+#END_OVERLAP
++  my $path = $header->get_basename_stat_path ();
+   my $basename = (File::Spec->splitpath ($path))[2];
+   my $maybe_relevant = undef;
+ 
+@@ -90,8 +83,7 @@ sub _postprocess_vfunc
+ 
+     if ($relevancy == Kgps::FileStatBase::RelevantYes)
+     {
+-      $per_basename_stats->add_stat ($bin_stat);
+-      $maybe_relevant = undef;
++      $maybe_relevant = Kgps::BinaryFileStat->new ($bin_stat->get_path (), $bin_stat->get_from_size (), $bin_stat->get_to_size ());
+       last;
+     }
+     if ($relevancy == Kgps::FileStatBase::RelevantMaybe)
+@@ -104,6 +96,8 @@ sub _postprocess_vfunc
+         # Try more heuristics with checking if the file is created or
+         # deleted. Created files usually have from size 0, and deleted
+         # files have to size 0.
++        # TODO: Do something else.
++        $maybe_relevant = Kgps::BinaryFileStat->new ($path, -1, -1);
+       }
+       else
+       {
+@@ -111,17 +105,8 @@ sub _postprocess_vfunc
+       }
+     }
+   }
+-  if (defined ($maybe_relevant))
+-  {
+-    $per_basename_stats->add_stat ($maybe_relevant);
+-  }
+-
+-  $summary->set_files_changed_count (1);
+-  if (defined ($details_from_big))
+-  {
+#OVERLAP
+# OUTCOME
+-    $new_and_gone_files->add_details ($path, $details_from_big);
+# SECTION: AUX_CHANGES_RENAME
+-    $new_and_gone_files->add_details ($path, $details_from_big);
++    $listing_aux_changes->add_details ($path, $details_from_big);
+# SECTION: REST
+-    $listing_aux_changes->add_details ($path, $details_from_big);
+#END_OVERLAP
+-  }
+ 
++  my $listing_info = $header->get_stats ($maybe_relevant);
+   my $stats = {$name => $listing_info};
+   my $raw_diffs_and_modes = {
+     'git-raw' => $raw_diff,
+@@ -133,25 +118,10 @@ sub _postprocess_vfunc
+ 
+ sub _get_diff_git_header
+ {
+-  my ($self) = @_;
+-  my $header = $self->get_header ();
+-  my $a = 'a/' . $header->get_a ();
+-  my $b = 'b/' . $header->get_b ();
+-  my $action = $header->get_action ();
+-  my $mode = $header->get_mode ();
+-  my $index_from = $header->get_index_from ();
+-  my $index_to = $header->get_index_to ();
+-
+-  if (defined ($action))
+-  {
+-    return join ("\n",
+-                 "diff --git $a $b",
+-                 "$action mode $mode",
+-                 "index $index_from..$index_to");
+-  }
++  my ($self, $header) = @_;
++
+   return join ("\n",
+-               "diff --git $a $b",
+-               "index $index_from..$index_to $mode");
++               $header->to_lines ());
+ }
+ 
+ sub _get_raw_lines
+diff --git a/Kgps/BinaryFileStat.pm b/Kgps/BinaryFileStat.pm
+index 93f8f02..a4f9260 100644
+--- a/Kgps/BinaryFileStat.pm
++++ b/Kgps/BinaryFileStat.pm
+@@ -62,4 +62,11 @@ sub _to_string_vfunc
+   return "Bin $from_size -> $to_size $bytes_word";
+ }
+ 
++sub _fill_summary_vfunc
++{
++  my ($self, $summary) = @_;
++
++  $summary->set_files_changed_count (1);
++}
++
+ 1;
+diff --git a/Kgps/NewAndGoneDetails.pm b/Kgps/CustomizationCreate.pm
+similarity index 66%
+rename from Kgps/NewAndGoneDetails.pm
+rename to Kgps/CustomizationCreate.pm
+index dd8a8fc..6b39abe 100644
+--- a/Kgps/NewAndGoneDetails.pm
++++ b/Kgps/CustomizationCreate.pm
+@@ -5,24 +5,19 @@
+ # This Source Code Form is "Incompatible With Secondary Licenses", as
+ # defined by the Mozilla Public License, v. 2.0.
+ 
+-package Kgps::NewAndGoneDetails;
++package Kgps::CustomizationCreate;
+ 
+ use strict;
+ use v5.16;
+ use warnings;
+ 
+-use constant
+-{
+-  Create => 0,
+-  Delete => 1,
+-};
+-
+ sub new
+ {
+-  my ($type, $action, $mode) = @_;
+-  my $class = (ref ($type) or $type or 'Kgps::NewAndGoneDetails');
+-  my $self = {
+-    'action' => $action,
++  my ($type, $path, $mode) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::CustomizationCreate');
++  my $self =
++  {
++    'path' => $path,
+     'mode' => $mode,
+   };
+ 
+@@ -31,18 +26,18 @@ sub new
+   return $self;
+ }
+ 
+-sub get_action
++sub get_mode
+ {
+   my ($self) = @_;
+ 
+-  return $self->{'action'};
++  return $self->{'mode'};
+ }
+ 
+-sub get_mode
++sub get_path
+ {
+   my ($self) = @_;
+ 
+-  return $self->{'mode'};
++  return $self->{'path'};
+ }
+ 
+ 1;
+diff --git a/Kgps/CustomizationDelete.pm b/Kgps/CustomizationDelete.pm
+new file mode 100644
+index 0000000..be6c439
+--- /dev/null
++++ b/Kgps/CustomizationDelete.pm
+@@ -0,0 +1,43 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::CustomizationDelete;
++
++use strict;
++use v5.16;
++use warnings;
++
++sub new
++{
++  my ($type, $path, $mode) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::CustomizationDelete');
++  my $self =
++  {
++    'path' => $path,
++    'mode' => $mode,
++  };
++
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub get_mode
++{
++  my ($self) = @_;
++
++  return $self->{'mode'};
++}
++
++sub get_path
++{
++  my ($self) = @_;
++
++  return $self->{'path'};
++}
++
++1;
+diff --git a/Kgps/CustomizationIndex.pm b/Kgps/CustomizationIndex.pm
+new file mode 100644
+index 0000000..4f3ebcc
+--- /dev/null
++++ b/Kgps/CustomizationIndex.pm
+@@ -0,0 +1,27 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::CustomizationIndex;
++
++use strict;
++use v5.16;
++use warnings;
++
++sub new
++{
++  my ($type) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::CustomizationIndex');
++  my $self =
++  {
++  };
++
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++1;
+diff --git a/Kgps/CustomizationMode.pm b/Kgps/CustomizationMode.pm
+new file mode 100644
+index 0000000..5a16914
+--- /dev/null
++++ b/Kgps/CustomizationMode.pm
+@@ -0,0 +1,43 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::CustomizationMode;
++
++use strict;
++use v5.16;
++use warnings;
++
++sub new
++{
++  my ($type, $old_mode, $new_mode) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::CustomizationMode');
++  my $self =
++  {
++    'old_mode' => $old_mode,
++    'new_mode' => $new_mode,
++  };
++
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub get_old_mode
++{
++  my ($self) = @_;
++
++  return $self->{'old_mode'};
++}
++
++sub get_new_mode
++{
++  my ($self) = @_;
++
++  return $self->{'new_mode'};
++}
++
++1;
+diff --git a/Kgps/CustomizationRename.pm b/Kgps/CustomizationRename.pm
+new file mode 100644
+index 0000000..77b523a
+--- /dev/null
++++ b/Kgps/CustomizationRename.pm
+@@ -0,0 +1,43 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::CustomizationRename;
++
++use strict;
++use v5.16;
++use warnings;
++
++sub new
++{
++  my ($type, $old_path, $new_path) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::CustomizationRename');
++  my $self =
++  {
++    'old_path' => $old_path,
++    'new_path' => $new_path,
++  };
++
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub get_old_path
++{
++  my ($self) = @_;
++
++  return $self->{'old_path'};
++}
++
++sub get_new_path
++{
++  my ($self) = @_;
++
++  return $self->{'new_path'};
++}
++
++1;
+diff --git a/Kgps/DiffBase.pm b/Kgps/DiffBase.pm
+index 4a7dd39..c2d0fe6 100644
+--- a/Kgps/DiffBase.pm
++++ b/Kgps/DiffBase.pm
+@@ -42,9 +42,9 @@ sub set_header
+ 
+ sub postprocess
+ {
+-  my ($self, $sections_array, $sections_hash) = @_;
++  my ($self, $sections_array, $sections_hash, $headers_for_sections) = @_;
+ 
+-  return $self->_postprocess_vfunc ($sections_array, $sections_hash);
++  return $self->_postprocess_vfunc ($sections_array, $sections_hash, $headers_for_sections);
+ }
+ 
+ 1;
+diff --git a/Kgps/DiffHeader.pm b/Kgps/DiffHeader.pm
+index 09f3288..db68721 100644
+--- a/Kgps/DiffHeader.pm
++++ b/Kgps/DiffHeader.pm
+@@ -18,156 +18,214 @@ use strict;
+ use v5.16;
+ use warnings;
+ 
+-sub new
++use Kgps::ListingInfo;
++
++sub new_strict
+ {
+-  my ($type) = @_;
+-  my $class = (ref ($type) or $type or 'Kgps::DiffHeader');
+-  my $self =
+-  {
+-    'a' => undef,
+-    'b' => undef,
+-    'action' => undef,
+-    'mode' => undef,
+-    'index_from' => undef,
+-    'index_to' => undef,
+-  };
++  my ($type, $diff_common, $diff_specific) = @_;
+ 
+-  $self = bless ($self, $class);
++  return _new_full ($type, $diff_common, $diff_specific, 1);
++}
+ 
+-  return $self;
++sub new_relaxed
++{
++  my ($type, $diff_common, $diff_specific) = @_;
++
++  return _new_full ($type, $diff_common, $diff_specific, 0);
+ }
+ 
+-sub parse_diff_line
++sub to_lines
+ {
+-  my ($self, $line) = @_;
++  my ($self) = @_;
++  my $diff_common = $self->get_diff_common ();
++  my $diff_specific = $self->_get_diff_specific ();
++  my @lines = ();
+ 
+-  if ($line =~ m!^diff --git a/(.*) b/(.*)$!)
+-  {
+-    $self->set_a ($1);
+-    $self->set_b ($2);
++  push (@lines,
++        $diff_common->to_lines (),
++        $diff_specific->to_lines ());
+ 
+-    return 1;
+-  }
++  return @lines;
++}
+ 
+-  return 0;
+# SECTION: DROPIT
++sub get_headers_for_sections
++{
++  # TODO: Rename headers_for_sections to something else - it is a
++  # confusing name when seeing that it is being passed to
++  # get_headers_for_sections...
++  #
++  # TODO: Refactor it. Move it out of the DiffHeader class...
+# SECTION: REST
+ }
+ 
+-sub parse_mode_line
++sub get_basename_stat_path
+ {
+-  my ($self, $line) = @_;
++  my ($self) = @_;
++  my $common = $self->get_diff_common ();
++  my $a = $common->get_a_no_prefix ();
++  my $b = $common->get_b_no_prefix ();
+ 
+-  if ($line =~ /^(.*)\s+mode\s+(\d+)$/)
++  if ($a eq $b)
+   {
+-    $self->set_action ($1);
+-    $self->set_mode ($2);
+-
+-    return 1;
++    return $a;
++  }
++  else
++  {
++    return "$a => $b";
+   }
+-
+-  return 0;
+ }
+ 
+-sub parse_index_line
++sub get_stats
+ {
+-  my ($self, $line) = @_;
++  my ($self, $file_stat) = @_;
++  my $listing_info = Kgps::ListingInfo->new ();
++  my $per_basename_stats = $listing_info->get_per_basename_stats ();
++  my $summary = $listing_info->get_summary ();
++  my $listing_aux_changes = $listing_info->get_aux_changes ();
++  my $common = $self->get_diff_common ();
++  my $specific = $self->_get_diff_specific ();
+ 
+-  if ($line =~ /^index\s+(\w+)\.\.(\w+)(?:\s+(\d+))?$/)
+-  {
+-    $self->set_index_from ($1);
+-    $self->set_index_to ($2);
+-    if (defined ($3))
+-    {
+-      $self->set_mode ($3);
+-    }
+-
+-    return 1;
+-  }
++  $per_basename_stats->add_stat ($file_stat);
++  $file_stat->fill_summary ($summary);
++  $specific->fill_aux_changes ($common, $listing_aux_changes);
+ 
+-  return 0;
++  return $listing_info;
+ }
+ 
+-sub get_a
++sub get_allowed_customizations
+ {
+   my ($self) = @_;
++  my $specific = $self->_get_diff_specific ();
+ 
+-  return $self->{'a'};
++  return $specific->get_allowed_customizations ();
+ }
+ 
+-sub set_a
++sub get_pre_file_state
+ {
+-  my ($self, $a) = @_;
++  my ($self, $builder) = @_;
++  my $common = $self->get_diff_common ();
++  my $specific = $self->_get_diff_specific ();
+ 
+-  $self->{'a'} = $a;
++  return $specific->get_pre_file_state ($builder, $common);
+ }
+ 
+-sub get_b
++sub get_post_file_state
+ {
+-  my ($self) = @_;
++  my ($self, $builder) = @_;
++  my $common = $self->get_diff_common ();
++  my $specific = $self->_get_diff_specific ();
+ 
+-  return $self->{'b'};
++  return $specific->get_post_file_state ($builder, $common);
+ }
+ 
+-sub set_b
++sub get_initial_section_ranges
+ {
+-  my ($self, $b) = @_;
++  my ($self, $sections_array, $border_section_or_undef) = @_;
++  my $specific = $self->_get_diff_specific ();
+ 
+-  $self->{'b'} = $b;
++  return $specific->get_initial_section_ranges ($sections_array, $border_section_or_undef);
+ }
+ 
+-sub get_action
++sub pick_default_section
+ {
+-  my ($self) = @_;
++  my ($self, $sections_array) = @_;
++  my $specific = $self->_get_diff_specific ();
+ 
+-  return $self->{'action'};
++  return $specific->pick_default_section ($sections_array);
+ }
+ 
+-sub set_action
++sub without_index
+ {
+-  my ($self, $action) = @_;
++  my ($self) = @_;
++  my $specific = $self->_get_diff_specific ();
+ 
+-  $self->{'action'} = $action;
++  unless ($specific->has_index ())
++  {
++    return $self;
++  }
++  if ($self->_get_strict ())
++  {
++    die 'changes are required';
++  }
++
++  my $specific_without_index = $specific->without_index ();
++  my $common = $self->get_diff_common ();
++
++  return Kgps::DiffHeader->new_strict ($common, $specific_without_index);
+ }
+ 
+-sub get_mode
++sub with_index
+ {
+   my ($self) = @_;
++  my $specific = $self->_get_diff_specific ();
++
++  if ($specific->has_index ())
++  {
++    return $self;
++  }
+ 
+-  return $self->{'mode'};
++  if ($self->_get_strict ())
++  {
++    die 'changes are forbidden';
++  }
++
++  my $specific_with_index = $specific->with_index ();
++  my $common = $self->get_diff_common ();
++
++  return Kgps::DiffHeader->new_strict ($common, $specific_with_index);
+ }
+ 
+-sub set_mode
++sub with_bogus_values
+ {
+-  my ($self, $mode) = @_;
++  my ($self) = @_;
++  my $common = $self->get_diff_common ();
++  my $specific = $self->_get_diff_specific ();
++  my $bogus_specific = $specific->with_bogus_values ();
+ 
+-  $self->{'mode'} = $mode;
++  if ($self->_get_strict ())
++  {
++    return Kgps::DiffHeader->new_strict ($common, $bogus_specific);
++  }
++  else
++  {
++    return Kgps::DiffHeader->new_relaxed ($common, $bogus_specific);
++  }
+ }
+ 
+-sub get_index_from
++sub get_diff_common
+ {
+   my ($self) = @_;
+ 
+-  return $self->{'index_from'};
++  return $self->{'diff_common'};
+ }
+ 
+-sub set_index_from
++sub _get_diff_specific
+ {
+-  my ($self, $index_from) = @_;
++  my ($self) = @_;
+ 
+-  $self->{'index_from'} = $index_from;
++  return $self->{'diff_specific'};
+ }
+ 
+-sub get_index_to
++sub _new_full
+ {
+-  my ($self) = @_;
++  my ($type, $diff_common, $diff_specific, $strict) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::DiffHeader');
++  my $self =
++  {
++    'diff_common' => $diff_common,
++    'diff_specific' => $diff_specific,
++    'strict' => $strict,
++  };
++
++  $self = bless ($self, $class);
+ 
+-  return $self->{'index_to'};
++  return $self;
+ }
+ 
+-sub set_index_to
++sub _get_strict
+ {
+-  my ($self, $index_to) = @_;
++  my ($self) = @_;
+ 
+-  $self->{'index_to'} = $index_to;
++  return $self->{'strict'};
+ }
+ 
+ 1;
+diff --git a/Kgps/DiffHeaderAllowedCustomizationsBase.pm b/Kgps/DiffHeaderAllowedCustomizationsBase.pm
+new file mode 100644
+index 0000000..884cc10
+--- /dev/null
++++ b/Kgps/DiffHeaderAllowedCustomizationsBase.pm
+@@ -0,0 +1,62 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::DiffHeaderAllowedCustomizationsBase;
++
++use strict;
++use v5.16;
++use warnings;
++
++sub new
++{
++  my ($type) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::DiffHeaderAllowedCustomizationsBase');
++  my $self =
++  {
++  };
++
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub is_create_allowed
++{
++  my ($self) = @_;
++
++  return $self->_is_create_allowed_vfunc ();
++}
++
++sub is_delete_allowed
++{
++  my ($self) = @_;
++
++  return $self->_is_delete_allowed_vfunc ();
++}
++
++sub is_rename_allowed
++{
++  my ($self) = @_;
++
++  return $self->_is_rename_allowed_vfunc ();
++}
++
++sub is_mode_allowed
++{
++  my ($self) = @_;
++
++  return $self->_is_mode_allowed_vfunc ();
++}
++
++sub is_index_allowed
++{
++  my ($self) = @_;
++
++  return $self->_is_index_allowed_vfunc ();
++}
++
++1;
+diff --git a/Kgps/DiffHeaderAllowedCustomizationsCreated.pm b/Kgps/DiffHeaderAllowedCustomizationsCreated.pm
+new file mode 100644
+index 0000000..b2f93a6
+--- /dev/null
++++ b/Kgps/DiffHeaderAllowedCustomizationsCreated.pm
+@@ -0,0 +1,51 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::DiffHeaderAllowedCustomizationsCreated;
++
++use parent qw(Kgps::DiffHeaderAllowedCustomizationsBase);
++use strict;
++use v5.16;
++use warnings;
++
++sub new
++{
++  my ($type) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::DiffHeaderAllowedCustomizationsCreated');
++  my $self = $class->SUPER::new ();
++
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub _is_create_allowed_vfunc
++{
++  return 1;
++}
++
++sub _is_delete_allowed_vfunc
++{
++  return 1;
++}
++
++sub _is_rename_allowed_vfunc
++{
++  return 1;
++}
++
++sub _is_mode_allowed_vfunc
++{
++  return 1;
++}
++
++sub _is_index_allowed_vfunc
++{
++  return 1;
++}
++
++1;
+diff --git a/Kgps/DiffHeaderAllowedCustomizationsDeleted.pm b/Kgps/DiffHeaderAllowedCustomizationsDeleted.pm
+new file mode 100644
+index 0000000..c0e4ddf
+--- /dev/null
++++ b/Kgps/DiffHeaderAllowedCustomizationsDeleted.pm
+@@ -0,0 +1,51 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::DiffHeaderAllowedCustomizationsDeleted;
++
++use parent qw(Kgps::DiffHeaderAllowedCustomizationsBase);
++use strict;
++use v5.16;
++use warnings;
++
++sub new
++{
++  my ($type) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::DiffHeaderAllowedCustomizationsDeleted');
++  my $self = $class->SUPER::new ();
++
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub _is_create_allowed_vfunc
++{
++  return 1;
++}
++
++sub _is_delete_allowed_vfunc
++{
++  return 1;
++}
++
++sub _is_rename_allowed_vfunc
++{
++  return 1;
++}
++
++sub _is_mode_allowed_vfunc
++{
++  return 1;
++}
++
++sub _is_index_allowed_vfunc
++{
++  return 1;
++}
++
++1;
+diff --git a/Kgps/DiffHeaderAllowedCustomizationsExisting.pm b/Kgps/DiffHeaderAllowedCustomizationsExisting.pm
+new file mode 100644
+index 0000000..5f33da0
+--- /dev/null
++++ b/Kgps/DiffHeaderAllowedCustomizationsExisting.pm
+@@ -0,0 +1,51 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::DiffHeaderAllowedCustomizationsExisting;
++
++use parent qw(Kgps::DiffHeaderAllowedCustomizationsBase);
++use strict;
++use v5.16;
++use warnings;
++
++sub new
++{
++  my ($type) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::DiffHeaderAllowedCustomizationsExisting');
++  my $self = $class->SUPER::new ();
++
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub _is_create_allowed_vfunc
++{
++  return 0;
++}
++
++sub _is_delete_allowed_vfunc
++{
++  return 0;
++}
++
++sub _is_rename_allowed_vfunc
++{
++  return 1;
++}
++
++sub _is_mode_allowed_vfunc
++{
++  return 1;
++}
++
++sub _is_index_allowed_vfunc
++{
++  return 1;
++}
++
++1;
+diff --git a/Kgps/DiffHeaderCommon.pm b/Kgps/DiffHeaderCommon.pm
+new file mode 100644
+index 0000000..d748373
+--- /dev/null
++++ b/Kgps/DiffHeaderCommon.pm
+@@ -0,0 +1,84 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::DiffHeaderCommon;
++
++use strict;
++use v5.16;
++use warnings;
++
++sub new
++{
++  my ($type, $diff_a, $diff_b) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::DiffHeaderCommon');
++  my $self =
++  {
++    'diff_a' => $diff_a,
++    'diff_b' => $diff_b,
++  };
++
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub get_a
++{
++  my ($self) = @_;
++
++  return 'a/' . $self->get_a_no_prefix ();
++}
++
++sub get_a_no_prefix
++{
++  my ($self) = @_;
++
++  return $self->{'diff_a'};
++}
++
++sub set_a
++{
++  my ($self, $a) = @_;
++
++  $self->{'diff_a'} = $a;
++}
++
++sub get_b
++{
++  my ($self) = @_;
++
++  return 'b/' . $self->get_b_no_prefix ();
++}
++
++sub get_b_no_prefix
++{
++  my ($self) = @_;
++
++  return $self->{'diff_b'};
++}
++
++sub set_b
++{
++  my ($self, $b) = @_;
++
++  $self->{'diff_b'} = $b;
++}
++
++sub to_lines
++{
++  my ($self) = @_;
++  my $diff_a = $self->get_a ();
++  my $diff_b = $self->get_b ();
++  my @lines = ();
++
++  push (@lines,
++        "diff --git $diff_a $diff_b");
++
++  return @lines;
++}
++
++1;
+diff --git a/Kgps/DiffHeaderParser.pm b/Kgps/DiffHeaderParser.pm
+new file mode 100644
+index 0000000..2b95c77
+--- /dev/null
++++ b/Kgps/DiffHeaderParser.pm
+@@ -0,0 +1,978 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::DiffHeaderParser;
++
++use strict;
++use v5.16;
++use warnings;
++
++use Kgps::DiffHeader;
++use Kgps::DiffHeaderCommon;
++use Kgps::DiffHeaderPartContents;
++use Kgps::DiffHeaderPartContentsMode;
++use Kgps::DiffHeaderPartMode;
++use Kgps::DiffHeaderPartRename;
++use Kgps::DiffHeaderSpecificCreated;
++use Kgps::DiffHeaderSpecificDeleted;
++use Kgps::DiffHeaderSpecificExisting;
++use Kgps::Misc;
++
++use constant
++{
++  PartStageDiff => 0, # expect diff --git line
++  PartStageDetermine => 1, # expect a line that will determine which
++                           # specific header we are parsing
++  PartStageCreatedMode => 2,
++  PartStageCreatedIndexNoMode => 3,
++  PartStageDeletedMode => 4,
++  PartStageDeletedIndexNoMode => 5,
++  PartStageExistingModeOrRenameOrAnyIndex => 6,
++  PartStageExistingModeThenRenameOrIndexNoModeOrDone => 7,
++  PartStageExistingRenameOrIndexNoModeOrDone => 8,
++  PartStageExistingRenameThenIndexNoModeOrDone => 9,
++  PartStageExistingIndexNoModeOrDone => 10,
++  PartStageExistingIndexNoModeThenDone => 11,
++  PartStageExistingRenameThenIndexOrDone => 12,
++  PartStageExistingIndexOrDone => 13,
++  PartStageExistingIndexThenDone => 14,
++  PartStageDoneConsumed => 15,
++  PartStageDoneNotConsumed => 16,
++
++  LineStageNone => 0,
++  LineStageOldMode => 1,
++  LineStageNewMode => 2,
++  LineStageSimilarityIndex => 3,
++  LineStageRenameFrom => 4,
++  LineStageRenameTo => 5,
++  LineStageIndexNoMode => 6,
++  LineStageIndex => 7,
++  LineStageNewFile => 8,
++  LineStageDeletedFile => 9,
++  LineStageDiff => 10,
++
++  FeedStageOk => 0,
++  FeedStageNeedMore => 1,
++
++  DiffTypeUnknown => 0,
++  DiffTypeCreated => 1,
++  DiffTypeDeleted => 2,
++  DiffTypeExisting => 3,
++
++  ParseMoreLinesNeeded => 0,
++  ParseDoneConsumed => 1, # done with parsing diff header, fed line
++                          # was consumed
++  ParseDoneNotConsumed => 2, # done with parsing diff header, fed line
++                             # was not a part of a header, not
++                             # consumed
++  ParseFail => 3,
++
++  _NextStep => 4, # not returned to caller, basically try to perform
++                  # whatever next step in parsing
++};
++
++sub new
++{
++  my ($type) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::DiffHeaderParser');
++  my $self =
++  {
++    'part_stage' => PartStageDiff,
++    'line_stage' => LineStageNone,
++    'feed_stage' => FeedStageNeedMore,
++    'last_line_stage' => LineStageNone,
++    'diff_type' => DiffTypeUnknown,
++    'failure' => undef,
++  };
++
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub feed_line
++{
++  my ($self, $line) = @_;
++  my $parse_status = _NextStep;
++
++  $self->_set_feed_stage (FeedStageOk);
++  while ($parse_status == _NextStep)
++  {
++    if ($self->_get_feed_stage () == FeedStageNeedMore)
++    {
++      $parse_status = ParseMoreLinesNeeded;
++      next;
++    }
++    $self->_do_line_stage ($line);
++    $self->_set_line_stage (LineStageNone);
++    if (defined ($self->get_failure ()))
++    {
++      $parse_status = ParseFail;
++      next;
++    }
++    $parse_status = $self->_do_part_stage ($line);
++  }
++
++  return $parse_status;
++}
++
++sub get_diff_header
++{
++  my ($self) = @_;
++  my $part_stage = $self->_get_part_stage ();
++
++  if (defined ($self->get_failure ()))
++  {
++    return undef;
++  }
++
++  if ($part_stage == PartStageDoneConsumed or $part_stage == PartStageDoneNotConsumed)
++  {
++    return $self->_create_diff_header ();
++  }
++
++  return undef;
++}
++
++sub get_failure
++{
++  my ($self) = @_;
++
++  return $self->{'failure'};
++}
++
++sub _get_feed_stage
++{
++  my ($self) = @_;
++
++  return $self->{'feed_stage'};
++}
++
++sub _do_line_stage
++{
++  my ($self, $line) = @_;
++  my $line_stage = $self->_get_line_stage ();
++
++  if ($line_stage == LineStageNone)
++  {
++    # nothing to do
++  }
++  elsif ($line_stage == LineStageOldMode)
++  {
++    # new mode 100644
++    if ($line =~ /^old mode (\d{6})/a)
++    {
++      $self->_set_part_mode_value ('old', $1);
++    }
++    else
++    {
++      $self->_set_failure ('expected "old mode <mode>"');
++    }
++  }
++  elsif ($line_stage == LineStageNewMode)
++  {
++    # new mode 100755
++    if ($line =~ /^new mode (\d{6})/a)
++    {
++      $self->_set_part_mode_value ('new', $1);
++    }
++    else
++    {
++      $self->_set_failure ('expected "new mode <mode>"');
++    }
++  }
++  elsif ($line_stage == LineStageSimilarityIndex)
++  {
++    # similarity index 66%
++    if ($line =~ /^similarity index (\d{1,3})%$/a)
++    {
++      $self->_set_part_rename_value ('index', $1);
++    }
++    else
++    {
++      $self->_set_failure ('expected "similarity index <percentage>%"');
++    }
++  }
++  elsif ($line_stage == LineStageRenameFrom)
++  {
++    # rename from z
++    if ($line =~ /^rename from (.*)$/)
++    {
++      $self->_set_part_rename_value ('from', $1);
++    }
++    else
++    {
++      $self->_set_failure ('expected "rename from <path>"');
++    }
++  }
++  elsif ($line_stage == LineStageRenameTo)
++  {
++    # rename to Y
++    if ($line =~ /^rename to (.*)$/)
++    {
++      $self->_set_part_rename_value ('to', $1);
++    }
++    else
++    {
++      $self->_set_failure ('expected "rename to <path>"');
++    }
++  }
++  elsif ($line_stage == LineStageIndexNoMode)
++  {
++    # index 3bd1f0e..86e041d
++    if ($line =~ /^index ([0-9a-f]+)\.\.([0-9a-f]+)$/)
++    {
++      $self->_set_part_index_no_mode_value ('from', $1);
++      $self->_set_part_index_no_mode_value ('to', $2);
++    }
++    else
++    {
++      $self->_set_failure ('expected "index <from hash>..<to hash>"');
++    }
++  }
++  elsif ($line_stage == LineStageIndex)
++  {
++    # index 86e041d..3ae2f37 100644
++    if ($line =~ /^index ([0-9a-f]+)\.\.([0-9a-f]+) (\d{6})$/a)
++    {
++      $self->_set_part_index_value ('from', $1);
++      $self->_set_part_index_value ('to', $2);
++      $self->_set_part_index_value ('mode', $3);
++    }
++    else
++    {
++      $self->_set_failure ('expected "index <from hash>..<to hash>"');
++    }
++  }
++  elsif ($line_stage == LineStageNewFile)
++  {
++    # new file mode 100755
++    if ($line =~ /^new file mode (\d{6})$/a)
++    {
++      $self->_set_part_new_file_value ('mode', $1);
++    }
++    else
++    {
++      $self->_set_failure ('expected "new file mode <mode>"');
++    }
++  }
++  elsif ($line_stage == LineStageDeletedFile)
++  {
++    # deleted file mode 100755
++    if ($line =~ /^deleted file mode (\d{6})$/a)
++    {
++      $self->_set_part_deleted_file_value ('mode', $1);
++    }
++    else
++    {
++      $self->_set_failure ('expected "deleted file mode <mode>"');
++    }
++  }
++  elsif ($line_stage == LineStageDiff)
++  {
++    # diff --git a/y b/y
++    if ($line =~ m!^diff --git a/(.+) b/(.+)$!)
++    {
++      $self->_set_part_diff_value ('a', $1);
++      $self->_set_part_diff_value ('b', $2);
++    }
++    else
++    {
++      $self->_set_failure ('expected "diff --git a/<path> b/<path>"');
++    }
++  }
++  else
++  {
++    die "Unhandled line stage '$line_stage'";
++  }
++}
++
++sub _set_part_mode_value
++{
++  my ($self, $key, $value) = @_;
++
++  $self->_set_specific_part_value ($key, $value, 'mode');
++}
++
++sub _set_part_rename_value
++{
++  my ($self, $key, $value) = @_;
++
++  $self->_set_specific_part_value ($key, $value, 'rename');
++}
++
++sub _set_part_index_no_mode_value
++{
++  my ($self, $key, $value) = @_;
++
++  $self->_set_specific_part_value ($key, $value, 'index_no_mode');
++}
++
++sub _set_part_index_value
++{
++  my ($self, $key, $value) = @_;
++
++  $self->_set_specific_part_value ($key, $value, 'index');
++}
++
++sub _set_part_new_file_value
++{
++  my ($self, $key, $value) = @_;
++
++  $self->_set_specific_part_value ($key, $value, 'new_file');
++}
++
++sub _set_part_deleted_file_value
++{
++  my ($self, $key, $value) = @_;
++
++  $self->_set_specific_part_value ($key, $value, 'deleted_file');
++}
++
++sub _set_part_diff_value
++{
++  my ($self, $key, $value) = @_;
++
++  $self->_set_specific_part_value ($key, $value, 'diff');
++}
++
++sub _set_specific_part_value
++{
++  my ($self, $key, $value, $part_data_key) = @_;
++  my $specific_part_data = $self->_get_specific_part_data ($part_data_key);
++
++  $specific_part_data->{$key} = $value;
++}
++
++sub _do_part_stage
++{
++  my ($self, $line) = @_;
++  my $part_stage = $self->_get_part_stage ();
++  my $last_line_stage = $self->_get_last_line_stage ();
++  my $line_stage = LineStageNone;
++  my $feed_stage = FeedStageOk;
++  my $diff_type = DiffTypeUnknown;
++
++  if ($part_stage == PartStageDiff)
++  {
++    if ($last_line_stage == LineStageDiff)
++    {
++      $feed_stage = FeedStageNeedMore;
++      $part_stage = PartStageDetermine;
++    }
++    else
++    {
++      $line_stage = LineStageDiff;
++    }
++  }
++  elsif ($part_stage == PartStageDetermine)
++  {
++    my $first = _get_first_word ($line);
++
++    if ($first eq 'new')
++    {
++      $part_stage = PartStageCreatedMode;
++      $diff_type = DiffTypeCreated;
++    }
++    elsif ($first eq 'deleted')
++    {
++      $part_stage = PartStageDeletedMode;
++      $diff_type = DiffTypeDeleted;
++    }
++    else
++    {
++      $part_stage = PartStageExistingModeOrRenameOrAnyIndex;
++      $diff_type = DiffTypeExisting;
++    }
++  }
++  elsif ($part_stage == PartStageCreatedMode)
++  {
++    if ($last_line_stage == LineStageNewFile)
++    {
++      $feed_stage = FeedStageNeedMore;
++      $part_stage = PartStageCreatedIndexNoMode;
++    }
++    else
++    {
++      $line_stage = LineStageNewFile;
++    }
++  }
++  elsif ($part_stage == PartStageCreatedIndexNoMode)
++  {
++    if ($last_line_stage == LineStageIndexNoMode)
++    {
++      $part_stage = PartStageDoneConsumed;
++    }
++    else
++    {
++      $line_stage = LineStageIndexNoMode;
++    }
++  }
++  elsif ($part_stage == PartStageDeletedMode)
++  {
++    if ($last_line_stage == LineStageDeletedFile)
++    {
++      $feed_stage = FeedStageNeedMore;
++      $part_stage = PartStageDeletedIndexNoMode;
++    }
++    else
++    {
++      $line_stage = LineStageDeletedFile;
++    }
++  }
++  elsif ($part_stage == PartStageDeletedIndexNoMode)
++  {
++    if ($last_line_stage == LineStageIndexNoMode)
++    {
++      $part_stage = PartStageDoneConsumed;
++    }
++    else
++    {
++      $line_stage = LineStageIndexNoMode;
++    }
++  }
++  elsif ($part_stage == PartStageExistingModeOrRenameOrAnyIndex)
++  {
++    my $first = _get_first_word ($line);
++
++    if ($first eq 'old')
++    {
++      $part_stage = PartStageExistingModeThenRenameOrIndexNoModeOrDone;
++    }
++    elsif ($first eq 'similarity')
++    {
++      $part_stage = PartStageExistingRenameThenIndexOrDone;
++    }
++    elsif ($first eq 'index')
++    {
++      $part_stage = PartStageExistingIndexThenDone;
++    }
++    else
++    {
++      $self->_set_failure ('failed to determine a part of the diff header, expected either "old mode" or "similarity index" or "index"');
++      return ParseFail;
++    }
++  }
++  elsif ($part_stage == PartStageExistingModeThenRenameOrIndexNoModeOrDone)
++  {
++    if ($last_line_stage == LineStageOldMode)
++    {
++      $feed_stage = FeedStageNeedMore;
++      $line_stage = LineStageNewMode;
++    }
++    elsif ($last_line_stage == LineStageNewMode)
++    {
++      $feed_stage = FeedStageNeedMore;
++      $part_stage = PartStageExistingRenameOrIndexNoModeOrDone;
++    }
++    else
++    {
++      $line_stage = LineStageOldMode;
++    }
++  }
++  elsif ($part_stage == PartStageExistingRenameOrIndexNoModeOrDone)
++  {
++    my $first = _get_first_word ($line);
++
++    if ($first eq 'similarity')
++    {
++      $part_stage = PartStageExistingRenameThenIndexNoModeOrDone;
++    }
++    elsif ($first eq 'index')
++    {
++      $part_stage = PartStageExistingIndexNoModeThenDone;
++    }
++    else
++    {
++      $part_stage = PartStageDoneNotConsumed;
++    }
++  }
++  elsif ($part_stage == PartStageExistingRenameThenIndexNoModeOrDone)
++  {
++    if ($last_line_stage == LineStageSimilarityIndex)
++    {
++      $feed_stage = FeedStageNeedMore;
++      $line_stage = LineStageRenameFrom;
++    }
++    elsif ($last_line_stage == LineStageRenameFrom)
++    {
++      $feed_stage = FeedStageNeedMore;
++      $line_stage = LineStageRenameTo;
++    }
++    elsif ($last_line_stage == LineStageRenameTo)
++    {
++      $feed_stage = FeedStageNeedMore;
++      $part_stage = PartStageExistingIndexNoModeOrDone;
++    }
++    else
++    {
++      $line_stage = LineStageSimilarityIndex;
++    }
++  }
++  elsif ($part_stage == PartStageExistingIndexNoModeOrDone)
++  {
++    my $first = _get_first_word ($line);
++
++    if ($first eq 'index')
++    {
++      $part_stage = PartStageExistingIndexNoModeThenDone;
++    }
++    else
++    {
++      $part_stage = PartStageDoneNotConsumed;
++    }
++  }
++  elsif ($part_stage == PartStageExistingIndexNoModeThenDone)
++  {
++    if ($last_line_stage == LineStageIndexNoMode)
++    {
++      $part_stage = PartStageDoneConsumed;
++    }
++    else
++    {
++      $line_stage = LineStageIndexNoMode;
++    }
++  }
++  elsif ($part_stage == PartStageExistingRenameThenIndexOrDone)
++  {
++    if ($last_line_stage == LineStageSimilarityIndex)
++    {
++      $feed_stage = FeedStageNeedMore;
++      $line_stage = LineStageRenameFrom;
++    }
++    elsif ($last_line_stage == LineStageRenameFrom)
++    {
++      $feed_stage = FeedStageNeedMore;
++      $line_stage = LineStageRenameTo;
++    }
++    elsif ($last_line_stage == LineStageRenameTo)
++    {
++      $feed_stage = FeedStageNeedMore;
++      $part_stage = PartStageExistingIndexOrDone;
++    }
++    else
++    {
++      $line_stage = LineStageSimilarityIndex;
++    }
++
++  }
++  elsif ($part_stage == PartStageExistingIndexOrDone)
++  {
++    my $first = _get_first_word ($line);
++
++    if ($first eq 'index')
++    {
++      $part_stage = PartStageExistingIndexThenDone;
++    }
++    else
++    {
++      $part_stage = PartStageDoneNotConsumed;
++    }
++  }
++  elsif ($part_stage == PartStageExistingIndexThenDone)
++  {
++    if ($last_line_stage == LineStageIndex)
++    {
++      $part_stage = PartStageDoneConsumed;
++    }
++    else
++    {
++      $line_stage = LineStageIndex;
++    }
++  }
++  elsif ($part_stage == PartStageDoneConsumed)
++  {
++    return ParseDoneConsumed;
++  }
++  elsif ($part_stage == PartStageDoneNotConsumed)
++  {
++    return ParseDoneNotConsumed;
++  }
++  else
++  {
++    die "Unhandled part stage '$part_stage'";
++  }
++
++  $self->_set_feed_stage ($feed_stage);
++  $self->_set_line_stage_if_any ($line_stage);
++  $self->_set_part_stage ($part_stage);
++  $self->_set_diff_type_if_any ($diff_type);
++
++  return _NextStep;
++}
++
++sub _set_feed_stage
++{
++  my ($self, $feed_stage) = @_;
++
++  $self->{'feed_stage'} = $feed_stage;
++}
++
++sub _set_line_stage_if_any
++{
++  my ($self, $new_line_stage) = @_;
++  my $line_stage = $self->_get_line_stage ();
++
++  if ($new_line_stage != LineStageNone)
++  {
++    $self->_set_line_stage ($new_line_stage);
++  }
++}
++
++sub _set_line_stage
++{
++  my ($self, $new_line_stage) = @_;
++  my $line_stage = $self->_get_line_stage ();
++
++  $self->{'last_line_stage'} = $line_stage;
++  $self->{'line_stage'} = $new_line_stage;
++}
++
++sub _get_first_word
++{
++  my ($line) = @_;
++  my $first = Kgps::Misc::first_word ($line);
++
++  unless (defined ($first))
++  {
++    $first = '';
++  }
++
++  return $first;
++}
++
++sub _get_line_stage
++{
++  my ($self) = @_;
++
++  return $self->{'line_stage'};
++}
++
++sub _set_failure
++{
++  my ($self, $failure) = @_;
++
++  $self->{'failure'} = $failure;
++}
++
++sub _set_part_stage
++{
++  my ($self, $part_stage) = @_;
++
++  $self->{'part_stage'} = $part_stage;
++}
++
++sub _get_part_stage
++{
++  my ($self) = @_;
++
++  return $self->{'part_stage'};
++}
++
++sub _get_last_line_stage
++{
++  my ($self) = @_;
++
++  return $self->{'last_line_stage'};
++}
++
++sub _set_diff_type_if_any
++{
++  my ($self, $diff_type) = @_;
++
++  if ($diff_type != DiffTypeUnknown)
++  {
++    $self->_set_diff_type ($diff_type);
++  }
++}
++
++sub _set_diff_type
++{
++  my ($self, $diff_type) = @_;
++
++  $self->{'diff_type'} = $diff_type;
++}
++
++sub _create_diff_header
++{
++  my ($self) = @_;
++  my $diff_type = $self->_get_diff_type ();
++
++  if ($diff_type == DiffTypeUnknown)
++  {
++    return undef;
++  }
++  elsif ($diff_type == DiffTypeCreated)
++  {
++    return $self->_create_diff_header_with_created ();
++  }
++  elsif ($diff_type == DiffTypeDeleted)
++  {
++    return $self->_create_diff_header_with_deleted ();
++  }
++  elsif ($diff_type == DiffTypeExisting)
++  {
++    return $self->_create_diff_header_with_existing ();
++  }
++  else
++  {
++    die "Unhandled diff type '$diff_type'";
++  }
++}
++
++sub _get_diff_type
++{
++  my ($self) = @_;
++
++  return $self->{'diff_type'};
++}
++
++sub _create_diff_header_with_created
++{
++  my ($self) = @_;
++  my $mode = $self->_get_part_new_file_value ('mode');
++  my $part_contents = $self->_create_part_contents ();
++  my $diff_specific = Kgps::DiffHeaderSpecificCreated->new ($mode, $part_contents);
++
++  return $self->_create_diff_header_with_specific ($diff_specific);
++}
++
++sub _create_diff_header_with_deleted
++{
++  my ($self) = @_;
++  my $mode = $self->_get_part_deleted_file_value ('mode');
++  my $part_contents = $self->_create_part_contents ();
++  my $diff_specific = Kgps::DiffHeaderSpecificDeleted->new ($mode, $part_contents);
++
++  return $self->_create_diff_header_with_specific ($diff_specific);
++}
++
++sub _create_diff_header_with_existing
++{
++  my ($self) = @_;
++  my $part_mode = $self->_maybe_create_part_mode ();
++  my $part_rename = $self->_maybe_create_part_rename ();
++  my $part_contents = $self->_maybe_create_any_part_contents ();
++  my $diff_specific = Kgps::DiffHeaderSpecificExisting->new ($part_mode, $part_rename, $part_contents);
++
++  return $self->_create_diff_header_with_specific ($diff_specific);
++}
++
++sub _create_diff_header_with_specific
++{
++  my ($self, $diff_specific) = @_;
++  my $diff_a = $self->_get_part_diff_value ('a');
++  my $diff_b = $self->_get_part_diff_value ('b');
++  my $diff_common = Kgps::DiffHeaderCommon->new ($diff_a, $diff_b);
++
++  return Kgps::DiffHeader->new_relaxed ($diff_common, $diff_specific);
++}
++
++sub _maybe_create_part_mode
++{
++  my ($self) = @_;
++
++  unless ($self->_has_mode_part_data ())
++  {
++    return undef;
++  }
++
++  my $old_mode = $self->_get_part_mode_value ('old');
++  my $new_mode = $self->_get_part_mode_value ('new');
++
++  return Kgps::DiffHeaderPartMode->new ($old_mode, $new_mode);
++}
++
++sub _maybe_create_part_rename
++{
++  my ($self) = @_;
++
++  unless ($self->_has_rename_part_data ())
++  {
++    return undef;
++  }
++
++  my $similarity_index = $self->_get_part_rename_value ('index');
++  my $from = $self->_get_part_rename_value ('from');
++  my $to = $self->_get_part_rename_value ('to');
++
++  return Kgps::DiffHeaderPartRename->new ($similarity_index, $from, $to);
++}
++
++sub _maybe_create_any_part_contents
++{
++  my ($self) = @_;
++
++  if ($self->_has_mode_part_data ())
++  {
++    return $self->_maybe_create_part_contents ();
++  }
++  else
++  {
++    return $self->_maybe_create_part_contents_mode ();
++  }
++}
++
++sub _maybe_create_part_contents
++{
++  my ($self) = @_;
++
++  unless ($self->_has_index_no_mode_part_data ())
++  {
++    return undef;
++  }
++
++  return $self->_create_part_contents ();
++}
++
++sub _maybe_create_part_contents_mode
++{
++  my ($self) = @_;
++
++  unless ($self->_has_index_part_data ())
++  {
++    return undef;
++  }
++
++  my $from_hash = $self->_get_part_index_value ('from');
++  my $to_hash = $self->_get_part_index_value ('to');
++  my $mode = $self->_get_part_index_value ('mode');
++
++  return Kgps::DiffHeaderPartContentsMode->new ($from_hash, $to_hash, $mode);
++}
++
++sub _has_mode_part_data
++{
++  my ($self) = @_;
++
++  return $self->_has_specific_part_data ('mode');
++}
++
++sub _has_rename_part_data
++{
++  my ($self) = @_;
++
++  return $self->_has_specific_part_data ('rename');
++}
++
++sub _has_index_no_mode_part_data
++{
++  my ($self) = @_;
++
++  return $self->_has_specific_part_data ('index_no_mode');
++}
++
++sub _has_index_part_data
++{
++  my ($self) = @_;
++
++  return $self->_has_specific_part_data ('index');
++}
++
++sub _has_specific_part_data
++{
++  my ($self, $part_data_key) = @_;
++  my $part_data = $self->_get_part_data ();
++
++  return exists ($part_data->{$part_data_key});
++}
++
++sub _create_part_contents
++{
++  my ($self) = @_;
++  my $from_hash = $self->_get_part_index_no_mode_value ('from');
++  my $to_hash = $self->_get_part_index_no_mode_value ('to');
++
++  return Kgps::DiffHeaderPartContents->new ($from_hash, $to_hash);
++}
++
++sub _get_part_mode_value
++{
++  my ($self, $key) = @_;
++
++  $self->_get_specific_part_value ($key, 'mode');
++}
++
++sub _get_part_rename_value
++{
++  my ($self, $key) = @_;
++
++  $self->_get_specific_part_value ($key, 'rename');
++}
++
++sub _get_part_index_no_mode_value
++{
++  my ($self, $key) = @_;
++
++  $self->_get_specific_part_value ($key, 'index_no_mode');
++}
++
++sub _get_part_index_value
++{
++  my ($self, $key) = @_;
++
++  $self->_get_specific_part_value ($key, 'index');
++}
++
++sub _get_part_new_file_value
++{
++  my ($self, $key) = @_;
++
++  $self->_get_specific_part_value ($key, 'new_file');
++}
++
++sub _get_part_deleted_file_value
++{
++  my ($self, $key) = @_;
++
++  $self->_get_specific_part_value ($key, 'deleted_file');
++}
++
++sub _get_part_diff_value
++{
++  my ($self, $key) = @_;
++
++  $self->_get_specific_part_value ($key, 'diff');
++}
++
++sub _get_specific_part_value
++{
++  my ($self, $key, $part_data_key) = @_;
++  my $specific_part_data = $self->_get_specific_part_data ($part_data_key);
++
++  return $specific_part_data->{$key};
++}
++
++sub _get_specific_part_data
++{
++  my ($self, $key) = @_;
++  my $part_data = $self->_get_part_data ();
++  my $specific_part_data = $part_data->{$key};
++
++  unless (defined ($specific_part_data))
++  {
++    $specific_part_data = $part_data->{$key} = {};
++  }
++
++  return $specific_part_data;
++}
++
++sub _get_part_data
++{
++  my ($self) = @_;
++  my $data_key = 'part_data';
++  my $part_data = $self->{$data_key};
++
++  unless (defined ($part_data))
++  {
++    $part_data = $self->{$data_key} = {};
++  }
++
++  return $part_data;
++}
++
++1;
+diff --git a/Kgps/DiffHeaderPartContents.pm b/Kgps/DiffHeaderPartContents.pm
+new file mode 100644
+index 0000000..c0c5477
+--- /dev/null
++++ b/Kgps/DiffHeaderPartContents.pm
+@@ -0,0 +1,70 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::DiffHeaderPartContents;
++
++use strict;
++use v5.16;
++use warnings;
++
++sub new
++{
++  my ($type, $from_hash, $to_hash) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::DiffHeaderPartContents');
++  my $self =
++  {
++    'from_hash' => $from_hash,
++    'to_hash' => $to_hash,
++  };
++
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub get_from_hash
++{
++  my ($self) = @_;
++
++  return $self->{'from_hash'};
++}
++
++sub set_from_hash
++{
++  my ($self, $hash) = @_;
++
++  $self->{'from_hash'} = $hash;
++}
++
++sub get_to_hash
++{
++  my ($self) = @_;
++
++  return $self->{'to_hash'};
++}
++
++sub set_to_hash
++{
++  my ($self, $hash) = @_;
++
++  $self->{'to_hash'} = $hash;
++}
++
++sub to_lines
++{
++  my ($self) = @_;
++  my @lines = ();
++  my $index_from = $self->get_from_hash ();
++  my $index_to = $self->get_to_hash ();
++
++  push (@lines,
++        "index $index_from..$index_to");
++
++  return @lines;
++}
++
++1;
+diff --git a/Kgps/DiffHeaderPartContentsMode.pm b/Kgps/DiffHeaderPartContentsMode.pm
+new file mode 100644
+index 0000000..b903612
+--- /dev/null
++++ b/Kgps/DiffHeaderPartContentsMode.pm
+@@ -0,0 +1,51 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::DiffHeaderPartContentsMode;
++
++use parent qw(Kgps::DiffHeaderPartContents);
++use strict;
++use v5.16;
++use warnings;
++
++sub new
++{
++  my ($type, $from_hash, $to_hash, $mode) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::DiffHeaderPartContentsMode');
++  my $self = $class->SUPER::new ($from_hash, $to_hash);
++
++  $self->{'mode'} = $mode;
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub get_mode
++{
++  my ($self) = @_;
++
++  return $self->{'mode'};
++}
++
++sub set_mode
++{
++  my ($self, $mode) = @_;
++
++  $self->{'mode'} = $mode;
++}
++
++sub to_lines
++{
++  my ($self) = @_;
++  my @lines = $self->SUPER::to_lines ();
++  my $mode = $self->get_mode ();
++
++  $lines[-1] .= " $mode";
++  return @lines;
++}
++
++1;
+diff --git a/Kgps/DiffHeaderPartMode.pm b/Kgps/DiffHeaderPartMode.pm
+new file mode 100644
+index 0000000..743d036
+--- /dev/null
++++ b/Kgps/DiffHeaderPartMode.pm
+@@ -0,0 +1,71 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::DiffHeaderPartMode;
++
++use strict;
++use v5.16;
++use warnings;
++
++sub new
++{
++  my ($type, $old_mode, $new_mode) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::DiffHeaderPartMode');
++  my $self =
++  {
++    'old_mode' => $old_mode,
++    'new_mode' => $new_mode,
++  };
++
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub get_old_mode
++{
++  my ($self) = @_;
++
++  return $self->{'old_mode'};
++}
++
++sub set_old_mode
++{
++  my ($self, $mode) = @_;
++
++  $self->{'old_mode'} = $mode;
++}
++
++sub get_new_mode
++{
++  my ($self) = @_;
++
++  return $self->{'new_mode'};
++}
++
++sub set_new_mode
++{
++  my ($self, $mode) = @_;
++
++  $self->{'new_mode'} = $mode;
++}
++
++sub to_lines
++{
++  my ($self) = @_;
++  my @lines = ();
++  my $old_mode = $self->get_old_mode ();
++  my $new_mode = $self->get_new_mode ();
++
++  push (@lines,
++        "old mode $old_mode",
++        "new mode $new_mode");
++
++  return @lines;
++}
++
++1;
+diff --git a/Kgps/DiffHeaderPartRename.pm b/Kgps/DiffHeaderPartRename.pm
+new file mode 100644
+index 0000000..2cae013
+--- /dev/null
++++ b/Kgps/DiffHeaderPartRename.pm
+@@ -0,0 +1,88 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::DiffHeaderPartRename;
++
++use strict;
++use v5.16;
++use warnings;
++
++sub new
++{
++  my ($type, $similarity_index, $from, $to) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::DiffHeaderPartRename');
++  my $self =
++  {
++    'similarity_index' => $similarity_index,
++    'from' => $from,
++    'to' => $to,
++  };
++
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub get_similarity_index
++{
++  my ($self) = @_;
++
++  return $self->{'similarity_index'};
++}
++
++sub set_similarity_index
++{
++  my ($self, $index) = @_;
++
++  $self->{'similarity_index'} = $index;
++}
++
++sub get_from
++{
++  my ($self) = @_;
++
++  return $self->{'from'};
++}
++
++sub set_from
++{
++  my ($self, $from) = @_;
++
++  $self->{'from'} = $from;
++}
++
++sub get_to
++{
++  my ($self) = @_;
++
++  return $self->{'to'};
++}
++
++sub set_to
++{
++  my ($self, $to) = @_;
++
++  $self->{'to'} = $to;
++}
++
++sub to_lines
++{
++  my ($self) = @_;
++  my @lines = ();
++  my $similarity_index = $self->get_similarity_index ();
++  my $from = $self->get_from ();
++  my $to = $self->get_to ();
++
++  push (@lines,
++        "similarity index $similarity_index%",
++        "rename from $from",
++        "rename to $to");
++
++  return @lines;
++}
++
++1;
+diff --git a/Kgps/DiffHeaderSpecificBase.pm b/Kgps/DiffHeaderSpecificBase.pm
+new file mode 100644
+index 0000000..2c45d2c
+--- /dev/null
++++ b/Kgps/DiffHeaderSpecificBase.pm
+@@ -0,0 +1,107 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::DiffHeaderSpecificBase;
++
++use strict;
++use v5.16;
++use warnings;
++
++use Kgps::SectionRanges;
++
++sub new
++{
++  my ($type) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::DiffHeaderSpecificBase');
++  my $self =
++  {
++  };
++
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub has_index
++{
++  my ($self) = @_;
++
++  return $self->_has_index_vfunc ();
++}
++
++sub with_index
++{
++  my ($self) = @_;
++
++  return $self->_with_index_vfunc ();
++}
++
++sub without_index
++{
++  my ($self) = @_;
++
++  return $self->_without_index_vfunc ();
++}
++
++sub to_lines
++{
++  my ($self) = @_;
++
++  return $self->_to_lines_vfunc ();
++}
++
++sub fill_aux_changes
++{
++  my ($self, $common, $listing_aux_changes) = @_;
++
++  $self->_fill_aux_changes_vfunc ($common, $listing_aux_changes);
++}
++
++sub get_allowed_customizations
++{
++  my ($self) = @_;
++
++  return $self->_get_allowed_customizations_vfunc ();
++}
++
++sub get_pre_file_state
++{
++  my ($self, $builder, $common) = @_;
++
++  return $self->_get_pre_file_state_vfunc ($builder, $common);
++}
++
++sub get_post_file_state
++{
++  my ($self, $builder, $common) = @_;
++
++  return $self->_get_post_file_state_vfunc ($builder, $common);
++}
++
++sub get_initial_section_ranges
++{
++  my ($self, $sections_array, $border_section) = @_;
++  my $range = $self->_get_initial_section_ranges_vfunc ($sections_array, $border_section);
++
++  return Kgps::SectionRanges->new ($range->[0], $range->[1]);
++}
++
++sub pick_default_section
++{
++  my ($self, $sections_array) = @_;
++
++  return $self->_pick_default_section_vfunc ($sections_array);
++}
++
++sub with_bogus_values
++{
++  my ($self) = @_;
++
++  return $self->_with_bogus_values_vfunc ();
++}
++
++1;
+diff --git a/Kgps/DiffHeaderSpecificCreated.pm b/Kgps/DiffHeaderSpecificCreated.pm
+new file mode 100644
+index 0000000..3d4187e
+--- /dev/null
++++ b/Kgps/DiffHeaderSpecificCreated.pm
+@@ -0,0 +1,154 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::DiffHeaderSpecificCreated;
++
++use parent qw(Kgps::DiffHeaderSpecificBase);
++use strict;
++use v5.16;
++use warnings;
++
++use Kgps::DiffHeaderAllowedCustomizationsCreated;
++use Kgps::DiffHeaderPartContents;
++use Kgps::ListingAuxChangesDetailsCreate;
++
++sub new
++{
++  my ($type, $mode, $part_contents) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::DiffHeaderSpecificCreated');
++  my $self = $class->SUPER::new ();
++
++  $self->{'mode'} = $mode;
++  $self->{'part_contents'} = $part_contents;
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub get_mode
++{
++  my ($self) = @_;
++
++  return $self->{'mode'};
++}
++
++sub set_mode
++{
++  my ($self, $mode) = @_;
++
++  $self->{'mode'} = $mode;
++}
++
++sub get_part_contents
++{
++  my ($self) = @_;
++
++  return $self->{'part_contents'};
++}
++
++sub set_part_contents
++{
++  my ($self, $part_contents) = @_;
++
++  $self->{'part_contents'} = $part_contents;
++}
++
++sub _has_index_vfunc
++{
++  my ($self) = @_;
++
++  return defined ($self->get_part_contents ());
++}
++
++sub _with_index_vfunc
++{
++  my ($self) = @_;
++
++  # created specific already contains index, otherwise would be badly
++  # formed
++  return $self;
++}
++
++sub _without_index_vfunc
++{
++  my ($self) = @_;
++
++  # created specific must contain index, otherwise it will be badly
++  # formed
++  return $self;
++}
++
++sub _to_lines_vfunc
++{
++  my ($self) = @_;
++  my $mode = $self->get_mode ();
++  my $part_contents = $self->get_part_contents ();
++  my @lines = ();
++
++  push (@lines,
++        "new file mode $mode",
++        $part_contents->to_lines ());
++
++  return @lines;
++}
++
++sub _fill_aux_changes_vfunc
++{
++  my ($self, $common, $listing_aux_changes) = @_;
++  my $mode = $self->get_mode ();
++  my $details = Kgps::ListingAuxChangesDetailsCreate->new ($mode, $common->get_b_no_prefix ());
++
++  $listing_aux_changes->add_details ($details);
++}
++
++sub _get_allowed_customizations_vfunc
++{
++  return Kgps::DiffHeaderAllowedCustomizationsCreated->new ();
++}
++
++sub _get_pre_file_state_vfunc
++{
++  my ($self, $builder, $common) = @_;
++
++  return $builder->build_empty_file_state ();
++}
++
++sub _get_post_file_state_vfunc
++{
++  my ($self, $builder, $common) = @_;
++  my $mode = $self->get_mode ();
++  my $path = $common->get_b_no_prefix ();
++
++  return $builder->build_existing_file_state ($mode, $path);
++}
++
++sub _get_initial_section_ranges_vfunc
++{
++  my ($self, $sections_array, $border_section) = @_;
++  my $first_real_section = $border_section;
++  my $last_section = $sections_array->[-1];
++
++  return [$first_real_section, $last_section];
++}
++
++sub _pick_default_section_vfunc
++{
++  my ($self, $sections_array) = @_;
++
++  return $sections_array->[0]->get_neighbour_if_special ();
++}
++
++sub _with_bogus_values_vfunc
++{
++  my ($self) = @_;
++  my $bogus_part_contents = Kgps::DiffHeaderPartContents->new ('0' x 7, '2' x 7);
++  my $mode = $self->get_mode ();
++
++  return Kgps::DiffHeaderSpecificCreated->new ($mode, $bogus_part_contents);
++}
++
++1;
+diff --git a/Kgps/DiffHeaderSpecificDeleted.pm b/Kgps/DiffHeaderSpecificDeleted.pm
+new file mode 100644
+index 0000000..611c7ec
+--- /dev/null
++++ b/Kgps/DiffHeaderSpecificDeleted.pm
+@@ -0,0 +1,154 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::DiffHeaderSpecificDeleted;
++
++use parent qw(Kgps::DiffHeaderSpecificBase);
++use strict;
++use v5.16;
++use warnings;
++
++use Kgps::DiffHeaderAllowedCustomizationsDeleted;
++use Kgps::DiffHeaderPartContents;
++use Kgps::ListingAuxChangesDetailsDelete;
++
++sub new
++{
++  my ($type, $mode, $part_contents) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::DiffHeaderSpecificDeleted');
++  my $self = $class->SUPER::new ();
++
++  $self->{'mode'} = $mode;
++  $self->{'part_contents'} = $part_contents;
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub get_mode
++{
++  my ($self) = @_;
++
++  return $self->{'mode'};
++}
++
++sub set_mode
++{
++  my ($self, $mode) = @_;
++
++  $self->{'mode'} = $mode;
++}
++
++sub get_part_contents
++{
++  my ($self) = @_;
++
++  return $self->{'part_contents'};
++}
++
++sub set_part_contents
++{
++  my ($self, $part_contents) = @_;
++
++  $self->{'part_contents'} = $part_contents;
++}
++
++sub _has_index_vfunc
++{
++  my ($self) = @_;
++
++  return defined ($self->get_part_contents ());
++}
++
++sub _with_index_vfunc
++{
++  my ($self) = @_;
++
++  # deleted specific already contains index, otherwise would be badly
++  # formed
++  return $self;
++}
++
++sub _without_index_vfunc
++{
++  my ($self) = @_;
++
++  # deleted specific must contain index, otherwise it will be badly
++  # formed
++  return $self;
++}
++
++sub _to_lines_vfunc
++{
++  my ($self) = @_;
++  my $mode = $self->get_mode ();
++  my $part_contents = $self->get_part_contents ();
++  my @lines = ();
++
++  push (@lines,
++        "deleted file mode $mode",
++        $part_contents->to_lines ());
++
++  return @lines;
++}
++
++sub _fill_aux_changes_vfunc
++{
++  my ($self, $common, $listing_aux_changes) = @_;
++  my $mode = $self->get_mode ();
++  my $details = Kgps::ListingAuxChangesDetailsDelete->new ($mode, $common->get_b_no_prefix ());
++
++  $listing_aux_changes->add_details ($details);
++}
++
++sub _get_allowed_customizations_vfunc
++{
++  return Kgps::DiffHeaderAllowedCustomizationsDeleted->new ();
++}
++
++sub _get_pre_file_state_vfunc
++{
++  my ($self, $builder, $common) = @_;
++  my $mode = $self->get_mode ();
++  my $path = $common->get_a_no_prefix ();
++
++  return $builder->build_existing_file_state ($mode, $path);
++}
++
++sub _get_post_file_state_vfunc
++{
++  my ($self, $builder, $common) = @_;
++
++  return $builder->build_empty_file_state ();
++}
++
++sub _get_initial_section_ranges_vfunc
++{
++  my ($self, $sections_array, $border_section) = @_;
++  my $first_section = $sections_array->[0];
++  my $last_real_section = $border_section;
++
++  return [$first_section, $last_real_section];
++}
++
++sub _pick_default_section_vfunc
++{
++  my ($self, $sections_array) = @_;
++
++  return $sections_array->[-1]->get_neighbour_if_special ();
++}
++
++sub _with_bogus_values_vfunc
++{
++  my ($self) = @_;
++  my $bogus_part_contents = Kgps::DiffHeaderPartContents->new ('1' x 7, '0' x 7);
++  my $mode = $self->get_mode ();
++
++  return Kgps::DiffHeaderSpecificDeleted->new ($mode, $bogus_part_contents);
++}
++
++1;
+diff --git a/Kgps/DiffHeaderSpecificExisting.pm b/Kgps/DiffHeaderSpecificExisting.pm
+new file mode 100644
+index 0000000..f777dc2
+--- /dev/null
++++ b/Kgps/DiffHeaderSpecificExisting.pm
+@@ -0,0 +1,275 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::DiffHeaderSpecificExisting;
++
++use parent qw(Kgps::DiffHeaderSpecificBase);
++use strict;
++use v5.16;
++use warnings;
++
++use Kgps::DiffHeaderAllowedCustomizationsExisting;
++use Kgps::DiffHeaderPartContents;
++use Kgps::DiffHeaderPartContentsMode;
++use Kgps::DiffHeaderPartRename;
++use Kgps::ListingAuxChangesDetailsMode;
++use Kgps::ListingAuxChangesDetailsModeRename;
++use Kgps::ListingAuxChangesDetailsRename;
++
++sub new
++{
++  my ($type, $part_mode, $part_rename, $part_contents) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::DiffHeaderSpecificExisting');
++  my $self = $class->SUPER::new ();
++
++  $self->{'part_mode'} = $part_mode;
++  $self->{'part_rename'} = $part_rename;
++  $self->{'part_contents'} = $part_contents;
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub get_part_mode
++{
++  my ($self) = @_;
++
++  return $self->{'part_mode'};
++}
++
++sub set_part_mode
++{
++  my ($self, $part) = @_;
++
++  $self->{'part_mode'} = $part;
++}
++
++sub get_part_rename
++{
++  my ($self) = @_;
++
++  return $self->{'part_rename'};
++}
++
++sub set_part_rename
++{
++  my ($self, $part) = @_;
++
++  $self->{'part_rename'} = $part;
++}
++
++sub get_part_contents
++{
++  my ($self) = @_;
++
++  return $self->{'part_contents'};
++}
++
++sub set_part_contents
++{
++  my ($self, $part) = @_;
++
++  $self->{'part_contents'} = $part;
++}
++
++sub _has_index_vfunc
++{
++  my ($self) = @_;
++
++  return defined ($self->get_part_contents ());
++}
++
++sub _with_index_vfunc
++{
++  my ($self) = @_;
++  my $part_mode = $self->get_part_mode ();
++  my $part_rename = $self->get_part_rename ();
++  my $part_contents = $self->get_part_contents ();
++
++  unless (defined ($part_contents))
++  {
++    if (defined ($part_mode))
++    {
++      $part_contents = Kgps::DiffHeaderPartContents->new ('1' x 7, '2' x 7);
++    }
++    else
++    {
++      my $mode = $part_contents->get_mode ();
++
++      $part_contents = Kgps::DiffHeaderPartContentsMode->new ('1' x 7, '2' x 7, $mode);
++    }
++  }
++
++  return Kgps::DiffHeaderSpecificExisting->new ($part_mode, $part_rename, $part_contents);
++}
++
++sub _without_index_vfunc
++{
++  my ($self) = @_;
++  my $part_mode = $self->get_part_mode ();
++  my $part_rename = $self->get_part_rename ();
++
++  return Kgps::DiffHeaderSpecificExisting->new ($part_mode, $part_rename, undef);
++}
++
++sub _to_lines_vfunc
++{
++  my ($self) = @_;
++  my @lines = ();
++  my $part_mode = $self->get_part_mode ();
++  my $part_rename = $self->get_part_rename ();
++  my $part_contents = $self->get_part_contents ();
++
++  if (defined ($part_mode))
++  {
++    push (@lines, $part_mode->to_lines ());
++  }
++  if (defined ($part_rename))
++  {
++    push (@lines, $part_rename->to_lines ());
++  }
++  if (defined ($part_contents))
++  {
++    push (@lines, $part_contents->to_lines ());
++  }
++
++  return @lines;
++}
++
++sub _fill_aux_changes_vfunc
++{
++  my ($self, $common, $listing_aux_changes) = @_;
++  my $part_mode = $self->get_part_mode ();
++  my $part_rename = $self->get_part_rename ();
++
++  if (defined ($part_mode) and defined ($part_rename))
++  {
++    my $old_mode = $part_mode->get_old_mode ();
++    my $new_mode = $part_mode->get_new_mode ();
++    my $old_path = $part_rename->get_from ();;
++    my $new_path = $part_rename->get_to ();
++    my $similarity_index = $part_rename->get_similarity_index ();
++    my $details = Kgps::ListingAuxChangesDetailsModeRename->new ($old_path, $new_path, $similarity_index, $old_mode, $new_mode);
++
++    $listing_aux_changes->add_details ($details);
++  }
++  elsif (defined ($part_rename))
++  {
++    my $old_path = $part_rename->get_from ();;
++    my $new_path = $part_rename->get_to ();
++    my $similarity_index = $part_rename->get_similarity_index ();
++    my $details = Kgps::ListingAuxChangesDetailsRename->new ($old_path, $new_path, $similarity_index);
++
++    $listing_aux_changes->add_details ($details);
++  }
++  elsif (defined ($part_mode))
++  {
++    my $old_mode = $part_mode->get_old_mode ();
++    my $new_mode = $part_mode->get_new_mode ();
++    my $path = $common->get_b_no_prefix ();
++    my $details = Kgps::ListingAuxChangesDetailsMode->new ($old_mode, $new_mode, $path);
++
++    $listing_aux_changes->add_details ($details);
++  }
++}
++
++sub _get_allowed_customizations_vfunc
++{
++  return Kgps::DiffHeaderAllowedCustomizationsExisting->new ();
++}
++
++sub _get_pre_file_state_vfunc
++{
++  my ($self, $builder, $common) = @_;
++  my $mode = $self->_get_old_mode ();
++  my $path = $common->get_a_no_prefix ();
++
++  return $builder->build_existing_file_state ($mode, $path);
++}
++
++sub _get_post_file_state_vfunc
++{
++  my ($self, $builder, $common) = @_;
++  my $mode = $self->_get_mode ();
++  my $path = $common->get_b_no_prefix ();
++
++  return $builder->build_existing_file_state ($mode, $path);
++}
++
++sub _get_initial_section_ranges_vfunc
++{
++  my ($self, $sections_array, $border_section) = @_;
++  my $first_section = $sections_array->[0];
++  my $last_section = $sections_array->[-1];
++
++  return [$first_section, $last_section];
++}
++
++sub _pick_default_section_vfunc
++{
++  my ($self, $sections_array) = @_;
++
++  return $sections_array->[0]->get_neighbour_if_special ();
++}
++
++sub _with_bogus_values_vfunc
++{
++  my ($self) = @_;
++  my $part_contents = $self->get_part_contents ();
++  my $part_mode = $self->get_part_mode ();
++  my $part_rename = $self->get_part_rename ();
++  my $bogus_part_contents = undef;
++  my $bogus_part_rename = undef;
++
++  if (defined ($part_contents))
++  {
++    if (defined ($part_mode))
++    {
++      $bogus_part_contents = Kgps::DiffHeaderPartContents->new ('1' x 7, '2' x 7);
++    }
++    else
++    {
++      $bogus_part_contents = Kgps::DiffHeaderPartContentsMode->new ('1' x 7, '2' x 7, $part_contents->get_mode ());
++    }
++  }
++  if (defined ($part_rename))
++  {
++    $bogus_part_rename = Kgps::DiffHeaderPartRename->new (42, $part_rename->get_from (), $part_rename->get_to ());
++  }
++
++  return Kgps::DiffHeaderSpecificExisting->new ($part_mode, $bogus_part_rename, $bogus_part_contents);
++}
++
++sub _get_old_mode
++{
++  my ($self) = @_;
++  my $part_mode = $self->get_part_mode ();
++  my $part_contents = $self->get_part_contents ();
++
++  if (defined ($part_mode))
++  {
++    return $part_mode->get_old_mode();
++  }
++
++  return $part_contents->get_mode ();
++}
++
++sub _get_mode
++{
++  my ($self) = @_;
++  my $part_mode = $self->get_part_mode ();
++  my $part_contents = $self->get_part_contents ();
++
++  if (defined ($part_mode))
++  {
++    return $part_mode->get_new_mode();
++  }
++
++  return $part_contents->get_mode ();
++}
++
++1;
+diff --git a/Kgps/FileStatBase.pm b/Kgps/FileStatBase.pm
+index 2a0458c..8304546 100644
+--- a/Kgps/FileStatBase.pm
++++ b/Kgps/FileStatBase.pm
+@@ -116,4 +116,11 @@ sub to_string
+   return $self->_to_string_vfunc ($stat_render_context);
+ }
+ 
++sub fill_summary
++{
++  my ($self, $summary) = @_;
++
++  $self->_fill_summary_vfunc ($summary);
++}
++
+ 1;
+diff --git a/Kgps/FileStateBase.pm b/Kgps/FileStateBase.pm
+new file mode 100644
+index 0000000..a662dcf
+--- /dev/null
++++ b/Kgps/FileStateBase.pm
+@@ -0,0 +1,101 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::FileStateBase;
++
++use strict;
++use v5.16;
++use warnings;
++
++use Scalar::Util;
++
++sub new
++{
++  my ($type, $builder) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::FileStateBase');
++  my $self =
++  {
++    'builder' => $builder,
++  };
++
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub apply_create_customization
++{
++  my ($self, $customization, $fresh_start) = @_;
++
++  return $self->_apply_create_customization_vfunc ($customization, $fresh_start);
++}
++
++sub apply_delete_customization
++{
++  my ($self, $customization, $fresh_start) = @_;
++
++  return $self->_apply_delete_customization_vfunc ($customization, $fresh_start);
++}
++
++sub apply_mode_customization
++{
++  my ($self, $customization, $fresh_start) = @_;
++
++  return $self->_apply_mode_customization_vfunc ($customization, $fresh_start);
++}
++
++sub apply_rename_customization
++{
++  my ($self, $customization, $fresh_start) = @_;
++
++  return $self->_apply_rename_customization_vfunc ($customization, $fresh_start);
++}
++
++sub apply_index_customization
++{
++  my ($self, $customization, $fresh_start) = @_;
++
++  return $self->_apply_index_customization_vfunc ($customization, $fresh_start);
++}
++
++sub get_builder
++{
++  my ($self) = @_;
++
++  return $self->{'builder'};
++}
++
++sub is_same
++{
++  my ($self, $other) = @_;
++  my $self_type = Scalar::Util::blessed ($self);
++  my $other_type = Scalar::Util::blessed ($other);
++
++  if (defined ($self_type) and defined ($other_type) and $self_type eq $other_type)
++  {
++    return $self->_is_same_vfunc ($other);
++  }
++
++  return 0;
++}
++
++sub generate_diff_header
++{
++  my ($self, $previous_file_state) = @_;
++  my $previous_file_state_wrapper = $previous_file_state->get_wrapper ();
++
++  return $self->_generate_diff_header_vfunc ($previous_file_state_wrapper);
++}
++
++sub get_wrapper
++{
++  my ($self) = @_;
++
++  return $self->_get_wrapper_vfunc ();
++}
++
++1;
+diff --git a/Kgps/FileStateBuilder.pm b/Kgps/FileStateBuilder.pm
+new file mode 100644
+index 0000000..c1da662
+--- /dev/null
++++ b/Kgps/FileStateBuilder.pm
+@@ -0,0 +1,52 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::FileStateBuilder;
++
++use strict;
++use v5.16;
++use warnings;
++
++use Kgps::FileStateEmpty;
++use Kgps::FileStateExisting;
++use Kgps::FileStateModified;
++
++sub new
++{
++  my ($type) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::FileStateBuilder');
++  my $self =
++  {
++  };
++
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub build_empty_file_state
++{
++  my ($self) = @_;
++
++  return Kgps::FileStateEmpty->new ($self);
++}
++
++sub build_existing_file_state
++{
++  my ($self, $mode, $path) = @_;
++
++  return Kgps::FileStateExisting->new ($self, $mode, $path);
++}
++
++sub build_modified_file_state
++{
++  my ($self, $mode, $path) = @_;
++
++  return Kgps::FileStateModified->new ($self, $mode, $path);
++}
++
++1;
+diff --git a/Kgps/FileStateEmpty.pm b/Kgps/FileStateEmpty.pm
+new file mode 100644
+index 0000000..a38725a
+--- /dev/null
++++ b/Kgps/FileStateEmpty.pm
+@@ -0,0 +1,110 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::FileStateEmpty;
++
++use parent qw(Kgps::FileStateBase);
++use strict;
++use v5.16;
++use warnings;
++
++use Kgps::DiffHeader;
++use Kgps::DiffHeaderCommon;
++use Kgps::DiffHeaderPartContents;
++use Kgps::DiffHeaderSpecificDeleted;
++use Kgps::FileStateWrapperEmpty;
++
++sub new
++{
++  my ($type, $builder) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::FileStateEmpty');
++  my $self = $class->SUPER::new ($builder);
++
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub _apply_create_customization_vfunc
++{
++  my ($self, $customization, $fresh_start) = @_;
++
++  unless ($fresh_start)
++  {
++    return undef;
++  }
++
++  my $builder = $self->get_builder ();
++  my $mode = $customization->get_mode ();
++  my $path = $customization->get_path ();
++
++  return $builder->build_modified_file_state ($mode, $path);
++}
++
++sub _apply_delete_customization_vfunc
++{
++  my ($self, $customization, $fresh_start) = @_;
++
++  return undef;
++}
++
++sub _apply_mode_customization_vfunc
++{
++  my ($self, $customization, $fresh_start) = @_;
++
++  return undef;
++}
++
++sub _apply_rename_customization_vfunc
++{
++  my ($self, $customization, $fresh_start) = @_;
++
++  return undef;
++}
++
++sub _apply_index_customization_vfunc
++{
++  my ($self, $customization, $fresh_start) = @_;
++
++  return undef;
++}
++
++sub _is_same_vfunc
++{
++  my ($self, $other) = @_;
++
++  return 1;
++}
++
++sub _generate_diff_header_vfunc
++{
++  my ($self, $old_file_state_wrapper) = @_;
++  my $old_data = $old_file_state_wrapper->get_data_or_undef ();
++
++  unless (defined ($old_data))
++  {
++    # TODO: die("empty to empty?");
++    return undef;
++  }
++
++  my $old_path = $old_data->get_path ();
++  my $old_mode = $old_data->get_mode ();
++  my $common = Kgps::DiffHeaderCommon->new ($old_path, $old_path);
++  my $part_contents = Kgps::DiffHeaderPartContents ('1' x 7, '2' x 7);
++  my $specific = Kgps::DiffHeaderSpecificDeleted->new ($old_mode, $part_contents);
++
++  return Kgps::DiffHeader->new_relaxed ($common, $specific);
++}
++
++sub _get_wrapper_vfunc
++{
++  my ($self) = @_;
++
++  return Kgps::FileStateWrapperEmpty->new ();
++}
++
++1;
+diff --git a/Kgps/FileStateExisting.pm b/Kgps/FileStateExisting.pm
+new file mode 100644
+index 0000000..ca9de36
+--- /dev/null
++++ b/Kgps/FileStateExisting.pm
+@@ -0,0 +1,158 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::FileStateExisting;
++
++use parent qw(Kgps::FileStateBase);
++use strict;
++use v5.16;
++use warnings;
++
++use Kgps::DiffHeader;
++use Kgps::DiffHeaderCommon;
++use Kgps::DiffHeaderPartMode;
++use Kgps::DiffHeaderPartRename;
++use Kgps::DiffHeaderSpecificExisting;
++use Kgps::FileStateWrapperExisting;
++
++sub new
++{
++  my ($type, $builder, $mode, $path) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::FileStateExisting');
++  my $self = $class->SUPER::new ($builder);
++
++  $self->{'mode'} = $mode;
++  $self->{'path'} = $path;
++
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub _apply_create_customization_vfunc
++{
++  my ($self, $customization, $fresh_start) = @_;
++
++  return undef;
++}
++
++sub _apply_delete_customization_vfunc
++{
++  my ($self, $customization, $fresh_start) = @_;
++  my $builder = $self->get_builder ();
++
++  unless ($fresh_start)
++  {
++    die;
++  }
++  # TODO: checks
++  return $builder->build_empty_file_state ();
++}
++
++sub _apply_mode_customization_vfunc
++{
++  my ($self, $customization, $fresh_start) = @_;
++  my $builder = $self->get_builder ();
++  my $mode = $self->_get_mode ();
++  my $path = $self->_get_path ();
++
++  # TODO: checks
++  return $builder->build_existing_file_state ($mode, $path);
++}
++
++sub _apply_rename_customization_vfunc
++{
++  my ($self, $customization, $fresh_start) = @_;
++  my $builder = $self->get_builder ();
++  my $mode = $self->_get_mode ();
++  my $path = $self->_get_path ();
++
++  # TODO: checks
++  return $builder->build_existing_file_state ($mode, $path);
++}
++
++sub _apply_index_customization_vfunc
++{
++  my ($self, $customization, $fresh_start) = @_;
++  my $builder = $self->get_builder ();
++  my $mode = $self->_get_mode ();
++  my $path = $self->_get_path ();
++
++  # TODO: checks
++  return $builder->build_modified_file_state ($mode, $path);
++}
++
++sub _is_same_vfunc
++{
++  my ($self, $other) = @_;
++
++  if ($self->_get_mode () eq $other->_get_mode () and $self->_get_path () eq $other->_get_path ())
++  {
++    return 1;
++  }
++
++  return 0;
++}
++
++sub _generate_diff_header_vfunc
++{
++  my ($self, $old_file_state_wrapper) = @_;
++  my $path = $self->_get_path ();
++  my $mode = $self->_get_mode ();
++  my $old_data = $old_file_state_wrapper->get_data_or_undef ();
++
++  if (defined ($old_data))
++  {
++    my $old_path = $old_data->get_path ();
++    my $old_mode = $old_data->get_mode ();
++    my $common = Kgps::DiffHeaderCommon->new ($old_path, $path);
++    my $part_mode = undef;
++    my $part_rename = undef;
++
++    if ($old_mode ne $mode)
++    {
++      $part_mode = Kgps::DiffHeaderPartMode->new ($old_mode, $mode);
++    }
++    if ($old_path ne $path)
++    {
++      $part_rename = Kgps::DiffHeaderPartRename->new (42, $old_path, $path);
++    }
++
++    my $specific = Kgps::DiffHeaderSpecificExisting->new ($part_mode, $part_rename, undef);
++
++    return Kgps::DiffHeader->new_strict ($common, $specific);
++  }
++  else
++  {
++    return undef;
++  }
++}
++
++sub _get_wrapper_vfunc
++{
++  my ($self) = @_;
++  my $path = $self->_get_path ();
++  my $mode = $self->_get_mode ();
++
++  return Kgps::FileStateWrapperExisting->new ($path, $mode);
++}
++
++sub _get_mode
++{
++  my ($self) = @_;
++
++  return $self->{'mode'};
++}
++
++sub _get_path
++{
++  my ($self) = @_;
++
++  return $self->{'path'};
++}
++
++1;
+diff --git a/Kgps/FileStateModified.pm b/Kgps/FileStateModified.pm
+new file mode 100644
+index 0000000..c849a0a
+--- /dev/null
++++ b/Kgps/FileStateModified.pm
+@@ -0,0 +1,181 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::FileStateModified;
++
++use parent qw(Kgps::FileStateBase);
++use strict;
++use v5.16;
++use warnings;
++
++use Kgps::DiffHeader;
++use Kgps::DiffHeaderCommon;
++use Kgps::DiffHeaderPartContents;
++use Kgps::DiffHeaderPartContentsMode;
++use Kgps::DiffHeaderPartMode;
++use Kgps::DiffHeaderPartRename;
++use Kgps::DiffHeaderSpecificCreated;
++use Kgps::DiffHeaderSpecificExisting;
++use Kgps::FileStateWrapperModified;
++
++sub new
++{
++  my ($type, $builder, $mode, $path) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::FileStateModified');
++  my $self = $class->SUPER::new ($builder);
++
++  $self->{'mode'} = $mode;
++  $self->{'path'} = $path;
++
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub _apply_create_customization_vfunc
++{
++  my ($self, $customization, $fresh_start) = @_;
++
++  return undef;
++}
++
++sub _apply_delete_customization_vfunc
++{
++  my ($self, $customization, $fresh_start) = @_;
++  my $builder = $self->get_builder ();
++
++  unless ($fresh_start)
++  {
++    return undef;
++  }
++  # TODO: checks
++  return $builder->build_empty_file_state ();
++}
++
++sub _apply_mode_customization_vfunc
++{
++  my ($self, $customization, $fresh_start) = @_;
++  my $builder = $self->get_builder ();
++  my $mode = $self->_get_mode ();
++  my $path = $self->_get_path ();
++
++  # TODO: checks
++  if ($fresh_start)
++  {
++    return $builder->build_existing_file_state ($mode, $path);
++  }
++  else
++  {
++    return $builder->build_modified_file_state ($mode, $path);
++  }
++}
++
++sub _apply_rename_customization_vfunc
++{
++  my ($self, $customization, $fresh_start) = @_;
++  my $builder = $self->get_builder ();
++  my $mode = $self->_get_mode ();
++  my $path = $self->_get_path ();
++
++  # TODO: checks
++  if ($fresh_start)
++  {
++    return $builder->build_existing_file_state ($mode, $path);
++  }
++  else
++  {
++    return $builder->build_modified_file_state ($mode, $path);
++  }
++}
++
++sub _apply_index_customization_vfunc
++{
++  my ($self, $customization, $fresh_start) = @_;
++
++  return undef;
++}
++
++sub _is_same_vfunc
++{
++  my ($self, $other) = @_;
++
++  if ($self->_get_mode () eq $other->_get_mode () and $self->_get_path () eq $other->_get_path ())
++  {
++    return 1;
++  }
++
++  return 0;
++}
++
++sub _generate_diff_header_vfunc
++{
++  my ($self, $old_file_state_wrapper) = @_;
++  my $path = $self->_get_path ();
++  my $mode = $self->_get_mode ();
++  my $old_data = $old_file_state_wrapper->get_data_or_undef ();
++
++  if (defined ($old_data))
++  {
++    my $old_path = $old_data->get_path ();
++    my $old_mode = $old_data->get_mode ();
++    my $common = Kgps::DiffHeaderCommon->new ($old_path, $path);
++    my $part_mode = undef;
++    my $part_rename = undef;
++    my $part_contents = undef;
++
++    if ($old_mode ne $mode)
++    {
++      $part_mode = Kgps::DiffHeaderPartMode->new ($old_mode, $mode);
++      $part_contents = Kgps::DiffHeaderPartContents->new ('1' x 7, '2' x 7);
++    }
++    else
++    {
++      $part_contents = Kgps::DiffHeaderPartContentsMode->new ('1' x 7, '2' x 7, $mode);
++    }
++    if ($old_path ne $path)
++    {
++      $part_rename = Kgps::DiffHeaderPartRename->new (42, $old_path, $path);
++    }
++
++    my $specific = Kgps::DiffHeaderSpecificExisting->new ($part_mode, $part_rename, $part_contents);
++
++    return Kgps::DiffHeader->new_strict ($common, $specific);
++  }
++  else
++  {
++    my $common = Kgps::DiffHeaderCommon->new ($path, $path);
++    my $part_contents = Kgps::DiffHeaderPartContents ('1' x 7, '2' x 7);
++    my $specific = Kgps::DiffHeaderSpecificCreated->new ($mode, $part_contents);
++
++    return Kgps::DiffHeader->new_relaxed ($common, $specific);
++  }
++}
++
++sub _get_wrapper_vfunc
++{
++  my ($self) = @_;
++  my $path = $self->_get_path ();
++  my $mode = $self->_get_mode ();
++
++  return Kgps::FileStateWrapperModified->new ($path, $mode);
++}
++
++sub _get_mode
++{
++  my ($self) = @_;
++
++  return $self->{'mode'};
++}
++
++sub _get_path
++{
++  my ($self) = @_;
++
++  return $self->{'path'};
++}
++
++1;
+diff --git a/Kgps/FileStateWrapperBase.pm b/Kgps/FileStateWrapperBase.pm
+new file mode 100644
+index 0000000..64bf749
+--- /dev/null
++++ b/Kgps/FileStateWrapperBase.pm
+@@ -0,0 +1,34 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::FileStateWrapperBase;
++
++use strict;
++use v5.16;
++use warnings;
++
++sub new
++{
++  my ($type) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::FileStateWrapperBase');
++  my $self =
++  {
++  };
++
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub get_data_or_undef
++{
++  my ($self) = @_;
++
++  return $self->_get_data_or_undef_vfunc ();
++}
++
++1;
+diff --git a/Kgps/FileStateWrapperData.pm b/Kgps/FileStateWrapperData.pm
+new file mode 100644
+index 0000000..76f7857
+--- /dev/null
++++ b/Kgps/FileStateWrapperData.pm
+@@ -0,0 +1,51 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::FileStateWrapperData;
++
++use strict;
++use v5.16;
++use warnings;
++
++sub new
++{
++  my ($type, $path, $mode, $modified) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::FileStateWrapperData');
++  my $self =
++  {
++    'path' => $path,
++    'mode' => $mode,
++    'modified' => $modified,
++  };
++
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub get_path
++{
++  my ($self) = @_;
++
++  return $self->{'path'}
++}
++
++sub get_mode
++{
++  my ($self) = @_;
++
++  return $self->{'mode'};
++}
++
++sub is_modified
++{
++  my ($self) = @_;
++
++  return $self->{'modified'};
++}
++
++1;
+diff --git a/Kgps/FileStateWrapperEmpty.pm b/Kgps/FileStateWrapperEmpty.pm
+new file mode 100644
+index 0000000..4ddd0a6
+--- /dev/null
++++ b/Kgps/FileStateWrapperEmpty.pm
+@@ -0,0 +1,33 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::FileStateWrapperEmpty;
++
++use parent qw(Kgps::FileStateWrapperBase);
++use strict;
++use v5.16;
++use warnings;
++
++sub new
++{
++  my ($type) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::FileStateWrapperEmpty');
++  my $self = $class->SUPER::new ();
++
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub _get_data_or_undef_vfunc
++{
++  my ($self) = @_;
++
++  return undef;
++}
++
++1;
+diff --git a/Kgps/FileStateWrapperExisting.pm b/Kgps/FileStateWrapperExisting.pm
+new file mode 100644
+index 0000000..d5e3e79
+--- /dev/null
++++ b/Kgps/FileStateWrapperExisting.pm
+@@ -0,0 +1,53 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::FileStateWrapperExisting;
++
++use parent qw(Kgps::FileStateWrapperBase);
++use strict;
++use v5.16;
++use warnings;
++
++use Kgps::FileStateWrapperData;
++
++sub new
++{
++  my ($type, $path, $mode) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::FileStateWrapperExisting');
++  my $self = $class->SUPER::new ();
++
++  $self->{'path'} = $path;
++  $self->{'mode'} = $mode;
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub _get_data_or_undef_vfunc
++{
++  my ($self) = @_;
++  my $path = $self->_get_path ();
++  my $mode = $self->_get_mode ();
++
++  return Kgps::FileStateWrapperData->new ($path, $mode, 0);
++}
++
++sub _get_path
++{
++  my ($self) = @_;
++
++  return $self->{'path'};
++}
++
++sub _get_mode
++{
++  my ($self) = @_;
++
++  return $self->{'mode'};
++}
++
++1;
+diff --git a/Kgps/FileStateWrapperModified.pm b/Kgps/FileStateWrapperModified.pm
+new file mode 100644
+index 0000000..7c7679b
+--- /dev/null
++++ b/Kgps/FileStateWrapperModified.pm
+@@ -0,0 +1,53 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::FileStateWrapperModified;
++
++use parent qw(Kgps::FileStateWrapperBase);
++use strict;
++use v5.16;
++use warnings;
++
++use Kgps::FileStateWrapperData;
++
++sub new
++{
++  my ($type, $path, $mode) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::FileStateWrapperModified');
++  my $self = $class->SUPER::new ();
++
++  $self->{'path'} = $path;
++  $self->{'mode'} = $mode;
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub _get_data_or_undef_vfunc
++{
++  my ($self) = @_;
++  my $path = $self->_get_path ();
++  my $mode = $self->_get_mode ();
++
++  return Kgps::FileStateWrapperData->new ($path, $mode, 1);
++}
++
++sub _get_path
++{
++  my ($self) = @_;
++
++  return $self->{'path'};
++}
++
++sub _get_mode
++{
++  my ($self) = @_;
++
++  return $self->{'mode'};
++}
++
++1;
+diff --git a/Kgps/GnomePatch.pm b/Kgps/GnomePatch.pm
+index a578518..e48938e 100644
+--- a/Kgps/GnomePatch.pm
++++ b/Kgps/GnomePatch.pm
+@@ -18,19 +18,30 @@ use IO::File;
+ 
+ use Kgps::BinaryDiff;
+ use Kgps::CodeLine;
++use Kgps::CustomizationCreate;
++use Kgps::CustomizationDelete;
++use Kgps::CustomizationIndex;
++use Kgps::CustomizationMode;
++use Kgps::CustomizationRename;
+ use Kgps::Date;
+ use Kgps::DateInc;
+-use Kgps::DiffHeader;
++use Kgps::DiffHeaderParser;
++use Kgps::FileStateBuilder;
++use Kgps::ListingAuxChangesDetailsCreate;
++use Kgps::ListingAuxChangesDetailsDelete;
++use Kgps::ListingAuxChangesDetailsMode;
++use Kgps::ListingAuxChangesDetailsModeRename;
++use Kgps::ListingAuxChangesDetailsRename;
+ use Kgps::ListingInfo;
+ use Kgps::LocationCodeCluster;
+ use Kgps::LocationMarker;
+ use Kgps::Misc;
+-use Kgps::NewAndGoneDetails;
+ use Kgps::OverlapInfo;
+ use Kgps::ParseContext;
+ use Kgps::Section;
+ use Kgps::SectionCode;
+ use Kgps::SectionOverlappedCode;
++use Kgps::SectionRanges;
+ use Kgps::TextDiff;
+ 
+ sub new
+@@ -225,6 +236,7 @@ sub _on_listing
+   my $got_date = 0;
+   my $got_subject = 0;
+   my $got_message = 0;
++  my $last_rename_aux_data = undef;
+ 
+   while ($stage ne 'done')
+   {
+@@ -414,31 +426,130 @@ sub _on_listing
+#SECTION: AUX_CHANGES_RENAME
+         {
+           $summary->set_deletions ($3);
+         }
+#SECTION: AUX_CHANGES_RENAME
+-        $stage = 'listing-new-and-gone-files'
++        $stage = 'listing-aux-changes'
+       }
+       else
+       {
+         $pc->die ("Unknown line in listing, expected either file stats or changes summary");
+       }
+     }
+-    elsif ($stage eq 'listing-new-and-gone-files')
++    elsif ($stage eq 'listing-aux-changes')
+#SECTION: REST
+     {
+-      if ($line =~ /^ (\w+) mode (\d+) (.+)$/)
++      if ($line =~ /^ create mode (\d+) (.+)$/)
+       {
+#OVERLAP
+# OUTCOME
+-        my $new_and_gone_files = $listing_info->get_new_and_gone_files ();
+-        my $details = Kgps::NewAndGoneDetails->new ($1, $2);
+-        unless ($new_and_gone_files->add_details ($3, $details))
++        my $mode = $1;
++        my $path = $2;
++        my $listing_aux_changes = $listing_info->get_aux_changes ();
++
++        if (defined ($last_rename_aux_data))
+         {
+-          $pc->die ("Duplicated new or gone file details for path '$3'");
++          my $last_old_path = $last_rename_aux_data->{'old_path'};
++          my $last_new_path = $last_rename_aux_data->{'new_path'};
++          my $last_similarity_index = $last_rename_aux_data->{'similarity_index'};
++          my $details = Kgps::ListingAuxChangesDetailsRename->new ($last_old_path, $last_new_path, $last_similarity_index);
++
++          $listing_aux_changes->add_details ($details);
++          $last_rename_aux_data = undef;
+         }
+# SECTION: AUX_CHANGES_RENAME
+-        my $new_and_gone_files = $listing_info->get_new_and_gone_files ();
++        my $listing_aux_changes = $listing_info->get_aux_changes ();
+         my $details = Kgps::NewAndGoneDetails->new ($1, $2);
+-        unless ($new_and_gone_files->add_details ($3, $details))
++        unless ($listing_aux_changes->add_details ($3, $details))
+         {
+           $pc->die ("Duplicated new or gone file details for path '$3'");
+         }
+# SECTION: REST
++        my $mode = $1;
++        my $path = $2;
+         my $listing_aux_changes = $listing_info->get_aux_changes ();
+-        my $details = Kgps::NewAndGoneDetails->new ($1, $2);
+-        unless ($listing_aux_changes->add_details ($3, $details))
++
++        if (defined ($last_rename_aux_data))
+         {
+-          $pc->die ("Duplicated new or gone file details for path '$3'");
++          my $last_old_path = $last_rename_aux_data->{'old_path'};
++          my $last_new_path = $last_rename_aux_data->{'new_path'};
++          my $last_similarity_index = $last_rename_aux_data->{'similarity_index'};
++          my $details = Kgps::ListingAuxChangesDetailsRename->new ($last_old_path, $last_new_path, $last_similarity_index);
++
++          $listing_aux_changes->add_details ($details);
++          $last_rename_aux_data = undef;
+         }
+#END_OVERLAP
++
++        my $details = Kgps::ListingAuxChangesDetailsCreate->new ($mode, $path);
++
++        $listing_aux_changes->add_details ($details);
++      }
++      elsif ($line =~ /^ delete mode (\d+) (.+)$/)
++      {
++        my $mode = $1;
++        my $path = $2;
++        my $listing_aux_changes = $listing_info->get_aux_changes ();
++
++        if (defined ($last_rename_aux_data))
++        {
++          my $last_old_path = $last_rename_aux_data->{'old_path'};
++          my $last_new_path = $last_rename_aux_data->{'new_path'};
++          my $last_similarity_index = $last_rename_aux_data->{'similarity_index'};
++          my $details = Kgps::ListingAuxChangesDetailsRename->new ($last_old_path, $last_new_path, $last_similarity_index);
++
++          $listing_aux_changes->add_details ($details);
++          $last_rename_aux_data = undef;
++        }
++
++        my $details = Kgps::ListingAuxChangesDetailsDelete->new ($mode, $path);
++
++        $listing_aux_changes->add_details ($details);
++      }
++      elsif ($line =~ /^ rename (.+) => (.+) \((\d{1,3})%\)$/)
++      {
++        my $old_path = $1;
++        my $new_path = $2;
++        my $similarity_index = $3;
++        my $listing_aux_changes = $listing_info->get_aux_changes ();
++
++        if (defined ($last_rename_aux_data))
++        {
++          my $last_old_path = $last_rename_aux_data->{'old_path'};
++          my $last_new_path = $last_rename_aux_data->{'new_path'};
++          my $last_similarity_index = $last_rename_aux_data->{'similarity_index'};
++          my $details = Kgps::ListingAuxChangesDetailsRename->new ($last_old_path, $last_new_path, $last_similarity_index);
++
++          $listing_aux_changes->add_details ($details);
++          $last_rename_aux_data = undef;
++        }
++
++        $last_rename_aux_data = {
++          'old_path' => $old_path,
++          'new_path' => $new_path,
++          'similarity_index' => $similarity_index,
++        };
++      }
++      elsif ($line =~ /^ mode change (\d{6}) => (\d{6}) (.+)$/)
++      {
++        my $old_mode = $1;
++        my $new_mode = $2;
++        my $path = $3;
++        my $listing_aux_changes = $listing_info->get_aux_changes ();
++
++        if (defined ($last_rename_aux_data))
++        {
++          my $last_old_path = $last_rename_aux_data->{'old_path'};
++          my $last_new_path = $last_rename_aux_data->{'new_path'};
++          my $last_similarity_index = $last_rename_aux_data->{'similarity_index'};
++          my $details = Kgps::ListingAuxChangesDetailsRename->new ($last_old_path, $last_new_path, $last_similarity_index);
++
++          $listing_aux_changes->add_details ($details);
++          $last_rename_aux_data = undef;
++        }
++
++        my $details = Kgps::ListingAuxChangesDetailsMode->new ($old_mode, $new_mode, $path);
++
++        $listing_aux_changes->add_details ($details);
++      }
++      elsif ($line =~ /^ mode change (\d{6}) => (\d{6})$/)
++      {
++        my $old_mode = $1;
++        my $new_mode = $2;
++        my $listing_aux_changes = $listing_info->get_aux_changes ();
++
++        unless (defined ($last_rename_aux_data))
++        {
++          $pc->die ("Expected a preceding line to contain rename info");
++        }
++
++        my $last_old_path = $last_rename_aux_data->{'old_path'};
++        my $last_new_path = $last_rename_aux_data->{'new_path'};
++        my $last_similarity_index = $last_rename_aux_data->{'similarity_index'};
++        my $details = Kgps::ListingAuxChangesDetailsModeRename->new ($last_old_path, $last_new_path, $last_similarity_index, $old_mode, $new_mode);
++
++        $listing_aux_changes->add_details ($details);
++        $last_rename_aux_data = undef;
+       }
+       elsif ($line eq '')
+       {
++        $patch->wrap_sections ();
+         $stage = 'done';
+       }
+       else
+       {
+-        $pc->die ("Unknown line in listing, expected new or gone file details");
++        $pc->die ("Unknown line in listing, expected auxiliary details");
+       }
+     }
+   }
+@@ -452,53 +563,341 @@ sub _on_rest
+ 
+   while ($loop)
+   {
+-    $self->_handle_index_lines ();
++    $self->_handle_diff_header_lines ();
+     $loop = $self->_handle_diff_lines ();
+     $self->_postprocess_diff ();
+   }
+ }
+ 
+-sub _handle_index_lines
++sub _handle_diff_header_lines
+ {
+   my ($self) = @_;
+   my $pc = $self->_get_pc ();
++  my $mode = 'basic';
+ 
+   $self->_read_next_line_or_die ();
+ 
+-  my $word = $self->_get_first_word ();
++  if ($pc->get_line () =~ /^#\s*DIFF_HEADER$/a)
++  {
++    $mode = 'full';
++  }
++  else
++  {
++    $pc->unread_line ();
++  }
++
++  my $diff_header_parser = Kgps::DiffHeaderParser->new ();
++  my $result = Kgps::DiffHeaderParser::ParseMoreLinesNeeded;
+ 
+-  if (defined ($word) and $word eq 'diff')
++  while ($result == Kgps::DiffHeaderParser::ParseMoreLinesNeeded)
+   {
+-    # XXX: This section of code is rather incorrect - there can be
+-    # more lines in this part of diff. But for my ordinary use no such
+-    # diffs existed.
+-    my $diff_header = Kgps::DiffHeader->new ();
+-    my $line = $pc->get_line ();
++    $self->_read_next_line_or_die ();
++    $result = $diff_header_parser->feed_line ($pc->get_line ());
++  }
++  if ($result == Kgps::DiffHeaderParser::ParseFail)
++  {
++    $pc->die ($diff_header_parser->get_failure ());
++  }
++  if ($result == Kgps::DiffHeaderParser::ParseDoneNotConsumed)
++  {
++    $pc->unread_line ();
++  }
+ 
+-    unless ($diff_header->parse_diff_line ($line))
+-    {
+-      $pc->die ("Malformed diff line.");
+-    }
++  my $header = $diff_header_parser->get_diff_header ();
++  $pc->set_current_diff_header ($header);
++  if ($mode eq 'basic')
++  {
++    my $patch = $pc->get_patch ();
++    my $sections_array = $patch->get_sections_ordered ();
++    my $default_section = $header->pick_default_section ($sections_array);
++    my $headers_for_sections = {$default_section->get_name () => $header->with_bogus_values ()};
++    my $allowed_section_ranges = $header->get_initial_section_ranges ($sections_array, $default_section);
++
++    $pc->set_headers_for_sections ($headers_for_sections);
++    $pc->set_allowed_section_ranges ($allowed_section_ranges);
++    return;
++  }
++
++  my $stage = 'section-line';
++  my $allowed_customizations = $header->get_allowed_customizations ();
++  my $builder = Kgps::FileStateBuilder->new ();
++  my $file_state = $header->get_pre_file_state ($builder);
++  my $got_rename_customization_for_section = 0;
++  my $got_mode_customization_for_section = 0;
++  my $got_index_customization_for_section = 0;
++  my $got_no_customization_for_section = 1;
++  my $got_section_in_last_line = 0;
++  my $got_at_least_one_customization = 0;
++  my $last_section = undef;
++  my $last_section_file_state = undef;
++  my $headers_for_sections = {};
++  my $allowed_section_ranges = undef;
+ 
++  while ($stage ne 'done')
++  {
+     $self->_read_next_line_or_die ();
+-    $line = $pc->get_line ();
+-    if ($diff_header->parse_mode_line ($line))
++
++    my $line = $pc->get_line ();
++
++    if ($stage eq 'section-line')
+     {
+-      $self->_read_next_line_or_die ();
+-      $line = $pc->get_line ();
++    HACK_HACK:
++      if ($line =~ /^#\s*END_DIFF_HEADER\s*$/a)
++      {
++        if ($got_at_least_one_customization)
++        {
++          if ($got_section_in_last_line)
++          {
++            $pc->die ('TODO: something about an empty section while we arely have some customizations');
++          }
++
++          my $post_file_state = $header->get_post_file_state ($builder);
++
++          unless ($file_state->is_same ($post_file_state))
++          {
++            $pc->die ('TODO: file state is diff');
++          }
++
++          $headers_for_sections->{$last_section->get_name ()} = $file_state->generate_diff_header ($last_section_file_state);
++          unless (defined ($allowed_section_ranges))
++          {
++            my $patch = $pc->get_patch ();
++            my $sections_array = $patch->get_sections_ordered ();
++            my $start_section = $sections_array->[0];
++            my $end_section = $sections_array->[-1];
++
++            $allowed_section_ranges = Kgps::SectionRanges->new ($start_section, $end_section);
++          }
++        }
++        elsif ($got_section_in_last_line)
++        {
++          my $patch = $pc->get_patch ();
++          my $sections_array = $patch->get_sections_ordered ();
++
++          $headers_for_sections->{$last_section->get_name ()} = $header->with_bogus_values ();
++          $allowed_section_ranges = $header->get_initial_section_ranges ($sections_array, $last_section);
++        }
++        else
++        {
++          my $patch = $pc->get_patch ();
++          my $sections_array = $patch->get_sections_ordered ();
++          my $default_section = $header->pick_default_section ($sections_array);
++
++          $headers_for_sections = {$default_section->get_name () => $header->with_bogus_values ()};
++          $allowed_section_ranges = $header->get_initial_section_ranges ($sections_array, $default_section);
++        }
++        $stage = 'done';
++      }
++      elsif ($line =~ /^#\s*SECTION:\s+(\S+)\s*$/a)
++      {
++        my $section_name = $1;
++
++        if ($got_section_in_last_line)
++        {
++          $pc->die ('TODO: something about an empty section while another one was specified');
++        }
++
++        my $patch = $pc->get_patch ();
++        my $sections_hash = $patch->get_sections_unordered ();
++
++        unless (exists ($sections_hash->{$section_name}))
++        {
++          $pc->die ("Unknown section '$section_name'.");
++        }
++
++        my $section = $sections_hash->{$section_name};
++
++        $got_rename_customization_for_section = 0;
++        $got_mode_customization_for_section = 0;
++        $got_index_customization_for_section = 0;
++        $got_no_customization_for_section = 1;
++        $got_section_in_last_line = 1;
++        if (defined ($last_section))
++        {
++          if ($last_section->get_name () eq $section_name)
++          {
++            $pc->die ('TODO: Something about duplicated section clauses');
++          }
++          if ($last_section->is_younger_than ($section))
++          {
++            $pc->die ('TODO: something about previous section being younger than the following one, lack of order, yadda yadda');
++          }
++          $headers_for_sections->{$last_section->get_name ()} = $file_state->generate_diff_header ($last_section_file_state);
++        }
++        $last_section = $section;
++        $last_section_file_state = $file_state;
++        $stage = 'sections';
++      }
++      else
++      {
++        $pc->die ('TODO: unknown line');
++      }
+     }
++    elsif ($stage eq 'sections')
++    {
++      if ($line =~ /^#\s*END_DIFF_HEADER$/a)
++      {
++        goto HACK_HACK;
++      }
++      elsif ($line =~ /^#\s*SECTION:\s+(\S+)$/a)
++      {
++        goto HACK_HACK;
++      }
++      elsif ($line =~ /^#\s*CREATE\s+(\S+)\s+(\d{6})$/a)
++      {
++        my $path = $1;
++        my $mode = $2;
++
++        unless ($allowed_customizations->is_create_allowed ())
++        {
++          $pc->die ('CREATE customization is not allowed for this diff header');
++        }
++
++        my $customization = Kgps::CustomizationCreate->new ($path, $mode);
++
++        $file_state = $file_state->apply_create_customization ($customization, $got_no_customization_for_section);
++        $got_no_customization_for_section = 0;
++        unless (defined ($file_state))
++        {
++          $pc->die ('TODO: undefined file state in create');
++        }
++        $stage = 'section-line';
++        $got_at_least_one_customization = 1;
++        $got_section_in_last_line = 0;
++
++        my $patch = $pc->get_patch ();
++        my $sections_array = $patch->get_sections_ordered ();
++        my $end_section = $sections_array->[-1];
++
++        unless (defined ($allowed_section_ranges))
++        {
++          $allowed_section_ranges = Kgps::SectionRanges->new_empty ();
++        }
++        $allowed_section_ranges->add_range ($last_section, $end_section);
++      }
++      elsif ($line =~ /^#\s*DELETE\s+(\S+)\s+(\d{6})$/a)
++      {
++        my $path = $1;
++        my $mode = $2;
++
++        unless ($allowed_customizations->is_delete_allowed ())
++        {
++          $pc->die ('DELETE customization is not allowed for this diff header');
++        }
++
++        my $customization = Kgps::CustomizationDelete->new ($path, $mode);
++
++        $file_state = $file_state->apply_delete_customization ($customization, $got_no_customization_for_section);
++        $got_no_customization_for_section = 0;
++        unless (defined ($file_state))
++        {
++          $pc->die ('TODO: undefined file state in delete');
++        }
++        $stage = 'section-line';
++        $got_at_least_one_customization = 1;
++        $got_section_in_last_line = 0;
++
++        my $patch = $pc->get_patch ();
++        my $sections_array = $patch->get_sections_ordered ();
++        my $start_section = $sections_array->[0];
++
++        if (defined ($allowed_section_ranges))
++        {
++          $allowed_section_ranges->terminate_last_range_at ($last_section);
++        }
++        else
++        {
++          $allowed_section_ranges = Kgps::SectionRanges->new ($start_section, $last_section);
++        }
++      }
++      elsif ($line =~ /^#\s*MODE\s+(\d{6})\s+(\d{6})$/a)
++      {
++        my $old_mode = $1;
++        my $new_mode = $2;
++
++        unless ($allowed_customizations->is_mode_allowed ())
++        {
++          $pc->die ('MODE customization is not allowed for this diff header');
++        }
++        if ($got_mode_customization_for_section)
++        {
++          $pc->die ('TODO: mode duplicated');
++        }
++        $got_mode_customization_for_section = 1;
++
++        my $customization = Kgps::CustomizationMode->new ($old_mode, $new_mode);
+ 
+-    unless ($diff_header->parse_index_line ($line))
++        $file_state = $file_state->apply_mode_customization ($customization, $got_no_customization_for_section);
++        $got_no_customization_for_section = 0;
++        unless (defined ($file_state))
++        {
++          $pc->die ('TODO: undefined file state in mode');
++        }
++        $got_at_least_one_customization = 1;
++        $got_section_in_last_line = 0;
++      }
++      elsif ($line =~ /^#\s*RENAME\s+(\S+)\s+(\S+)$/a)
++      {
++        my $old_path = $1;
++        my $new_path = $2;
++
++        unless ($allowed_customizations->is_rename_allowed ())
++        {
++          $pc->die ('RENAME customization is not allowed for this diff header');
++        }
++        if ($got_rename_customization_for_section)
++        {
++          $pc->die ('TODO: rename duplicated');
++        }
++        $got_rename_customization_for_section = 1;
++
++        my $customization = Kgps::CustomizationRename->new ($old_path, $new_path);
++
++        $file_state = $file_state->apply_rename_customization ($customization, $got_no_customization_for_section);
++        $got_no_customization_for_section = 0;
++        unless (defined ($file_state))
++        {
++          $pc->die ('TODO: undefined file state in rename');
++        }
++        $got_at_least_one_customization = 1;
++        $got_section_in_last_line = 0;
++      }
++      elsif ($line =~ /^#\s*INDEX$/a)
++      {
++        unless ($allowed_customizations->is_index_allowed ())
++        {
++          $pc->die ('INDEX customization is not allowed for this diff header');
++        }
++        if ($got_index_customization_for_section)
++        {
++          $pc->die ('TODO: index duplicated');
++        }
++        $got_index_customization_for_section = 1;
++
++        my $customization = Kgps::CustomizationIndex->new ();
++
++        $file_state = $file_state->apply_index_customization ($customization, $got_no_customization_for_section);
++        $got_no_customization_for_section = 0;
++        unless (defined ($file_state))
++        {
++          $pc->die ('TODO: undefined file state in index');
++        }
++        $got_at_least_one_customization = 1;
++        $got_section_in_last_line = 0;
++      }
++      else
++      {
++        $pc->die ('TODO: unknown line');
++      }
++    }
++    else
+     {
+-      $pc->die ("Expected 'index'.");
++      $pc->die ('TODO: unknown stage');
+     }
+-
+-    $pc->set_current_diff_header ($diff_header);
+-  }
+-  else
+-  {
+-    $pc->die ("Expected 'diff --git'.");
+   }
++
++  $pc->set_headers_for_sections ($headers_for_sections);
++  $pc->set_allowed_section_ranges ($allowed_section_ranges);
+ }
+ 
+ sub _handle_diff_lines
+@@ -586,6 +985,8 @@ sub _handle_text_patch
+   my $sections_array = $patch->get_sections_ordered ();
+   my $code = undef;
+   my $just_ended_overlap = 0;
++  my $allowed_section_ranges = $pc->get_allowed_section_ranges ();
++  my $allowed_types_of_lines = Kgps::SectionRanges::NotInRange;
+ 
+   while ($pc->read_next_line ())
+   {
+@@ -617,7 +1018,7 @@ sub _handle_text_patch
+       }
+       if ($just_got_location_marker)
+       {
+-        my $last = $sections_array->[-1];
++        my $last = $allowed_section_ranges->get_last_allowed_section ();
+ 
+         $code = Kgps::SectionCode->new ($last);
+         $just_got_location_marker = 0;
+@@ -665,6 +1066,11 @@ sub _handle_text_patch
+ 
+         my $section = $sections_hash->{$name};
+ 
++        $allowed_types_of_lines = $allowed_section_ranges->is_in_range ($section);
++        if ($allowed_types_of_lines == Kgps::SectionRanges::NotInRange)
++        {
++          $pc->die ("Section '$name' is not allowed in this diff");
++        }
+         if (defined ($code) and $code->get_section ()->get_name () eq $name)
+         {
+           # ignore the sections line, we already are in this section.
+@@ -719,9 +1125,18 @@ sub _handle_text_patch
+         $pc->die ("Unknown type of line: $sigil.");
+       }
+ 
++      if ($type != Kgps::CodeLine::Plus and $allowed_types_of_lines == Kgps::SectionRanges::AdditionsOnly)
++      {
++        $pc->die ("Only additions are allowed in section TODO_SOME_SECTION_NAME");
++      }
++      if ($type != Kgps::CodeLine::Minus and $allowed_types_of_lines == Kgps::SectionRanges::DeletionsOnly)
++      {
++        $pc->die ("Only deletions are allowed in section TODO_SOME_SECTION_NAME");
++      }
++
+       if ($just_got_location_marker or $just_ended_overlap)
+       {
+-        my $last = $sections_array->[-1];
++        my $last = $allowed_section_ranges->get_last_allowed_section ();
+ 
+         $code = Kgps::SectionCode->new ($last);
+         $just_got_location_marker = 0;
+@@ -761,6 +1176,8 @@ sub _handle_overlap
+   my $context_line_idx = 0;
+   my $code = undef;
+   my $overlap_info = Kgps::OverlapInfo->new ();
++  my $allowed_section_ranges = $pc->get_allowed_section_ranges ();
++  my $allowed_types_of_lines = Kgps::SectionRanges::NotInRange;
+ 
+   while ($stage ne 'done')
+   {
+@@ -794,6 +1211,11 @@ sub _handle_overlap
+           $pc->die ("Unknown section '$name'");
+         }
+         $section = $sections_hash->{$name};
++        $allowed_types_of_lines = $allowed_section_ranges->is_in_range ($section);
++        if ($allowed_types_of_lines == Kgps::SectionRanges::NotInRange)
++        {
++          $pc->die ("Section '$name' is not allowed in this diff");
++        }
+         $stage = 'sections';
+         $code = Kgps::SectionOverlappedCode->new ($section, $overlap_info);
+       }
+@@ -854,6 +1276,12 @@ sub _handle_overlap
+           $pc->die ("Sections are out of order - section '$new_name' should come before section '$name' in overlap");
+         }
+ 
++        $allowed_types_of_lines = $allowed_section_ranges->is_in_range ($new_section);
++        if ($allowed_types_of_lines == Kgps::SectionRanges::NotInRange)
++        {
++          $pc->die ("Section '$new_name' is not allowed in this diff");
++        }
++
+         my $lines = $code->get_lines ();
+ 
+         unless (scalar (@{$lines}) > 0)
+@@ -873,6 +1301,15 @@ sub _handle_overlap
+         my $raw_line = $2;
+         my $sigil = Kgps::CodeLine::get_type ($raw_sigil);
+ 
++        if ($sigil != Kgps::CodeLine::Plus and $allowed_types_of_lines == Kgps::SectionRanges::AdditionsOnly)
++        {
++          $pc->die ("Only additions are allowed in section TODO_SOME_SECTION_NAME");
++        }
++        if ($sigil != Kgps::CodeLine::Minus and $allowed_types_of_lines == Kgps::SectionRanges::DeletionsOnly)
++        {
++          $pc->die ("Only deletions are allowed in section TODO_SOME_SECTION_NAME");
++        }
++
+         if ($sigil == Kgps::CodeLine::Space)
+         {
+           my $expected = $context->[$context_line_idx];
+@@ -991,65 +1428,39 @@ sub _handle_binary_patch
+   my $pc = $self->_get_pc ();
+   my $continue_parsing_rest = 1;
+   my $first_try = 1;
+-  my $code = undef;
+-  my $diff_header = $pc->get_current_diff_header_or_die ();
+   my $diff = Kgps::BinaryDiff->new ();
+   my $patch = $pc->get_patch ();
++  my $headers_for_sections = $pc->get_headers_for_sections ();
++  my @section_names = keys (%{$headers_for_sections});
+ 
+-  $diff->set_header ($diff_header);
++  if (scalar (@section_names) > 1)
++  {
++    $pc->die ('Specifying alternate diff headers for binary patches is not supported');
++  }
++
++  my $section_name = $section_names[0];
++  my $sections_hash = $patch->get_sections_unordered ();
++  my $section = $sections_hash->{$section_name};
++  my $code = Kgps::SectionCode->new ($section);
++
++  $diff->set_header ($headers_for_sections->{$section_name});
+   $diff->set_listing_info ($self->get_listing_info ());
+   while ($pc->read_next_line ())
+   {
+     my $line = $pc->get_line ();
+ 
+-    if ($first_try)
+-    {
+-      my $sections_hash = $patch->get_sections_unordered ();
+-      my $sections_array = $patch->get_sections_ordered ();
+-
+-      if ($line =~ /^#/)
+-      {
+-        if ($line =~ /^#\s*SECTION:\s*(\w+)$/a)
+-        {
+-          my $name = $1;
+-
+-          $first_try = 0;
+-          unless (exists ($sections_hash->{$name}))
+-          {
+-            $pc->die ("Unknown section '$name'.");
+-          }
+-
+-          $code = Kgps::SectionCode->new ($sections_hash->{$name});
+-        }
+-        elsif ($self->_line_is_comment ($line))
+-        {
+-          # just a comment, skip it
+-        }
+-        else
+-        {
+-          $pc->die ("Malformed comment.");
+-        }
+-        next;
+-      }
+-      $first_try = 0;
+-      $code = Kgps::SectionCode->new ($sections_array->[-1]);
+-      redo;
+-    }
+     if ($line eq '-- ')
+     {
+       $continue_parsing_rest = 0;
+       last;
+     }
++    elsif ($self->_line_is_comment ($line))
++    {
++      # just a comment, skip it
++    }
+     elsif ($line =~ /^#/)
+     {
+-      if ($line =~ /^#\s*SECTION:/)
+-      {
+-        $pc->die ("Section comment in the middle of binary patch.");
+-      }
+-      elsif ($line =~ /\s/)
+-      {
+-        $pc->die ("Malformed comment in the middle of binary patch.");
+-      }
++      $pc->die ("Invalid clause in the middle of binary patch.");
+     }
+     else
+     {
+@@ -1095,7 +1506,8 @@ sub _postprocess_diff
+   my $patch = $pc->get_patch ();
+   my $sections_array = $patch->get_sections_ordered ();
+   my $sections_hash = $patch->get_sections_unordered ();
+-  my $raw_diffs_and_mode = $diff->postprocess ($sections_array, $sections_hash);
++  my $headers_for_sections = $pc->get_headers_for_sections ();
++  my $raw_diffs_and_mode = $diff->postprocess ($sections_array, $sections_hash, $headers_for_sections);
+ 
+   $patch->add_raw_diffs_and_mode ($raw_diffs_and_mode);
+ }
+@@ -1105,12 +1517,7 @@ sub _get_first_word
+# SECTION: FIRST_WORD
+   my ($self) = @_;
+   my $pc = $self->_get_pc ();
+ 
+-  if ($pc->get_line () =~ /^(\w+)\s/a)
+-  {
+-    return $1;
+-  }
+-
+-  return undef;
++  return Misc::first_word ($pc->get_line ());
+ }
+ 
+ sub _read_next_line_or_die
+diff --git a/Kgps/ListingAuxChanges.pm b/Kgps/ListingAuxChanges.pm
+new file mode 100644
+index 0000000..af056da
+--- /dev/null
++++ b/Kgps/ListingAuxChanges.pm
+@@ -0,0 +1,75 @@
+#SECTION: AUX_CHANGES_RENAME
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::ListingAuxChanges;
++
++use strict;
++use v5.16;
++use warnings;
++
+#OVERLAP
+# OUTCOME
+# SECTION: AUX_CHANGES_RENAME
++use Kgps::NewAndGoneDetails;
++
+# SECTION: REST
+-use Kgps::NewAndGoneDetails;
+-
+#END_OVERLAP
+#SECTION: AUX_CHANGES_RENAME
++sub new
++{
++  my ($type) = @_;
++
+#OVERLAP
+# OUTCOME
++  return _new_with_files ($type, []);
+# SECTION: AUX_CHANGES_RENAME
++  return _new_with_files ($type, {});
+# SECTION: REST
+-  return _new_with_files ($type, {});
++  return _new_with_files ($type, []);
+#END_OVERLAP
+#SECTION: AUX_CHANGES_RENAME
++}
++
++sub add_details
++{
+#OVERLAP
+# OUTCOME
++  my ($self, $details) = @_;
++  my $files = $self->_get_files ();
++
++  push (@{$files}, $details);
+# SECTION: AUX_CHANGES_RENAME
++  my ($self, $path, $details) = @_;
++  my $files = $self->_get_files ();
++
++  if (exists ($files->{$path}))
++  {
++    return 0;
++  }
++
++  $files->{$path} = $details;
++
++  return 1;
+# SECTION: REST
+-  my ($self, $path, $details) = @_;
++  my ($self, $details) = @_;
+   my $files = $self->_get_files ();
+ 
+-  if (exists ($files->{$path}))
+-  {
+-    return 0;
+-  }
+-
+-  $files->{$path} = $details;
+-
+-  return 1;
++  push (@{$files}, $details);
+#END_OVERLAP
+#SECTION: AUX_CHANGES_RENAME
++}
++
+#OVERLAP
+# OUTCOME
+# SECTION: AUX_CHANGES_RENAME
++sub get_details_for_path
++{
++  my ($self, $path) = @_;
++  my $files = $self->_get_files ();
++
++  unless (exists ($files->{$path}))
++  {
++    return undef;
++  }
++
++  return $files->{$path};
++}
++
+# SECTION: REST
+-sub get_details_for_path
+-{
+-  my ($self, $path) = @_;
+-  my $files = $self->_get_files ();
+-
+-  unless (exists ($files->{$path}))
+-  {
+-    return undef;
+-  }
+-
+-  return $files->{$path};
+-}
+-
+#END_OVERLAP
+#SECTION: AUX_CHANGES_RENAME
++sub merge
++{
++  my ($self, $other) = @_;
++  my $self_files = $self->_get_files ();
++  my $other_files = $other->_get_files ();
+#OVERLAP
+# OUTCOME
++  my $merged_files = [ @{$self_files}, @{$other_files} ];
+# SECTION: AUX_CHANGES_RENAME
++  my $merged_files = { %{$self_files}, %{$other_files} };
++
++  if (scalar (keys (%{$merged_files})) != scalar (keys (%{$self_files})) + scalar (keys (%{$other_files})))
++  {
++    return undef;
++  }
+# SECTION: REST
+-  my $merged_files = { %{$self_files}, %{$other_files} };
+-
+-  if (scalar (keys (%{$merged_files})) != scalar (keys (%{$self_files})) + scalar (keys (%{$other_files})))
+-  {
+-    return undef;
+-  }
++  my $merged_files = [ @{$self_files}, @{$other_files} ];
+#END_OVERLAP
+#SECTION: AUX_CHANGES_RENAME
++
++  return Kgps::ListingAuxChanges->_new_with_files ($merged_files);
++}
++
++sub to_lines
++{
++  my ($self) = @_;
++  my $files = $self->_get_files ();
++  my @lines = ();
+#OVERLAP
+# OUTCOME
++  my @sorted_details = map { $_->[1] } sort { $a->[0] cmp $b->[0] } map { [$_->get_path (), $_ ] } @{$files};
++
++  for my $details (@sorted_details)
++  {
++    push (@lines, $details->to_lines ());
++  }
+#SECTION: AUX_CHANGES_RENAME
++
++  for my $path (sort (keys (%{$files})))
++  {
++    my $details = $files->{$path};
++    my $action = $details->get_action ();
++    my $mode = $details->get_mode ();
++    my $action_str = '';
++
++    if ($action == Kgps::NewAndGoneDetails::Create)
++    {
++      $action_str = 'create';
++    }
++    elsif ($action == Kgps::NewAndGoneDetails::Delete)
++    {
++      $action_str = 'delete';
++    }
++    else
++    {
++      die;
++    }
++
++    push (@lines, " $action_str mode $mode $path");
++  }
+#SECTION: REST
++  my @sorted_details = map { $_->[1] } sort { $a->[0] cmp $b->[0] } map { [$_->get_path (), $_ ] } @{$files};
+ 
++  for my $details (@sorted_details)
++  {
++    push (@lines, $details->to_lines ());
++  }
+-  for my $path (sort (keys (%{$files})))
+-  {
+-    my $details = $files->{$path};
+-    my $action = $details->get_action ();
+-    my $mode = $details->get_mode ();
+-    my $action_str = '';
+-
+-    if ($action == Kgps::NewAndGoneDetails::Create)
+-    {
+-      $action_str = 'create';
+-    }
+-    elsif ($action == Kgps::NewAndGoneDetails::Delete)
+-    {
+-      $action_str = 'delete';
+-    }
+-    else
+-    {
+-      die;
+-    }
+-
+-    push (@lines, " $action_str mode $mode $path");
+-  }
+#END_OVERLAP
+#SECTION: AUX_CHANGES_RENAME
++
++  return @lines;
++}
++
++sub _get_files
++{
++  my ($self) = @_;
++
++  return $self->{'files'};
++}
++
++sub _new_with_files
++{
++  my ($type, $files) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::ListingAuxChanges');
++  my $self = {
+#OVERLAP
+# OUTCOME
++    # path to ListingAuxChangesDetailsBase
+# SECTION: AUX_CHANGES_RENAME
++    # path to NewAndGoneDetails
+# SECTION: REST
+-    # path to NewAndGoneDetails
++    # path to ListingAuxChangesDetailsBase
+#END_OVERLAP
+#SECTION: AUX_CHANGES_RENAME
++    'files' => $files,
++  };
++
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++1;
+diff --git a/Kgps/ListingAuxChangesDetailsBase.pm b/Kgps/ListingAuxChangesDetailsBase.pm
+new file mode 100644
+index 0000000..aff9818
+--- /dev/null
++++ b/Kgps/ListingAuxChangesDetailsBase.pm
+@@ -0,0 +1,41 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::ListingAuxChangesDetailsBase;
++
++use strict;
++use v5.16;
++use warnings;
++
++sub new
++{
++  my ($type, $path) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::ListingAuxChangesDetailsBase');
++  my $self = {
++    'path' => $path,
++  };
++
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub get_path
++{
++  my ($self) = @_;
++
++  return $self->{'path'};
++}
++
++sub to_lines
++{
++  my ($self) = @_;
++
++  return $self->_to_lines_vfunc ();
++}
++
++1;
+diff --git a/Kgps/ListingAuxChangesDetailsCreate.pm b/Kgps/ListingAuxChangesDetailsCreate.pm
+new file mode 100644
+index 0000000..aa9998d
+--- /dev/null
++++ b/Kgps/ListingAuxChangesDetailsCreate.pm
+@@ -0,0 +1,47 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::ListingAuxChangesDetailsCreate;
++
++use parent qw(Kgps::ListingAuxChangesDetailsBase);
++use strict;
++use v5.16;
++use warnings;
++
++sub new
++{
++  my ($type, $mode, $path) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::ListingAuxChangesDetailsCreate');
++  my $self = $class->SUPER::new ($path);
++
++  $self->{'mode'} = $mode;
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub _to_lines_vfunc
++{
++  my ($self) = @_;
++  my $path = $self->get_path ();
++  my $mode = $self->_get_mode ();
++  my @lines = ();
++
++  push (@lines,
++        " create mode $mode $path");
++
++  return @lines;
++}
++
++sub _get_mode
++{
++  my ($self) = @_;
++
++  return $self->{'mode'};
++}
++
++1;
+diff --git a/Kgps/ListingAuxChangesDetailsDelete.pm b/Kgps/ListingAuxChangesDetailsDelete.pm
+new file mode 100644
+index 0000000..2f5e51e
+--- /dev/null
++++ b/Kgps/ListingAuxChangesDetailsDelete.pm
+@@ -0,0 +1,47 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::ListingAuxChangesDetailsDelete;
++
++use parent qw(Kgps::ListingAuxChangesDetailsBase);
++use strict;
++use v5.16;
++use warnings;
++
++sub new
++{
++  my ($type, $mode, $path) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::ListingAuxChangesDetailsDelete');
++  my $self = $class->SUPER::new ($path);
++
++  $self->{'mode'} = $mode;
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub _to_lines_vfunc
++{
++  my ($self) = @_;
++  my $path = $self->get_path ();
++  my $mode = $self->_get_mode ();
++  my @lines = ();
++
++  push (@lines,
++        " delete mode $mode $path");
++
++  return @lines;
++}
++
++sub _get_mode
++{
++  my ($self) = @_;
++
++  return $self->{'mode'};
++}
++
++1;
+diff --git a/Kgps/ListingAuxChangesDetailsMode.pm b/Kgps/ListingAuxChangesDetailsMode.pm
+new file mode 100644
+index 0000000..52ad975
+--- /dev/null
++++ b/Kgps/ListingAuxChangesDetailsMode.pm
+@@ -0,0 +1,56 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::ListingAuxChangesDetailsMode;
++
++use parent qw(Kgps::ListingAuxChangesDetailsBase);
++use strict;
++use v5.16;
++use warnings;
++
++sub new
++{
++  my ($type, $old_mode, $new_mode, $path) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::ListingAuxChangesDetailsMode');
++  my $self = $class->SUPER::new ($path);
++
++  $self->{'old_mode'} = $old_mode;
++  $self->{'new_mode'} = $new_mode;
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub _to_lines_vfunc
++{
++  my ($self) = @_;
++  my $path = $self->get_path ();
++  my $old_mode = $self->_get_old_mode ();
++  my $new_mode = $self->_get_new_mode ();
++  my @lines = ();
++
++  push (@lines,
++        " mode change $old_mode => $new_mode $path");
++
++  return @lines;
++}
++
++sub _get_old_mode
++{
++  my ($self) = @_;
++
++  return $self->{'old_mode'};
++}
++
++sub _get_new_mode
++{
++  my ($self) = @_;
++
++  return $self->{'new_mode'};
++}
++
++1;
+diff --git a/Kgps/ListingAuxChangesDetailsModeRename.pm b/Kgps/ListingAuxChangesDetailsModeRename.pm
+new file mode 100644
+index 0000000..169aca7
+--- /dev/null
++++ b/Kgps/ListingAuxChangesDetailsModeRename.pm
+@@ -0,0 +1,82 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::ListingAuxChangesDetailsModeRename;
++
++use parent qw(Kgps::ListingAuxChangesDetailsBase);
++use strict;
++use v5.16;
++use warnings;
++
++sub new
++{
++  my ($type, $old_path, $new_path, $similarity_index, $old_mode, $new_mode) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::ListingAuxChangesDetailsModeRename');
++  my $self = $class->SUPER::new ($new_path);
++
++  $self->{'old_path'} = $old_path;
++  $self->{'similarity_index'} = $similarity_index;
++  $self->{'old_mode'} = $old_mode;
++  $self->{'new_mode'} = $new_mode;
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub _to_lines_vfunc
++{
++  my ($self) = @_;
++  my $old_path = $self->_get_old_path ();
++  my $new_path = $self->_get_new_path ();
++  my $similarity_index = $self->_get_similarity_index ();
++  my $old_mode = $self->_get_old_mode ();
++  my $new_mode = $self->_get_new_mode ();
++  my @lines = ();
++
++  push (@lines,
++        " rename $old_path => $new_path ($similarity_index%)",
++        " mode change $old_mode => $new_mode");
++
++  return @lines;
++}
++
++sub _get_old_path
++{
++  my ($self) = @_;
++
++  return $self->{'old_path'};
++}
++
++sub _get_new_path
++{
++  my ($self) = @_;
++
++  return $self->get_path ()
++}
++
++sub _get_similarity_index
++{
++  my ($self) = @_;
++
++  return $self->{'similarity_index'};
++}
++
++sub _get_old_mode
++{
++  my ($self) = @_;
++
++  return $self->{'old_mode'};
++}
++
++sub _get_new_mode
++{
++  my ($self) = @_;
++
++  return $self->{'new_mode'};
++}
++
++1;
+diff --git a/Kgps/ListingAuxChangesDetailsRename.pm b/Kgps/ListingAuxChangesDetailsRename.pm
+new file mode 100644
+index 0000000..be9ba21
+--- /dev/null
++++ b/Kgps/ListingAuxChangesDetailsRename.pm
+@@ -0,0 +1,63 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::ListingAuxChangesDetailsRename;
++
++use parent qw(Kgps::ListingAuxChangesDetailsBase);
++use strict;
++use v5.16;
++use warnings;
++
++sub new
++{
++  my ($type, $old_path, $new_path, $similarity_index) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::ListingAuxChangesDetailsRename');
++  my $self = $class->SUPER::new ($new_path);
++
++  $self->{'old_path'} = $old_path;
++  $self->{'similarity_index'} = $similarity_index;
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub _to_lines_vfunc
++{
++  my ($self) = @_;
++  my $old_path = $self->_get_old_path ();
++  my $new_path = $self->_get_new_path ();
++  my $similarity_index = $self->_get_similarity_index ();
++  my @lines = ();
++
++  push (@lines,
++        " rename $old_path => $new_path ($similarity_index%)");
++
++  return @lines;
++}
++
++sub _get_old_path
++{
++  my ($self) = @_;
++
++  return $self->{'old_path'};
++}
++
++sub _get_new_path
++{
++  my ($self) = @_;
++
++  return $self->get_path ()
++}
++
++sub _get_similarity_index
++{
++  my ($self) = @_;
++
++  return $self->{'similarity_index'};
++}
++
++1;
+diff --git a/Kgps/ListingInfo.pm b/Kgps/ListingInfo.pm
+index 74d59d6..341a958 100644
+--- a/Kgps/ListingInfo.pm
++++ b/Kgps/ListingInfo.pm
+@@ -19,14 +19,14 @@ use v5.16;
+#SECTION: AUX_CHANGES_RENAME
+ use warnings;
+ 
+ use Kgps::BasenameStats;
++use Kgps::ListingAuxChanges;
+ use Kgps::ListingSummary;
+-use Kgps::NewAndGoneFiles;
+ 
+ sub new
+ {
+   my ($type) = @_;
+ 
+-  return _new_with_items ($type, Kgps::BasenameStats->new (), Kgps::ListingSummary->new (), Kgps::NewAndGoneFiles->new ());
++  return _new_with_items ($type, Kgps::BasenameStats->new (), Kgps::ListingSummary->new (), Kgps::ListingAuxChanges->new ());
+ }
+ 
+ sub get_per_basename_stats
+@@ -43,11 +43,11 @@ sub get_summary
+#SECTION: AUX_CHANGES_RENAME
+   return $self->{'summary'};
+ }
+ 
+-sub get_new_and_gone_files
++sub get_aux_changes
+ {
+   my ($self) = @_;
+ 
+-  return $self->{'new_and_gone_files'};
++  return $self->{'aux_changes'};
+ }
+ 
+ sub merge
+@@ -55,24 +55,24 @@ sub merge
+#SECTION: AUX_CHANGES_RENAME
+   my ($self, $other) = @_;
+   my $merged_per_basename_stats = $self->get_per_basename_stats ()->merge ($other->get_per_basename_stats ());
+   my $merged_summary = $self->get_summary ()->merge ($other->get_summary ());
+-  my $merged_new_and_gone_files = $self->get_new_and_gone_files ()->merge ($other->get_new_and_gone_files ());
++  my $merged_aux_changes = $self->get_aux_changes ()->merge ($other->get_aux_changes ());
+ 
+-  unless (defined ($merged_per_basename_stats) and defined ($merged_summary) and defined ($merged_new_and_gone_files))
++  unless (defined ($merged_per_basename_stats) and defined ($merged_summary) and defined ($merged_aux_changes))
+   {
+     return undef;
+   }
+ 
+-  return Kgps::ListingInfo->_new_with_items ($merged_per_basename_stats, $merged_summary, $merged_new_and_gone_files);
++  return Kgps::ListingInfo->_new_with_items ($merged_per_basename_stats, $merged_summary, $merged_aux_changes);
+ }
+ 
+ sub _new_with_items
+ {
+-  my ($type, $per_basename_stats, $summary, $new_and_gone_files) = @_;
++  my ($type, $per_basename_stats, $summary, $aux_changes) = @_;
+   my $class = (ref ($type) or $type or 'Kgps::ListingInfo');
+   my $self = {
+     'per_basename_stats' => $per_basename_stats,
+     'summary' => $summary,
+-    'new_and_gone_files' => $new_and_gone_files,
++    'aux_changes' => $aux_changes,
+   };
+ 
+   $self = bless ($self, $class);
+diff --git a/Kgps/Misc.pm b/Kgps/Misc.pm
+index b25bb86..6f7b5f1 100644
+--- a/Kgps/Misc.pm
++++ b/Kgps/Misc.pm
+@@ -44,4 +44,17 @@ sub to_num
+#SECTION: FIRST_WORD
+   return 0 + $stuff;
+ }
+ 
++sub first_word
++{
++  my ($line) = @_;
++
++  if ($line =~ /^(\w+)\s/a)
++  {
++    return $1;
++  }
++
++  return undef;
++
++}
++
+ 1;
+diff --git a/Kgps/NewAndGoneFiles.pm b/Kgps/NewAndGoneFiles.pm
+deleted file mode 100644
+index dcb80b2..0000000
+--- a/Kgps/NewAndGoneFiles.pm
++++ /dev/null
+@@ -1,119 +0,0 @@
+#SECTION: AUX_CHANGES_RENAME
+-# This Source Code Form is subject to the terms of the Mozilla Public
+-# License, v. 2.0. If a copy of the MPL was not distributed with this
+-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-#
+-# This Source Code Form is "Incompatible With Secondary Licenses", as
+-# defined by the Mozilla Public License, v. 2.0.
+-
+-package Kgps::NewAndGoneFiles;
+-
+-use strict;
+-use v5.16;
+-use warnings;
+-
+-use Kgps::NewAndGoneDetails;
+-
+-sub new
+-{
+-  my ($type) = @_;
+-
+-  return _new_with_files ($type, {});
+-}
+-
+-sub add_details
+-{
+-  my ($self, $path, $details) = @_;
+-  my $files = $self->_get_files ();
+-
+-  if (exists ($files->{$path}))
+-  {
+-    return 0;
+-  }
+-
+-  $files->{$path} = $details;
+-
+-  return 1;
+-}
+-
+-sub get_details_for_path
+-{
+-  my ($self, $path) = @_;
+-  my $files = $self->_get_files ();
+-
+-  unless (exists ($files->{$path}))
+-  {
+-    return undef;
+-  }
+-
+-  return $files->{$path};
+-}
+-
+-sub merge
+-{
+-  my ($self, $other) = @_;
+-  my $self_files = $self->_get_files ();
+-  my $other_files = $other->_get_files ();
+-  my $merged_files = { %{$self_files}, %{$other_files} };
+-
+-  if (scalar (keys (%{$merged_files})) != scalar (keys (%{$self_files})) + scalar (keys (%{$other_files})))
+-  {
+-    return undef;
+-  }
+-
+-  return Kgps::NewAndGoneFiles->_new_with_files ($merged_files);
+-}
+-
+-sub to_lines
+-{
+-  my ($self) = @_;
+-  my $files = $self->_get_files ();
+-  my @lines = ();
+-
+-  for my $path (sort (keys (%{$files})))
+-  {
+-    my $details = $files->{$path};
+-    my $action = $details->get_action ();
+-    my $mode = $details->get_mode ();
+-    my $action_str = '';
+-
+-    if ($action == Kgps::NewAndGoneDetails::Create)
+-    {
+-      $action_str = 'create';
+-    }
+-    elsif ($action == Kgps::NewAndGoneDetails::Delete)
+-    {
+-      $action_str = 'delete';
+-    }
+-    else
+-    {
+-      die;
+-    }
+-
+-    push (@lines, " $action_str mode $mode $path");
+-  }
+-
+-  return @lines;
+-}
+-
+-sub _get_files
+-{
+-  my ($self) = @_;
+-
+-  return $self->{'files'};
+-}
+-
+-sub _new_with_files
+-{
+-  my ($type, $files) = @_;
+-  my $class = (ref ($type) or $type or 'Kgps::NewAndGoneFiles');
+-  my $self = {
+-    # path to NewAndGoneDetails
+-    'files' => $files,
+-  };
+-
+-  $self = bless ($self, $class);
+-
+-  return $self;
+-}
+-
+-1;
+diff --git a/Kgps/ParseContext.pm b/Kgps/ParseContext.pm
+index 9164d60..f680415 100644
+--- a/Kgps/ParseContext.pm
++++ b/Kgps/ParseContext.pm
+@@ -38,6 +38,8 @@ sub new
+     'previous_lines' => [],
+     'patch' => Kgps::Patch->new (),
+     'current_diff_header' => undef,
++    'headers_for_sections' => undef,
++    'allowed_section_ranges' => undef,
+   };
+ 
+   $self = bless ($self, $class);
+@@ -320,4 +322,32 @@ sub get_current_diff_header_or_die
+   return $diff_header;
+ }
+ 
++sub get_headers_for_sections
++{
++  my ($self) = @_;
++
++  return $self->{'headers_for_sections'};
++}
++
++sub set_headers_for_sections
++{
++  my ($self, $headers_for_sections) = @_;
++
++  $self->{'headers_for_sections'} = $headers_for_sections;
++}
++
++sub get_allowed_section_ranges
++{
++  my ($self) = @_;
++
++  return $self->{'allowed_section_ranges'};
++}
++
++sub set_allowed_section_ranges
++{
++  my ($self, $allowed_section_ranges) = @_;
++
++  $self->{'allowed_section_ranges'} = $allowed_section_ranges;
++}
++
+ 1;
+diff --git a/Kgps/Patch.pm b/Kgps/Patch.pm
+index 4edb503..e85f3a8 100644
+--- a/Kgps/Patch.pm
++++ b/Kgps/Patch.pm
+@@ -13,6 +13,13 @@ use v5.16;
+ use warnings;
+ 
+ use Kgps::ListingInfo;
++use Kgps::Section;
++
++use constant
++{
++  SpecialStart => '^START^',
++  SpecialEnd => '^END^',
++};
+ 
+ sub new
+ {
+@@ -257,4 +264,34 @@ sub get_ordered_sectioned_raw_diffs_and_modes
+   return \@sectioned_diffs_and_modes;
+ }
+ 
++sub wrap_sections
++{
++  my ($self) = @_;
++  my $sections_array = $self->get_sections_ordered ();
++  my $sections_hash = $self->get_sections_unordered ();
++
++  if (exists ($sections_hash->{SpecialStart ()}))
++  {
++    die;
++  }
++  if (exists ($sections_hash->{SpecialEnd ()}))
++  {
++    die;
++  }
++  unless (@{$sections_array})
++  {
++    die;
++  }
++
++  my $first_section = $sections_array->[0];
++  my $last_section = $sections_array->[-1];
++  my $start_section = Kgps::Section->new_special (SpecialStart, $first_section->get_index () - 1, $first_section);
++  my $end_section = Kgps::Section->new_special (SpecialEnd, $last_section->get_index () + 1, $last_section);
++
++  unshift (@{$sections_array}, $start_section);
++  push (@{$sections_array}, $end_section);
++  $sections_hash->{SpecialStart ()} = $start_section;
++  $sections_hash->{SpecialEnd ()} = $end_section;
++}
++
+ 1;
+diff --git a/Kgps/Section.pm b/Kgps/Section.pm
+index 7d5c527..9a849f9 100644
+--- a/Kgps/Section.pm
++++ b/Kgps/Section.pm
+@@ -26,6 +26,7 @@ sub new
+     'date' => undef,
+     'subject' => undef,
+     'message_lines' => undef,
++    'special' => 0,
+   };
+ 
+   $self = bless ($self, $class);
+@@ -33,6 +34,35 @@ sub new
+   return $self;
+ }
+ 
++sub new_special
++{
++  my ($type, $name, $index, $neighbour) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::Section');
++  my $self =
++  {
++    'name' => $name,
++    'index' => $index,
++    'neighbour' => $neighbour,
++    'special' => 1,
++  };
++
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++sub get_neighbour_if_special
++{
++  my ($self) = @_;
++
++  if ($self->_is_special ())
++  {
++    return $self->_get_neighbour ();
++  }
++
++  return $self;
++}
++
+ sub get_name
+ {
+   my ($self) = @_;
+@@ -133,4 +163,27 @@ sub is_younger_than
+   return $other->is_older_than ($self);
+ }
+ 
++sub is_same_as
++{
++  my ($self, $other) = @_;
++  my $index = $self->get_index ();
++  my $other_index = $other->get_index ();
++
++  return ($index == $other_index);
++}
++
++sub _is_special
++{
++  my ($self) = @_;
++
++  return $self->{'special'};
++}
++
++sub _get_neighbour
++{
++  my ($self) = @_;
++
++  return $self->{'neighbour'};
++}
++
+ 1;
+diff --git a/Kgps/SectionRanges.pm b/Kgps/SectionRanges.pm
+new file mode 100644
+index 0000000..caa6ca6
+--- /dev/null
++++ b/Kgps/SectionRanges.pm
+@@ -0,0 +1,146 @@
++# This Source Code Form is subject to the terms of the Mozilla Public
++# License, v. 2.0. If a copy of the MPL was not distributed with this
++# file, You can obtain one at http://mozilla.org/MPL/2.0/.
++#
++# This Source Code Form is "Incompatible With Secondary Licenses", as
++# defined by the Mozilla Public License, v. 2.0.
++
++package Kgps::SectionRanges;
++
++use strict;
++use v5.16;
++use warnings;
++
++use constant
++{
++  NotInRange => 0,
++  AdditionsOnly => 1,
++  DeletionsOnly => 2,
++  Any => 3,
++};
++
++sub new
++{
++  my ($type, $first_section, $last_section) = @_;
++
++  return _new_with_ranges ($type, [[$first_section, $last_section]]);
++}
++
++sub new_empty
++{
++  my ($type) = @_;
++
++  return _new_with_ranges ($type, []);
++}
++
++sub add_range
++{
++  my ($self, $first_section, $last_section) = @_;
++  my $ranges = $self->_get_ranges ();
++
++  _ensure_order_or_die ($first_section, $last_section);
++  push (@{$ranges}, [$first_section, $last_section]);
++}
++
++sub terminate_last_range_at
++{
++  my ($self, $last_section) = @_;
++  my $ranges = $self->_get_ranges ();
++
++  _ensure_any_range_or_die ($ranges);
++
++  my $last_range = $ranges->[-1];
++  my $first_section = $last_range->[0];
++
++  _ensure_order_or_die ($first_section, $last_section);
++  $last_range->[1] = $last_section;
++}
++
++sub is_in_range
++{
++  my ($self, $section) = @_;
++  my $ranges = $self->_get_ranges ();
++
++  _ensure_any_range_or_die ($ranges);
++
++  for my $range (@{$ranges})
++  {
++    my $first_section = $range->[0];
++    my $last_section = $range->[1];
++
++    if ($first_section->is_same_as ($section))
++    {
++      return AdditionsOnly;
++    }
++    if ($last_section->is_same_as ($section))
++    {
++      return DeletionsOnly;
++    }
++    if ($first_section->is_older_than ($section) and $last_section->is_younger_than ($section))
++    {
++      return Any;
++    }
++  }
++
++  return NotInRange;
++}
++
++sub get_last_allowed_section
++{
++  my ($self) = @_;
++  my $ranges = $self->_get_ranges ();
++
++  _ensure_any_range_or_die ($ranges);
++
++  my $last_range = $ranges->[-1];
++  my $last_section = $last_range->[1];
++
++  return $last_section->get_neighbour_if_special ();
++}
++
++sub _ensure_any_range_or_die
++{
++  my ($ranges) = @_;
++
++  unless (@{$ranges})
++  {
++    die;
++  }
++}
++
++sub _ensure_order_or_die
++{
++  my ($first_section, $last_section) = @_;
++
++  if ($first_section->is_same_as ($last_section))
++  {
++    die;
++  }
++  if ($first_section->is_younger ($last_section))
++  {
++    die;
++  }
++}
++
++sub _get_ranges
++{
++  my ($self) = @_;
++
++  return $self->{'ranges'};
++}
++
++sub _new_with_ranges
++{
++  my ($type, $ranges) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::SectionRanges');
++  my $self =
++  {
++    'ranges' => $ranges,
++  };
++
++  $self = bless ($self, $class);
++
++  return $self;
++}
++
++1;
+diff --git a/Kgps/StatRenderContext.pm b/Kgps/StatRenderContext.pm
+index 221279b..5d87f35 100644
+--- a/Kgps/StatRenderContext.pm
++++ b/Kgps/StatRenderContext.pm
+@@ -101,12 +101,27 @@ sub _log10plus1
+ sub render_text_rest
+ {
+   my ($self, $changed_lines_count, $plus_count, $minus_count) = @_;
+-  my $count_length = _log10plus1 ($self->_get_greatest_lines_changed_count ());
+-  my $pluses = '+' x $plus_count;
+-  my $minuses = '-' x $minus_count;
+-  my $str = sprintf ('%*2$d %3$s%4$s', $changed_lines_count, $count_length, $pluses, $minuses);
++  my $count_length = 0;
++  my $greatest_count = $self->_get_greatest_lines_changed_count ();
++  if ($greatest_count > 0)
++  {
++    $count_length = _log10plus1 ($greatest_count);
++  }
++  else
++  {
++    $count_length = 1;
++  }
++  if ($plus_count + $minus_count > 0)
++  {
++    my $pluses = '+' x $plus_count;
++    my $minuses = '-' x $minus_count;
+ 
+-  return $str;
++    return sprintf ('%*2$d %3$s%4$s', $changed_lines_count, $count_length, $pluses, $minuses);
++  }
++  else
++  {
++    return sprintf ('%*2$d', $changed_lines_count, $count_length);
++  }
+ }
+ 
+ sub _shorten_path_if_needed
+diff --git a/Kgps/TextDiff.pm b/Kgps/TextDiff.pm
+index 2ebb7f3..d3bec3e 100644
+--- a/Kgps/TextDiff.pm
++++ b/Kgps/TextDiff.pm
+@@ -14,10 +14,13 @@ use warnings;
+ use v5.16;
+ 
+ use Kgps::CodeLine;
++use Kgps::DiffHeader;
++use Kgps::DiffHeaderCommon;
++use Kgps::DiffHeaderPartContentsMode;
++use Kgps::DiffHeaderSpecificExisting;
++use Kgps::FileStateBuilder;
+ use Kgps::FinalCode;
+-use Kgps::ListingInfo;
+ use Kgps::LocationMarker;
+-use Kgps::NewAndGoneDetails;
+ use Kgps::TextFileStat;
+ use Kgps::TextFileStatSignsReal;
+ 
+@@ -81,7 +84,7 @@ sub push_cluster
+ 
+ sub _postprocess_vfunc
+ {
+-  my ($self, $sections_array, $sections_hash) = @_;
++  my ($self, $sections_array, $sections_hash, $headers_for_sections) = @_;
+   # Keeps arrays of final codes.
+   my $for_raw = $self->_create_array_for_each_section ($sections_array);
+   # Additions for markers in code clusters in file to propagate line
+@@ -158,140 +161,138 @@ sub _postprocess_vfunc
+     }
+   }
+ 
+-  # Prepare raw representations of final codes. When file is added or
+-  # deleted the code doing it has to have a different header - the
+-  # outer one. The rest of codes are making changes to already/still
+-  # existing file, so they need ordinary header - the inner one.
+   my $header = $self->get_header ();
+-  my $action = $header->get_action ();
+-  my $inner_index_first = 0;
+-  my $inner_index_last = @{$sections_array} - 1;
+-  my $outer_section_index = undef;
+   my $git_raw = {};
+-  # Git version of a special header for sections doing the file
+-  # creation or deletion.
+-  my $git_header_outer = $self->_get_git_unidiff_header_for_outer ($header);
+-  # Git version of a typical header for section doing some changes to
+-  # a file.
+-  my $git_header_inner = $self->_get_git_unidiff_header_for_inner ($header);
++  my @used_section_names = ();
+ 
+-  unless (defined ($action))
++  for my $section (@{$sections_array})
+   {
+-    my $oldest_section_index_in_this_diff = 0;
+-
+-    foreach my $section (@{$sections_array})
++    my $section_name = $section->get_name ();
++    if (scalar (@{$for_raw->{$section_name}}))
+     {
+-      my $section_name = $section->get_name ();
+-
+-      last if (@{$for_raw->{$section_name}});
+-
+-      ++$oldest_section_index_in_this_diff;
++      push (@used_section_names, $section_name);
+     }
+-
+-    die "SHOULD NOT HAPPEN" if $oldest_section_index_in_this_diff >= @{$sections_array};
+   }
+-  elsif ($action eq "new file")
++
++  my %headers_for_used_sections = _get_headers_for_used_sections ($sections_hash, \@used_section_names, $headers_for_sections);
++  my $stats = {};
++
++  for my $section_name (keys (%headers_for_used_sections))
+   {
+-    my $oldest_section_index_in_this_diff = 0;
++    my $diff_header = $headers_for_used_sections{$section_name};
++    my $final_codes = $for_raw->{$section_name};
+ 
+-    foreach my $section (@{$sections_array})
+-    {
+-      my $section_name = $section->get_name ();
++    $git_raw->{$section_name} = $self->_get_raw_text_for_final_codes ($diff_header, $final_codes);
++    $stats->{$section_name} = $self->_get_stats_for_final_codes ($diff_header, $final_codes);
++  }
+ 
+-      last if (@{$for_raw->{$section_name}});
++  return {'git-raw' => $git_raw, 'stats' => $stats};
++}
+ 
+-      ++$oldest_section_index_in_this_diff;
+-    }
++sub _get_headers_for_used_sections
++{
++  my ($sections_hash, $used_section_names, $headers_for_sections) = @_;
++  my %used_section_name_to_header = map { $_ => undef } @{$used_section_names};
++  my %section_name_to_header = (%used_section_name_to_header, %{$headers_for_sections});
++  my @sorted_section_header_pairs =
++      map { $_->[0] }
++      sort { $a->[1] <=> $b->[1] }
++      map { [[$sections_hash->{$_}, $section_name_to_header{$_}], $sections_hash->{$_}->get_index ()] }
++      keys (%section_name_to_header);
++  my @sorted_defined_headers = map { $_->[1] } grep { defined ($_->[1]) } @sorted_section_header_pairs;
++  my $header_idx = 0;
++  my $any_idx = 0;
++  my $have_headers = 1;
++  my $builder = Kgps::FileStateBuilder->new ();
+ 
+-    die "SHOULD NOT HAPPEN" if $oldest_section_index_in_this_diff >= @{$sections_array};
+-    $inner_index_first = $oldest_section_index_in_this_diff + 1;
+-    $outer_section_index = $oldest_section_index_in_this_diff;
++  unless (scalar (@sorted_defined_headers))
++  {
++    die;
+   }
+-  elsif ($action eq "deleted file")
++
++  while ($any_idx < scalar (@sorted_section_header_pairs) and $have_headers)
+   {
+-    my $youngest_section_index_in_this_diff = -1;
++    my $pair = $sorted_section_header_pairs[$any_idx];
+ 
+-    foreach my $section (reverse (@{$sections_array}))
++    if (defined ($pair->[1]))
+     {
+-      my $section_name = $section->get_name ();
+-
+-      last if (@{$for_raw->{$section_name}});
++      $header_idx++;
++      if ($header_idx == scalar (@sorted_defined_headers))
++      {
++        $header_idx--;
++        $have_headers = 0;
++      }
+ 
+-      --$youngest_section_index_in_this_diff;
++      my $section_name = $pair->[0]->get_name ();
++      if (exists ($used_section_name_to_header{$section_name}))
++      {
++        $pair->[1] = $pair->[1]->with_index ();
++      }
++      else
++      {
++        $pair->[1] = $pair->[1]->without_index ();
++      }
+     }
++    else
++    {
++      my $header = $sorted_defined_headers[$header_idx];
++      my $common = $header->get_diff_common ();
++      my $specific = $header->_get_diff_specific ();
++      my $file_state = $specific->get_pre_file_state ($builder, $common);
++      my $wrapper = $file_state->get_wrapper ();
++      my $data = $wrapper->get_data_or_undef ();
++
++      unless (defined ($data))
++      {
++        die;
++      }
+ 
+-    die "SHOULD NOT HAPPEN" if -$youngest_section_index_in_this_diff > @{$sections_array};
+-    $inner_index_last = @{$sections_array} - 1 + $youngest_section_index_in_this_diff;
+-    $outer_section_index = $youngest_section_index_in_this_diff;
+-  }
+-
+-  my $stats = {};
++      my $path = $data->get_path ();
++      my $mode = $data->get_mode ();
+ 
+-  if (defined ($outer_section_index))
+-  {
+-    my $outer_section_name = $sections_array->[$outer_section_index]->get_name ();
+-    my $final_codes = $for_raw->{$outer_section_name};
+-
+-    $git_raw->{$outer_section_name} = $self->_get_raw_text_for_final_codes ($git_header_outer, $final_codes);
+-    $stats->{$outer_section_name} = $self->_get_stats_for_final_codes ($final_codes);
++      $pair->[1] = _create_contents_only_diff_header ($path, $mode);
++    }
++    $any_idx++;
+   }
+-
+-  my @inner_sections_slice = @{$sections_array}[$inner_index_first .. $inner_index_last];
+-
+-  foreach my $section (@inner_sections_slice)
++  while ($any_idx < scalar (@sorted_section_header_pairs))
+   {
+-    my $section_name = $section->get_name ();
+-    my $final_codes = $for_raw->{$section_name};
++    my $pair = $sorted_section_header_pairs[$any_idx];
+ 
+-    next unless (@{$final_codes});
+-    $git_raw->{$section_name} = $self->_get_raw_text_for_final_codes ($git_header_inner, $final_codes);
+-    $stats->{$section_name} = $self->_get_stats_for_final_codes ($final_codes);
+-  }
++    if (defined ($pair->[1]))
++    {
++      die;
++    }
+ 
+-  return {'git-raw' => $git_raw, 'stats' => $stats};
+-}
++    my $header = $sorted_defined_headers[$header_idx];
++    my $common = $header->get_diff_common ();
++    my $specific = $header->_get_diff_specific ();
++    my $file_state = $specific->get_post_file_state ($builder, $common);
++    my $wrapper = $file_state->get_wrapper ();
++    my $data = $wrapper->get_data_or_undef ();
+ 
+-sub _get_git_unidiff_header_for_outer
+-{
+-  my ($self, $header) = @_;
+-  my $from = $self->_maybe_prefix ('a', $self->get_from ());
+-  my $to = $self->_maybe_prefix ('b', $self->get_to ());
+-  my $action = $header->get_action ();
+-  my $mode = $header->get_mode ();
+-  my @lines = (
+-    "diff --git $from $to"
+-  );
++    unless (defined ($data))
++    {
++      die;
++    }
+ 
+-  if (defined ($action))
+-  {
+-    push (@lines,
+-          "$action mode $mode",
+-          "index 111111..222222");
+-  }
+-  else
+-  {
+-    push (@lines,
+-          "index 111111..222222 $mode");
++    my $path = $data->get_path ();
++    my $mode = $data->get_mode ();
++
++    $pair->[1] = _create_contents_only_diff_header ($path, $mode);
++    $any_idx++;
+   }
+-  push (@lines,
+-        "--- $from",
+-        "+++ $to");
+-  return join ("\n", @lines);
++
++  return map { $_->[0]->get_name () => $_->[1] } @sorted_section_header_pairs;
+ }
+ 
+-sub _get_git_unidiff_header_for_inner
++sub _create_contents_only_diff_header
+ {
+-  my ($self, $header) = @_;
+-  my $file = $self->_get_changed_file ();
+-  my $from = $self->_maybe_prefix ('a', $file);
+-  my $to = $self->_maybe_prefix ('b', $file);
+-  my $mode = $header->get_mode ();
++  my ($path, $mode) = @_;
++  my $common = Kgps::DiffHeaderCommon->new ($path, $path);
++  my $part_contents_mode = Kgps::DiffHeaderPartContentsMode->new ('1' x 7, '2' x 7, $mode);
++  my $specific = Kgps::DiffHeaderSpecificExisting->new (undef, undef, $part_contents_mode);
+ 
+-  return join ("\n",
+-               "diff --git $from $to",
+-               "index 111111..222222 $mode",
+-               "--- $from",
+-               "+++ $to");
++  return Kgps::DiffHeader->new_strict ($common, $specific);
+ }
+ 
+ sub _get_changed_file
+@@ -768,12 +769,25 @@ sub _append_context
+ 
+ sub _get_raw_text_for_final_codes
+ {
+-  my ($self, $header, $final_codes) = @_;
+-  my @raw_codes = map { $self->_get_raw_text_for_final_code ($_) } @{$final_codes};
++  my ($self, $diff_header, $final_codes) = @_;
++  my @text_diff_lines = ();
++
++  if (scalar (@{$final_codes}))
++  {
++    my @raw_codes = map { $self->_get_raw_text_for_final_code ($_) } @{$final_codes};
++    my $diff_common = $diff_header->get_diff_common ();
++    my $from = $diff_common->get_a ();
++    my $to = $diff_common->get_b ();
++
++    push (@text_diff_lines,
++          "--- $from",
++          "+++ $to",
++          @raw_codes);
++  }
+ 
+   return join ("\n",
+-               $header,
+-               @raw_codes);
++               $diff_header->to_lines (),
++               @text_diff_lines);
+ }
+ 
+ sub _get_raw_text_for_final_code
+@@ -797,13 +811,7 @@ sub _lines_to_string
+ 
+ sub _get_stats_for_final_codes
+ {
+-  my ($self, $final_codes) = @_;
+-  my $listing_info = Kgps::ListingInfo->new ();
+-  my $per_basename_stats = $listing_info->get_per_basename_stats ();
+-  my $summary = $listing_info->get_summary ();
+#OVERLAP
+# OUTCOME
+-  my $new_and_gone_files = $listing_info->get_new_and_gone_files ();
+# SECTION: AUX_CHANGES_RENAME
+-  my $new_and_gone_files = $listing_info->get_new_and_gone_files ();
++  my $listing_aux_changes = $listing_info->get_aux_changes ();
+# SECTION: REST
+-  my $listing_aux_changes = $listing_info->get_aux_changes ();
+#END_OVERLAP
+-  my $header = $self->get_header ();
+-  my $mode = $header->get_mode ();
++  my ($self, $header, $final_codes) = @_;
+   my $insertions = 0;
+   my $deletions = 0;
+ 
+@@ -827,27 +835,10 @@ sub _get_stats_for_final_codes
+   }
+ 
+   my $signs = Kgps::TextFileStatSignsReal->new ($insertions, $deletions);
+-  my $path = $self->_get_changed_file ();
+-
+-  $summary->set_files_changed_count (1);
+-  $summary->set_insertions ($insertions);
+-  $summary->set_deletions ($deletions);
+-  $per_basename_stats->add_stat (Kgps::TextFileStat->new ($path, $signs));
+-
+#OVERLAP
+# OUTCOME
+-  if ($self->get_from () eq '/dev/null')
+-  {
+-    my $details = Kgps::NewAndGoneDetails->new (Kgps::NewAndGoneDetails::Create, $mode);
+-
+-    $new_and_gone_files->add_details ($self->get_to (), $details);
+-  }
+-  elsif ($self->get_to () eq '/dev/null')
+-  {
+-    my $details = Kgps::NewAndGoneDetails->new (Kgps::NewAndGoneDetails::Delete, $mode);
+-
+-    $new_and_gone_files->add_details ($self->get_from (), $details);
+-  }
+# SECTION: AUX_CHANGES_RENAME
+   if ($self->get_from () eq '/dev/null')
+   {
+     my $details = Kgps::NewAndGoneDetails->new (Kgps::NewAndGoneDetails::Create, $mode);
+ 
+-    $new_and_gone_files->add_details ($self->get_to (), $details);
++    $listing_aux_changes->add_details ($self->get_to (), $details);
+   }
+   elsif ($self->get_to () eq '/dev/null')
+   {
+     my $details = Kgps::NewAndGoneDetails->new (Kgps::NewAndGoneDetails::Delete, $mode);
+ 
+-    $new_and_gone_files->add_details ($self->get_from (), $details);
++    $listing_aux_changes->add_details ($self->get_from (), $details);
+   }
+# SECTION: REST
+-  if ($self->get_from () eq '/dev/null')
+-  {
+-    my $details = Kgps::NewAndGoneDetails->new (Kgps::NewAndGoneDetails::Create, $mode);
+-
+-    $listing_aux_changes->add_details ($self->get_to (), $details);
+-  }
+-  elsif ($self->get_to () eq '/dev/null')
+-  {
+-    my $details = Kgps::NewAndGoneDetails->new (Kgps::NewAndGoneDetails::Delete, $mode);
+-
+-    $listing_aux_changes->add_details ($self->get_from (), $details);
+-  }
+#END_OVERLAP
++  my $path = $header->get_basename_stat_path ();
++  my $stat = Kgps::TextFileStat->new_with_real_signs ($path, $signs);
+ 
+-  return $listing_info;
++  return $header->get_stats ($stat);
+ }
+ 
+ sub _marker_to_string
+diff --git a/Kgps/TextFileStat.pm b/Kgps/TextFileStat.pm
+index 48a1edf..8f17789 100644
+--- a/Kgps/TextFileStat.pm
++++ b/Kgps/TextFileStat.pm
+@@ -15,23 +15,24 @@ use strict;
+ use v5.16;
+ use warnings;
+ 
+-sub new
++# TODO: make a separate member for drawn signs and a separate one for
++# real signs.
++#
++# TODO: fixup drawn signs into a real one when parsed the whole patch
++#
++# TODO: file stat base could be used to fill the listing summary then
++sub new_with_real_signs
+ {
+-  my ($type, $path, $signs) = @_;
+-  my $class = (ref ($type) or $type or 'Kgps::TextFileStat');
+-  my $self = $class->SUPER::new ($path);
++  my ($type, $path, $real_signs) = @_;
+ 
+-  $self->{'signs'} = $signs;
+-  $self = bless ($self, $class);
+-
+-  return $self;
++  return _new_full ($type, $path, $real_signs, undef);
+ }
+ 
+-sub get_lines_changed_count
++sub new_with_drawn_signs
+ {
+-  my ($self) = @_;
++  my ($type, $path, $drawn_signs) = @_;
+ 
+-  return $self->{'lines_changed_count'};
++  return _new_full ($type, $path, undef, $drawn_signs);
+ }
+ 
+ sub _fill_context_info_vfunc
+@@ -50,11 +51,49 @@ sub _to_string_vfunc
+   return $signs->to_string ($stat_render_context);
+ }
+ 
++sub _fill_summary_vfunc
++{
++  my ($self, $summary) = @_;
++  my $signs = $self->_get_signs ();
++  my $insertions = $signs->get_insertions ();
++  my $deletions = $signs->get_deletions ();
++
++  $summary->set_files_changed_count (1);
++  $summary->set_insertions ($insertions);
++  $summary->set_deletions ($deletions);
++}
++
+ sub _get_signs
+ {
+   my ($self) = @_;
++  my $signs = $self->_get_real_signs ();
++
++  unless (defined ($signs))
++  {
++    $signs = $self->{'drawn_signs'};
++  }
++
++  return $signs;
++}
++
++sub _get_real_signs
++{
++  my ($self) = @_;
++
++  return $self->{'real_signs'};
++}
+ 
+-  return $self->{'signs'};
++sub _new_full
++{
++  my ($type, $path, $real_signs, $drawn_signs) = @_;
++  my $class = (ref ($type) or $type or 'Kgps::TextFileStat');
++  my $self = $class->SUPER::new ($path);
++
++  $self->{'real_signs'} = $real_signs;
++  $self->{'drawn_signs'} = $drawn_signs;
++  $self = bless ($self, $class);
++
++  return $self;
+ }
+ 
+ 1;
+diff --git a/Kgps/TextFileStatSignsBase.pm b/Kgps/TextFileStatSignsBase.pm
+index cb61274..d5a776e 100644
+--- a/Kgps/TextFileStatSignsBase.pm
++++ b/Kgps/TextFileStatSignsBase.pm
+@@ -36,4 +36,18 @@ sub to_string
+   return $self->_to_string_vfunc ($stat_render_context);
+ }
+ 
++sub get_insertions
++{
++  my ($self) = @_;
++
++  return $self->_get_insertions_vfunc ();
++}
++
++sub get_deletions
++{
++  my ($self) = @_;
++
++  return $self->_get_deletions_vfunc ();
++}
++
+ 1;
+diff --git a/Kgps/TextFileStatSignsDrawn.pm b/Kgps/TextFileStatSignsDrawn.pm
+index a476785..9413550 100644
+--- a/Kgps/TextFileStatSignsDrawn.pm
++++ b/Kgps/TextFileStatSignsDrawn.pm
+@@ -29,23 +29,29 @@ sub new
+ sub _fill_context_info_vfunc
+ {
+   my ($self, $stat_render_context) = @_;
+-  my $lines_changed_count = $self->_get_lines_changed_count ();
+ 
+-  $stat_render_context->feed_lines_changed_count ($lines_changed_count);
++  # do nothing, this shouldn't be used
+ }
+ 
+ sub _to_string_vfunc
+ {
+   my ($self, $stat_render_context) = @_;
+ 
+-  return '';
++  return '<wrong>';
+ }
+ 
+-sub _get_lines_changed_count
++sub _get_insertions_vfunc
+ {
+   my ($self) = @_;
+ 
+-  return $self->{'lines_changed_count'};
++  return -1;
++}
++
++sub _get_deletions_vfunc
++{
++  my ($self) = @_;
++
++  return -1;
+ }
+ 
+ 1;
+diff --git a/Kgps/TextFileStatSignsReal.pm b/Kgps/TextFileStatSignsReal.pm
+index feaf1f9..a29fbd5 100644
+--- a/Kgps/TextFileStatSignsReal.pm
++++ b/Kgps/TextFileStatSignsReal.pm
+@@ -43,6 +43,20 @@ sub _to_string_vfunc
+   return $stat_render_context->render_text_rest ($total, $insertions, $deletions);
+ }
+ 
++sub _get_insertions_vfunc
++{
++  my ($self) = @_;
++
++  return $self->_get_insertions ();
++}
++
++sub _get_deletions_vfunc
++{
++  my ($self) = @_;
++
++  return $self->_get_deletions ();
++}
++
+ sub _get_insertions
+ {
+   my ($self) = @_;
+diff --git a/kgps b/kgps
+index 48c5909..b7d5aab 100755
+--- a/kgps
++++ b/kgps
+@@ -64,7 +64,7 @@ sub generate_git_patches {
+#SECTION: AUX_CHANGES_RENAME
+     my $stat_render_context = Kgps::StatRenderContext->new ();
+     my $per_basename_stats = $stats->get_per_basename_stats ();
+     my $summary = $stats->get_summary ();
+-    my $new_and_gone_files = $stats->get_new_and_gone_files ();
++    my $listing_aux_changes = $stats->get_aux_changes ();
+ 
+     $per_basename_stats->fill_context_info ($stat_render_context);
+ 
+@@ -79,7 +79,7 @@ sub generate_git_patches {
+#SECTION: AUX_CHANGES_RENAME
+                          '---',
+                          $per_basename_stats->to_lines ($stat_render_context),
+                          $summary->to_string (),
+-                         $new_and_gone_files->to_lines (),
++                         $listing_aux_changes->to_lines (),
+                          '',
+                          $diff,
+                          '-- ',
+-- 
+2.17.1
+
