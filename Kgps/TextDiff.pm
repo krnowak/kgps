@@ -405,6 +405,58 @@ sub _handle_section_code
   push (@{$final_codes->{$section_name}}, $final_code);
 }
 
+sub _adapt_additions
+{
+  my ($self, $current_section, $current_line, $additions, $sections_hash) = @_;
+  my @all_section_names = keys (%{$additions});
+  my $sigil = $current_line->get_sigil ();
+
+  foreach my $section_name (@all_section_names)
+  {
+    my $marker = $additions->{$section_name};
+    my $section = $sections_hash->{$section_name};
+
+    if ($sigil == CodeLine::Plus)
+    {
+      if ($section->is_younger_than ($current_section))
+      {
+        # old line no + 1
+        # new line no + 1
+        $marker->inc_old_line_no ();
+        $marker->inc_new_line_no ();
+      }
+      elsif ($section->is_older_than ($current_section))
+      {
+        # nothing changes
+      }
+      else # same section
+      {
+        $marker->inc_new_line_no ();
+        # new line no + 1
+      }
+    }
+    elsif ($sigil == CodeLine::Minus)
+    {
+      if ($section->is_younger_than ($current_section))
+      {
+        $marker->dec_old_line_no ();
+        $marker->dec_new_line_no ();
+        # old line no - 1
+        # new line no - 1
+      }
+      elsif ($section->is_older_than ($current_section))
+      {
+        # nothing changes
+      }
+      else # same section
+      {
+        $marker->dec_new_line_no ();
+        # new line no - 1
+      }
+    }
+  }
+}
+
 sub _adapt_markers
 {
   my ($self, $current_section, $current_line, $markers, $sections_hash) = @_;
