@@ -1,3 +1,31 @@
+old line count and old line no reflect the situation from before
+the oldest applied patch
+
+new line count and new line no reflect the situation from after
+the newest applied patch
+
+add
+  younger than current
+    old inc
+  same as current
+    nothing
+  older than current
+    new dec
+minus
+  younger than current
+    old dec
+  same as current
+    nothing
+  older than current
+    new inc
+space
+  younger than current
+    nothing
+  same as current
+    nothing
+  older than current
+    nothing
+
 Diff header modes: relaxed and strict
 
 Relaxed happens for basic mode or full mode with a section
@@ -15,6 +43,9 @@ Issues to file:
   necessary, dunno.
 - Test cluster line accounting - I dropped some dead code, which
   should be hooked into the code I believe.
+  - There is a test and a code that works now.
+  - Need to hook a similar code to the overlapped section code
+    handling.
 - Make path, mode parameter order consistent - sometimes it is path
   then mode, sometimes mode then path.
 - Ensure that each generated patch modifies a file in one diff
@@ -23,7 +54,8 @@ Issues to file:
   - Rename foo to quux in one diff, edit quux in another diff.
 - Handle empty diffs (just renames and/or mode changes).
 - Update the tester to add expected failures.
-- Add the script for easy testcase creation.
+- Update the tester to have a mutually exclusive whitelist/blacklist
+  functionality for running a subset of tests.
 - Use Moose.
   - Only if I figure out how to make getters and setters to use get_
     and set_ notation.
@@ -44,7 +76,7 @@ Issues to file:
     disappear with the last section.
   - Will not be used for the empty diffs.
     - We have completely no information about the file we just renamed
-      or changed its mode.
+      or changed the mode of.
 - Error handling
   - We die in a lot of places.
   - Need to figure out which deaths are assertions, which are input
