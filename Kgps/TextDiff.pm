@@ -110,11 +110,11 @@ sub _postprocess_vfunc
       # bleh
       if ($code->isa ('Kgps::SectionOverlappedCode'))
       {
-        $self->_handle_section_overlapped_code ($code, $markers, $before_contexts, $sections_hash, $final_codes);
+        $self->_handle_section_overlapped_code ($code, $markers, $marker_additions, $before_contexts, $sections_hash, $final_codes);
       }
       elsif ($code->isa ('Kgps::SectionCode'))
       {
-        $self->_handle_section_code ($code, $markers, $before_contexts, $sections_hash, $final_codes);
+        $self->_handle_section_code ($code, $markers, $marker_additions, $before_contexts, $sections_hash, $final_codes);
       }
       else
       {
@@ -371,7 +371,7 @@ sub _create_markers_for_each_section
 
 sub _handle_section_code
 {
-  my ($self, $code, $markers, $before_contexts, $sections_hash, $final_codes) = @_;
+  my ($self, $code, $markers, $marker_additions, $before_contexts, $sections_hash, $final_codes) = @_;
   my $section = $code->get_section ();
   my $section_name = $section->get_name ();
   my $final_marker = $markers->{$section_name}->clone ();
@@ -392,6 +392,8 @@ sub _handle_section_code
   foreach my $line (@{$code->get_lines ()})
   {
     $final_code->push_line ($line->get_sigil (), $line->get_line ());
+    # Adapt additions to markers in other clusters.
+    $self->_adapt_additions ($section, $line, $marker_additions, $sections_hash);
     # Adapt markers for other sections.
     $self->_adapt_markers ($section, $line, $markers, $sections_hash);
     # Adapt marker for current final code.
@@ -416,42 +418,34 @@ sub _adapt_additions
     my $marker = $additions->{$section_name};
     my $section = $sections_hash->{$section_name};
 
-    if ($sigil == CodeLine::Plus)
+    if ($sigil == Kgps::CodeLine::Plus)
     {
       if ($section->is_younger_than ($current_section))
       {
-        # old line no + 1
-        # new line no + 1
         $marker->inc_old_line_no ();
-        $marker->inc_new_line_no ();
       }
       elsif ($section->is_older_than ($current_section))
       {
-        # nothing changes
+        $marker->dec_new_line_no ();
       }
       else # same section
       {
-        $marker->inc_new_line_no ();
-        # new line no + 1
+        # nothing changes
       }
     }
-    elsif ($sigil == CodeLine::Minus)
+    elsif ($sigil == Kgps::CodeLine::Minus)
     {
       if ($section->is_younger_than ($current_section))
       {
         $marker->dec_old_line_no ();
-        $marker->dec_new_line_no ();
-        # old line no - 1
-        # new line no - 1
       }
       elsif ($section->is_older_than ($current_section))
       {
-        # nothing changes
+        $marker->inc_new_line_no ();
       }
       else # same section
       {
-        $marker->dec_new_line_no ();
-        # new line no - 1
+        # nothing changes
       }
     }
   }
@@ -530,7 +524,7 @@ sub _double_new_inc
 
 sub _handle_section_overlapped_code
 {
-  my ($self, $code, $markers, $before_contexts, $sections_hash, $final_codes) = @_;
+  my ($self, $code, $markers, $marker_additions, $before_contexts, $sections_hash, $final_codes) = @_;
   my $section = $code->get_section ();
   my $section_name = $section->get_name ();
   my $final_marker = $markers->{$section_name}->clone ();
@@ -552,6 +546,8 @@ sub _handle_section_overlapped_code
   foreach my $line (@{$code->get_lines ()})
   {
     $final_code->push_line ($line->get_sigil (), $line->get_line ());
+    # Adapt additions to markers in other clusters.
+    $self->_adapt_additions ($section, $line, $marker_additions, $sections_hash);
     # Adapt markers for other sections.
     $self->_adapt_overlapping_markers ($section, $line, $markers, $sections_hash, $overlap_info);
     # Adapt marker for current final code.
