@@ -1,0 +1,33 @@
+From 1111111111111111111111111111111111111111 Mon Sep 17 00:00:00 2001
+From: Krzesimir Nowak <qdlacz@gmail.com>
+Date: Sun, 8 Jul 2018 14:26:35 +0200
+Subject: [PATCH 2/3] Add B, drop 98-100
+
+---
+ foo | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/foo b/foo
+index 1111111..2222222 100644
+--- a/foo
++++ b/foo
+@@ -11,6 +11,9 @@
+ 8
+ 9
+ 10
++B
++B
++B
+ 11
+ 12
+ 13
+@@ -101,6 +104,3 @@
+ 95
+ 96
+ 97
+-98
+-99
+-100
+-- 
+0.0.0
+
