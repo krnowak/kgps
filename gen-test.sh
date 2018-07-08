@@ -114,6 +114,7 @@ sed \
     -e 's/^index xxx..2222222/index 0000000..2222222/g' \
     -e 's/^index 1111111..xxx/index 1111111..0000000/g' \
     -e 's/^[0-9]\+\.[0-9]\+\.[0-9]\+$/0.0.0/' \
+    -e 's/^\(@@ -[0-9]\+\(,[0-9]\+\)\? +[0-9]\+\(,[0-9]\+\)\? @@\).*$/\1/g' \
     "${expecteddir}/"*patch
 
 for f in "${expecteddir}/"*.patch "${testdir}/test.patch"
