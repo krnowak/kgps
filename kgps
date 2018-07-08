@@ -43,6 +43,8 @@ sub generate_git_patches {
     my $subject = $section->get_subject ();
     my $subject_for_patch_name = $subject;
 
+    chomp ($diff);
+
     $subject_for_patch_name =~ s/[^\w.]+/-/ag;
     $subject_for_patch_name =~ s/^-+//ag;
     $subject_for_patch_name =~ s/-+$//ag;
