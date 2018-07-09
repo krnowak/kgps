@@ -39,6 +39,7 @@ index line.
 
 Issues to file:
 
+- Check what perl-critic is and maybe use it.
 - FileStateModified, FileStateWrapperModified are probably not
   necessary, dunno.
 - Test cluster line accounting - I dropped some dead code, which
