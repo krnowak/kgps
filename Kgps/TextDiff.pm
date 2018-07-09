@@ -564,7 +564,6 @@ sub _handle_section_overlapped_code
 sub _adapt_overlapping_markers
 {
   my ($self, $current_section, $current_line, $markers, $sections_hash, $overlap_info) = @_;
-  my @all_section_names = keys (%{$markers});
   my $sections_between_overlapping = $self->_get_sections_between_overlapping ($current_section, $overlap_info, $sections_hash);
   my $sigil = $current_line->get_sigil ();
   my $current_section_marker = $markers->{$current_section->get_name ()};
@@ -609,7 +608,6 @@ sub _adapt_overlapping_markers
 sub _adapt_overlapping_before_contexts
 {
   my ($self, $current_section, $current_line, $before_contexts, $sections_hash, $overlap_info) = @_;
-  my @all_section_names = keys (%{$before_contexts});
   my $sigil = $current_line->get_sigil ();
   my $context_line = Kgps::CodeLine->new (Kgps::CodeLine::Space, $current_line->get_line ());
 
