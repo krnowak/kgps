@@ -27,6 +27,8 @@ sub fill_context_info
   my ($self, $stat_render_context) = @_;
 
   $self->_fill_context_info_vfunc ($stat_render_context);
+
+  return;
 }
 
 sub to_string

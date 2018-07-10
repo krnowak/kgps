@@ -89,6 +89,8 @@ sub process
   $self->_load_file ($filename);
   $self->_parse_file ();
   $self->_cleanup ();
+
+  return;
 }
 
 sub _prepare_parse_context
@@ -102,6 +104,8 @@ sub _prepare_parse_context
   };
 
   $self->{'p_c'} = Kgps::ParseContext->new ('intro', $ops);
+
+  return;
 }
 
 sub _load_file
@@ -117,6 +121,8 @@ sub _load_file
 
   $file->binmode (':utf8');
   $pc->setup_file ($file, $filename);
+
+  return;
 }
 
 sub _parse_file
@@ -128,6 +134,8 @@ sub _parse_file
   {
     $pc->run_op ();
   }
+
+  return;
 }
 
 sub _on_intro
@@ -223,6 +231,8 @@ sub _on_intro
     }
   }
   $pc->set_mode ('listing');
+
+  return;
 }
 
 sub _on_listing
@@ -554,6 +564,8 @@ sub _on_listing
     }
   }
   $pc->set_mode ('rest');
+
+  return;
 }
 
 sub _on_rest
@@ -567,6 +579,8 @@ sub _on_rest
     $loop = $self->_handle_diff_lines ();
     $self->_postprocess_diff ();
   }
+
+  return;
 }
 
 sub _handle_diff_header_lines
@@ -615,6 +629,7 @@ sub _handle_diff_header_lines
 
     $pc->set_headers_for_sections ($headers_for_sections);
     $pc->set_allowed_section_ranges ($allowed_section_ranges);
+
     return;
   }
 
@@ -898,6 +913,8 @@ sub _handle_diff_header_lines
 
   $pc->set_headers_for_sections ($headers_for_sections);
   $pc->set_allowed_section_ranges ($allowed_section_ranges);
+
+  return;
 }
 
 sub _handle_diff_lines
@@ -1396,6 +1413,8 @@ sub _handle_overlap
       }
     }
   }
+
+  return;
 }
 
 sub _push_section_code_to_cluster_or_die
@@ -1420,6 +1439,8 @@ sub _push_section_code_to_cluster_or_die
   {
     $cluster->push_section_code ($code);
   }
+
+  return;
 }
 
 sub _handle_binary_patch
@@ -1519,6 +1540,8 @@ sub _postprocess_diff
   my $raw_diffs_and_mode = $diff->postprocess ($sections_array, $sections_hash, $headers_for_sections);
 
   $patch->add_raw_diffs_and_mode ($raw_diffs_and_mode);
+
+  return;
 }
 
 sub _get_first_word
@@ -1538,6 +1561,8 @@ sub _read_next_line_or_die
   {
     $pc->die ("Unexpected EOF.");
   }
+
+  return;
 }
 
 sub _cleanup
@@ -1556,6 +1581,8 @@ sub _cleanup
     'message' => $patch->get_message_lines (),
   };
   delete ($self->{'p_c'});
+
+  return;
 }
 
 sub _get_pc

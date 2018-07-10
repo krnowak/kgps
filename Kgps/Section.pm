@@ -89,6 +89,8 @@ sub set_subject
   my ($self, $subject) = @_;
 
   $self->{'subject'} = $subject;
+
+  return;
 }
 
 sub get_author
@@ -103,6 +105,8 @@ sub set_author
   my ($self, $author) = @_;
 
   $self->{'author'} = $author;
+
+  return;
 }
 
 sub get_date
@@ -117,13 +121,15 @@ sub set_date
   my ($self, $date) = @_;
 
   $self->{'date'} = $date;
+
+  return;
 }
 
 sub get_message_lines
 {
   my ($self) = @_;
 
-  $self->{'message_lines'}
+  return $self->{'message_lines'}
 }
 
 sub set_message_lines
@@ -131,6 +137,8 @@ sub set_message_lines
   my ($self, $lines) = @_;
 
   $self->{'message_lines'} = $lines;
+
+  return;
 }
 
 sub add_message_line
@@ -144,6 +152,8 @@ sub add_message_line
   }
 
   push (@{$lines}, $line);
+
+  return;
 }
 
 sub is_older_than

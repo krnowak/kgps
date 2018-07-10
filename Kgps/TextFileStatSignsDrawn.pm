@@ -31,6 +31,8 @@ sub _fill_context_info_vfunc
   my ($self, $stat_render_context) = @_;
 
   # do nothing, this shouldn't be used
+
+  return;
 }
 
 sub _to_string_vfunc

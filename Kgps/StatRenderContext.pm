@@ -58,6 +58,8 @@ sub feed_path_length
       $self->_set_longest_path_length ($new_length);
     }
   }
+
+  return;
 }
 
 sub feed_lines_changed_count
@@ -72,6 +74,8 @@ sub feed_lines_changed_count
   {
     $self->_set_greatest_lines_changed_count ($count);
   }
+
+  return;
 }
 
 sub render_stat
@@ -174,6 +178,8 @@ sub _set_longest_path_length
   my ($self, $length) = @_;
 
   $self->{'longest_path_length'} = $length;
+
+  return;
 }
 
 sub _get_greatest_lines_changed_count
@@ -188,6 +194,8 @@ sub _set_greatest_lines_changed_count
   my ($self, $count) = @_;
 
   $self->{'greatest_lines_changed_count'} = $count;
+
+  return;
 }
 
 sub _die_if_locked
@@ -198,6 +206,8 @@ sub _die_if_locked
   {
     die;
   }
+
+  return;
 }
 
 sub _lock
@@ -205,6 +215,8 @@ sub _lock
   my ($self) = @_;
 
   $self->{'locked'} = 1;
+
+  return;
 }
 
 1;

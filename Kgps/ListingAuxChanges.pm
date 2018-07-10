@@ -24,6 +24,8 @@ sub add_details
   my $files = $self->_get_files ();
 
   push (@{$files}, $details);
+
+  return;
 }
 
 sub merge

@@ -232,6 +232,8 @@ sub get
       last;
     }
   }
+
+  return;
 }
 
 1;

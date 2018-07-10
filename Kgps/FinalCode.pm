@@ -53,6 +53,8 @@ sub set_before_context
   my ($self, $context) = @_;
 
   $self->{'before_context'} = $context;
+
+  return;
 }
 
 sub get_after_context
@@ -68,6 +70,8 @@ sub push_after_context_line
   my $after = $self->get_after_context ();
 
   push (@{$after}, $line);
+
+  return;
 }
 
 sub set_bare_marker
@@ -75,6 +79,8 @@ sub set_bare_marker
   my ($self, $marker) = @_;
 
   $self->{'bare_marker'} = $marker;
+
+  return;
 }
 
 sub get_bare_marker
@@ -162,6 +168,8 @@ sub cleanup_context
   $additions->set_new_line_no ($initial_context_count);
   $bare_marker->add_marker ($additions);
   $self->set_bare_marker ($bare_marker);
+
+  return;
 }
 
 sub merge_final_code

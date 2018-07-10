@@ -106,6 +106,8 @@ sub set_old_line_no
   my ($self, $old_line_no) = @_;
 
   $self->{'old_line_no'} = $old_line_no;
+
+  return;
 }
 
 sub get_old_line_no
@@ -127,6 +129,8 @@ sub dec_old_line_no
   my ($self) = @_;
 
   --$self->{'old_line_no'};
+
+  return;
 }
 
 sub set_old_line_count
@@ -134,6 +138,8 @@ sub set_old_line_count
   my ($self, $old_line_count) = @_;
 
   $self->{'old_line_count'} = $old_line_count;
+
+  return;
 }
 
 sub get_old_line_count
@@ -155,6 +161,8 @@ sub set_new_line_no
   my ($self, $new_line_no) = @_;
 
   $self->{'new_line_no'} = $new_line_no;
+
+  return;
 }
 
 sub get_new_line_no
@@ -176,6 +184,8 @@ sub dec_new_line_no
   my ($self) = @_;
 
   --$self->{'new_line_no'};
+
+  return;
 }
 
 sub set_new_line_count
@@ -183,6 +193,8 @@ sub set_new_line_count
   my ($self, $new_line_count) = @_;
 
   $self->{'new_line_count'} = $new_line_count;
+
+  return;
 }
 
 sub get_new_line_count
@@ -204,6 +216,8 @@ sub set_inline_context
   my ($self, $inline_context) = @_;
 
   $self->{'inline_context'} = $inline_context;
+
+  return;
 }
 
 sub get_inline_context
@@ -221,6 +235,8 @@ sub add_marker
   $self->set_new_line_no ($self->get_new_line_no () + $other->get_new_line_no ());
   $self->set_old_line_count ($self->get_old_line_count () + $other->get_old_line_count ());
   $self->set_new_line_count ($self->get_new_line_count () + $other->get_new_line_count ());
+
+  return;
 }
 
 sub sanitize
@@ -269,6 +285,8 @@ sub sanitize
   $self->set_old_line_count ($old_count);
   $self->set_new_line_no ($new_no);
   $self->set_new_line_count ($new_count);
+
+  return;
 }
 
 1;

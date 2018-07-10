@@ -41,6 +41,8 @@ sub push_section_code
   my $codes = $self->get_section_codes ();
 
   push (@{$codes}, $new_code);
+
+  return;
 }
 
 sub get_marker

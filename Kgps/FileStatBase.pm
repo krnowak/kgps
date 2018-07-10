@@ -107,6 +107,8 @@ sub fill_context_info
 
   $stat_render_context->feed_path_length (length ($self->get_path ()));
   $self->_fill_context_info_vfunc ($stat_render_context);
+
+  return;
 }
 
 sub to_string
@@ -121,6 +123,8 @@ sub fill_summary
   my ($self, $summary) = @_;
 
   $self->_fill_summary_vfunc ($summary);
+
+  return;
 }
 
 1;

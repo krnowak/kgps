@@ -55,6 +55,8 @@ sub setup_file
   $self->_set_eof (0);
   $self->{'reached_eof'} = 0;
   $self->{'filename'} = $filename;
+
+  return;
 }
 
 sub get_file
@@ -101,6 +103,8 @@ sub _set_eof
   {
     $self->{'reached_eof'} = 1;
   }
+
+  return;
 }
 
 sub get_mode
@@ -115,6 +119,8 @@ sub set_mode
   my ($self, $mode) = @_;
 
   $self->{'mode'} = $mode;
+
+  return;
 }
 
 sub get_line
@@ -129,6 +135,8 @@ sub set_line
   my ($self, $line) = @_;
 
   $self->{'line'} = $line;
+
+  return;
 }
 
 sub unread_line
@@ -146,6 +154,8 @@ sub unread_line
   $self->set_line ($line);
   $self->_set_eof (0);
   $self->dec_line_no ();
+
+  return;
 }
 
 sub read_next_line
@@ -232,6 +242,8 @@ sub run_op
   }
 
   $ops->{$mode} ();
+
+  return;
 }
 
 sub get_line_no
@@ -246,6 +258,8 @@ sub inc_line_no
   my ($self) = @_;
 
   $self->_mod_line_no (1);
+
+  return;
 }
 
 sub dec_line_no
@@ -256,6 +270,8 @@ sub dec_line_no
   {
     $self->_mod_line_no (-1);
   }
+
+  return;
 }
 
 sub _mod_line_no
@@ -263,6 +279,8 @@ sub _mod_line_no
   my ($self, $increment) = @_;
 
   $self->{'line_number'} += $increment;
+
+  return;
 }
 
 sub die
@@ -293,6 +311,8 @@ sub exhaust_the_file
   my ($self) = @_;
 
   while ($self->read_next_line ()) {};
+
+  return;
 }
 
 sub get_current_diff_header
@@ -307,6 +327,8 @@ sub set_current_diff_header
   my ($self, $current_diff_header) = @_;
 
   $self->{'current_diff_header'} = $current_diff_header;
+
+  return;
 }
 
 sub get_current_diff_header_or_die
@@ -334,6 +356,8 @@ sub set_headers_for_sections
   my ($self, $headers_for_sections) = @_;
 
   $self->{'headers_for_sections'} = $headers_for_sections;
+
+  return;
 }
 
 sub get_allowed_section_ranges
@@ -348,6 +372,8 @@ sub set_allowed_section_ranges
   my ($self, $allowed_section_ranges) = @_;
 
   $self->{'allowed_section_ranges'} = $allowed_section_ranges;
+
+  return;
 }
 
 1;

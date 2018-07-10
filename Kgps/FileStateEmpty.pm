@@ -35,7 +35,7 @@ sub _apply_create_customization_vfunc
 
   unless ($fresh_start)
   {
-    return undef;
+    return;
   }
 
   my $builder = $self->get_builder ();
@@ -49,28 +49,28 @@ sub _apply_delete_customization_vfunc
 {
   my ($self, $customization, $fresh_start) = @_;
 
-  return undef;
+  return;
 }
 
 sub _apply_mode_customization_vfunc
 {
   my ($self, $customization, $fresh_start) = @_;
 
-  return undef;
+  return;
 }
 
 sub _apply_rename_customization_vfunc
 {
   my ($self, $customization, $fresh_start) = @_;
 
-  return undef;
+  return;
 }
 
 sub _apply_index_customization_vfunc
 {
   my ($self, $customization, $fresh_start) = @_;
 
-  return undef;
+  return;
 }
 
 sub _is_same_vfunc
@@ -88,7 +88,7 @@ sub _generate_diff_header_vfunc
   unless (defined ($old_data))
   {
     # TODO: die("empty to empty?");
-    return undef;
+    return;
   }
 
   my $old_path = $old_data->get_path ();

@@ -43,6 +43,8 @@ sub set_code
   my ($self, $code) = @_;
 
   $self->{'code'} = $code;
+
+  return;
 }
 
 sub get_listing_info
@@ -57,6 +59,8 @@ sub set_listing_info
   my ($self, $listing_info) = @_;
 
   $self->{'listing_info'} = $listing_info;
+
+  return;
 }
 
 sub _postprocess_vfunc

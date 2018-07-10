@@ -46,6 +46,8 @@ sub set_part_mode
   my ($self, $part) = @_;
 
   $self->{'part_mode'} = $part;
+
+  return;
 }
 
 sub get_part_rename
@@ -60,6 +62,8 @@ sub set_part_rename
   my ($self, $part) = @_;
 
   $self->{'part_rename'} = $part;
+
+  return;
 }
 
 sub get_part_contents
@@ -74,6 +78,8 @@ sub set_part_contents
   my ($self, $part) = @_;
 
   $self->{'part_contents'} = $part;
+
+  return;
 }
 
 sub _get_text_from_vfunc
@@ -189,6 +195,8 @@ sub _fill_aux_changes_vfunc
 
     $listing_aux_changes->add_details ($details);
   }
+
+  return;
 }
 
 sub _get_allowed_customizations_vfunc

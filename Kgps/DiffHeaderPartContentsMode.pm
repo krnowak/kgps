@@ -36,6 +36,8 @@ sub set_mode
   my ($self, $mode) = @_;
 
   $self->{'mode'} = $mode;
+
+  return;
 }
 
 sub to_lines

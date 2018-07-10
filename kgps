@@ -92,6 +92,7 @@ sub generate_git_patches {
     $file->binmode (':utf8');
     $file->print ($contents);
   }
+  return;
 }
 
 sub figure_out_patch_metadata
@@ -225,6 +226,8 @@ sub figure_out_patch_metadata
       $section->set_message_lines ($default_data->{'message'});
     }
   }
+
+  return;
 }
 
 my $output_directory = '.';

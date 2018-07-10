@@ -45,6 +45,8 @@ sub set_a
   my ($self, $a) = @_;
 
   $self->{'diff_a'} = $a;
+
+  return;
 }
 
 sub get_b
@@ -66,6 +68,8 @@ sub set_b
   my ($self, $b) = @_;
 
   $self->{'diff_b'} = $b;
+
+  return;
 }
 
 sub to_lines

@@ -44,7 +44,7 @@ sub get_char
     return $type_to_char->{$type};
   }
 
-  return undef;
+  return;
 }
 
 sub get_type
@@ -56,7 +56,7 @@ sub get_type
     return $char_to_type->{$char};
   }
 
-  return undef;
+  return;
 }
 
 sub new

@@ -38,6 +38,8 @@ sub set_old_mode
   my ($self, $mode) = @_;
 
   $self->{'old_mode'} = $mode;
+
+  return;
 }
 
 sub get_new_mode
@@ -52,6 +54,8 @@ sub set_new_mode
   my ($self, $mode) = @_;
 
   $self->{'new_mode'} = $mode;
+
+  return;
 }
 
 sub to_lines

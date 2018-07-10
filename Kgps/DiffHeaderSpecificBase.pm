@@ -73,6 +73,8 @@ sub fill_aux_changes
   my ($self, $common, $listing_aux_changes) = @_;
 
   $self->_fill_aux_changes_vfunc ($common, $listing_aux_changes);
+
+  return;
 }
 
 sub get_allowed_customizations

@@ -127,7 +127,7 @@ sub get_diff_header
 
   if (defined ($self->get_failure ()))
   {
-    return undef;
+    return;
   }
 
   if ($part_stage == PartStageDoneConsumed or $part_stage == PartStageDoneNotConsumed)
@@ -135,7 +135,7 @@ sub get_diff_header
     return $self->_create_diff_header ();
   }
 
-  return undef;
+  return;
 }
 
 sub get_failure
@@ -289,6 +289,8 @@ sub _do_line_stage
   {
     die "Unhandled line stage '$line_stage'";
   }
+
+  return;
 }
 
 sub _set_part_mode_value
@@ -296,6 +298,8 @@ sub _set_part_mode_value
   my ($self, $key, $value) = @_;
 
   $self->_set_specific_part_value ($key, $value, 'mode');
+
+  return;
 }
 
 sub _set_part_rename_value
@@ -303,6 +307,8 @@ sub _set_part_rename_value
   my ($self, $key, $value) = @_;
 
   $self->_set_specific_part_value ($key, $value, 'rename');
+
+  return;
 }
 
 sub _set_part_index_no_mode_value
@@ -310,6 +316,8 @@ sub _set_part_index_no_mode_value
   my ($self, $key, $value) = @_;
 
   $self->_set_specific_part_value ($key, $value, 'index_no_mode');
+
+  return;
 }
 
 sub _set_part_index_value
@@ -317,6 +325,8 @@ sub _set_part_index_value
   my ($self, $key, $value) = @_;
 
   $self->_set_specific_part_value ($key, $value, 'index');
+
+  return;
 }
 
 sub _set_part_new_file_value
@@ -324,6 +334,8 @@ sub _set_part_new_file_value
   my ($self, $key, $value) = @_;
 
   $self->_set_specific_part_value ($key, $value, 'new_file');
+
+  return;
 }
 
 sub _set_part_deleted_file_value
@@ -331,6 +343,8 @@ sub _set_part_deleted_file_value
   my ($self, $key, $value) = @_;
 
   $self->_set_specific_part_value ($key, $value, 'deleted_file');
+
+  return;
 }
 
 sub _set_part_diff_value
@@ -338,6 +352,8 @@ sub _set_part_diff_value
   my ($self, $key, $value) = @_;
 
   $self->_set_specific_part_value ($key, $value, 'diff');
+
+  return;
 }
 
 sub _set_specific_part_value
@@ -346,6 +362,8 @@ sub _set_specific_part_value
   my $specific_part_data = $self->_get_specific_part_data ($part_data_key);
 
   $specific_part_data->{$key} = $value;
+
+  return;
 }
 
 sub _do_part_stage
@@ -610,6 +628,8 @@ sub _set_feed_stage
   my ($self, $feed_stage) = @_;
 
   $self->{'feed_stage'} = $feed_stage;
+
+  return;
 }
 
 sub _set_line_stage_if_any
@@ -621,6 +641,8 @@ sub _set_line_stage_if_any
   {
     $self->_set_line_stage ($new_line_stage);
   }
+
+  return;
 }
 
 sub _set_line_stage
@@ -630,6 +652,8 @@ sub _set_line_stage
 
   $self->{'last_line_stage'} = $line_stage;
   $self->{'line_stage'} = $new_line_stage;
+
+  return;
 }
 
 sub _get_first_word
@@ -657,6 +681,8 @@ sub _set_failure
   my ($self, $failure) = @_;
 
   $self->{'failure'} = $failure;
+
+  return;
 }
 
 sub _set_part_stage
@@ -664,6 +690,8 @@ sub _set_part_stage
   my ($self, $part_stage) = @_;
 
   $self->{'part_stage'} = $part_stage;
+
+  return;
 }
 
 sub _get_part_stage
@@ -688,6 +716,8 @@ sub _set_diff_type_if_any
   {
     $self->_set_diff_type ($diff_type);
   }
+
+  return;
 }
 
 sub _set_diff_type
@@ -695,6 +725,8 @@ sub _set_diff_type
   my ($self, $diff_type) = @_;
 
   $self->{'diff_type'} = $diff_type;
+
+  return;
 }
 
 sub _create_diff_header
@@ -704,7 +736,7 @@ sub _create_diff_header
 
   if ($diff_type == DiffTypeUnknown)
   {
-    return undef;
+    return;
   }
   elsif ($diff_type == DiffTypeCreated)
   {
@@ -778,7 +810,7 @@ sub _maybe_create_part_mode
 
   unless ($self->_has_mode_part_data ())
   {
-    return undef;
+    return;
   }
 
   my $old_mode = $self->_get_part_mode_value ('old');
@@ -793,7 +825,7 @@ sub _maybe_create_part_rename
 
   unless ($self->_has_rename_part_data ())
   {
-    return undef;
+    return;
   }
 
   my $similarity_index = $self->_get_part_rename_value ('index');
@@ -823,7 +855,7 @@ sub _maybe_create_part_contents
 
   unless ($self->_has_index_no_mode_part_data ())
   {
-    return undef;
+    return;
   }
 
   return $self->_create_part_contents ();
@@ -835,7 +867,7 @@ sub _maybe_create_part_contents_mode
 
   unless ($self->_has_index_part_data ())
   {
-    return undef;
+    return;
   }
 
   my $from_hash = $self->_get_part_index_value ('from');
@@ -894,49 +926,49 @@ sub _get_part_mode_value
 {
   my ($self, $key) = @_;
 
-  $self->_get_specific_part_value ($key, 'mode');
+  return $self->_get_specific_part_value ($key, 'mode');
 }
 
 sub _get_part_rename_value
 {
   my ($self, $key) = @_;
 
-  $self->_get_specific_part_value ($key, 'rename');
+  return $self->_get_specific_part_value ($key, 'rename');
 }
 
 sub _get_part_index_no_mode_value
 {
   my ($self, $key) = @_;
 
-  $self->_get_specific_part_value ($key, 'index_no_mode');
+  return $self->_get_specific_part_value ($key, 'index_no_mode');
 }
 
 sub _get_part_index_value
 {
   my ($self, $key) = @_;
 
-  $self->_get_specific_part_value ($key, 'index');
+  return $self->_get_specific_part_value ($key, 'index');
 }
 
 sub _get_part_new_file_value
 {
   my ($self, $key) = @_;
 
-  $self->_get_specific_part_value ($key, 'new_file');
+  return $self->_get_specific_part_value ($key, 'new_file');
 }
 
 sub _get_part_deleted_file_value
 {
   my ($self, $key) = @_;
 
-  $self->_get_specific_part_value ($key, 'deleted_file');
+  return $self->_get_specific_part_value ($key, 'deleted_file');
 }
 
 sub _get_part_diff_value
 {
   my ($self, $key) = @_;
 
-  $self->_get_specific_part_value ($key, 'diff');
+  return $self->_get_specific_part_value ($key, 'diff');
 }
 
 sub _get_specific_part_value

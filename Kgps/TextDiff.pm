@@ -51,6 +51,8 @@ sub set_to
   my ($self, $to) = @_;
 
   $self->{'to'} = $to;
+
+  return;
 }
 
 sub get_from
@@ -65,6 +67,8 @@ sub set_from
   my ($self, $from) = @_;
 
   $self->{'from'} = $from;
+
+  return;
 }
 
 sub get_clusters
@@ -80,6 +84,8 @@ sub push_cluster
   my $clusters = $self->get_clusters ();
 
   push (@{$clusters}, $new_cluster);
+
+  return;
 }
 
 sub _postprocess_vfunc
@@ -405,6 +411,8 @@ sub _handle_section_code
     $self->_push_after_context ($section, $line, $final_codes, $sections_hash);
   }
   push (@{$final_codes->{$section_name}}, $final_code);
+
+  return;
 }
 
 sub _adapt_additions
@@ -449,6 +457,8 @@ sub _adapt_additions
       }
     }
   }
+
+  return;
 }
 
 sub _adapt_markers
@@ -500,6 +510,8 @@ sub _adapt_markers
       _double_new_inc ($marker);
     }
   }
+
+  return;
 }
 
 sub _double_old_inc
@@ -510,6 +522,8 @@ sub _double_old_inc
   {
     $marker->inc_old_line_no ();
   }
+
+  return;
 }
 
 sub _double_new_inc
@@ -520,6 +534,8 @@ sub _double_new_inc
   {
     $marker->inc_new_line_no ();
   }
+
+  return;
 }
 
 sub _handle_section_overlapped_code
@@ -559,6 +575,8 @@ sub _handle_section_overlapped_code
     $self->_push_overlapping_after_context ($section, $line, $final_codes, $sections_hash, $overlap_info);
   }
   push (@{$final_codes->{$section_name}}, $final_code);
+
+  return;
 }
 
 sub _adapt_overlapping_markers
@@ -603,6 +621,8 @@ sub _adapt_overlapping_markers
       $marker->inc_new_line_no ();
     }
   }
+
+  return;
 }
 
 sub _adapt_overlapping_before_contexts
@@ -649,6 +669,8 @@ sub _adapt_overlapping_before_contexts
       $self->_append_context ($before_context, $context_line);
     }
   }
+
+  return;
 }
 
 sub _push_overlapping_after_context
@@ -697,6 +719,8 @@ sub _push_overlapping_after_context
       }
     }
   }
+
+  return;
 }
 
 # $overlapping_section can be undef, will get all sections before the
@@ -771,6 +795,8 @@ sub _adapt_final_marker
     $marker->inc_old_line_count ();
     $marker->inc_new_line_count ();
   }
+
+  return;
 }
 
 sub _adapt_before_contexts
@@ -791,6 +817,8 @@ sub _adapt_before_contexts
       $self->_append_context ($before_context, Kgps::CodeLine->new (Kgps::CodeLine::Space, $current_line->get_line ()));
     }
   }
+
+  return;
 }
 
 sub _push_after_context
@@ -813,6 +841,8 @@ sub _push_after_context
       }
     }
   }
+
+  return;
 }
 
 sub _append_context
@@ -824,6 +854,8 @@ sub _append_context
   {
     shift (@{$context});
   }
+
+  return;
 }
 
 sub _get_raw_text_for_final_codes

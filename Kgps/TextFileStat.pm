@@ -41,6 +41,8 @@ sub _fill_context_info_vfunc
   my $signs = $self->_get_signs ();
 
   $signs->fill_context_info ($stat_render_context);
+
+  return;
 }
 
 sub _to_string_vfunc
@@ -61,6 +63,8 @@ sub _fill_summary_vfunc
   $summary->set_files_changed_count (1);
   $summary->set_insertions ($insertions);
   $summary->set_deletions ($deletions);
+
+  return;
 }
 
 sub _get_signs

@@ -27,7 +27,7 @@ sub _get_data_or_undef_vfunc
 {
   my ($self) = @_;
 
-  return undef;
+  return;
 }
 
 1;

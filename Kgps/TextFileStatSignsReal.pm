@@ -31,6 +31,8 @@ sub _fill_context_info_vfunc
   my $total = $self->_get_insertions () + $self->_get_deletions ();
 
   $stat_render_context->feed_lines_changed_count ($total);
+
+  return;
 }
 
 sub _to_string_vfunc

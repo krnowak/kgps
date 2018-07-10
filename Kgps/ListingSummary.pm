@@ -30,6 +30,8 @@ sub set_files_changed_count
   my ($self, $count) = @_;
 
   $self->{'files_changed_count'} = $count;
+
+  return;
 }
 
 sub get_insertions
@@ -44,6 +46,8 @@ sub set_insertions
   my ($self, $count) = @_;
 
   $self->{'insertions'} = $count;
+
+  return;
 }
 
 sub get_deletions
@@ -58,6 +62,8 @@ sub set_deletions
   my ($self, $count) = @_;
 
   $self->{'deletions'} = $count;
+
+  return;
 }
 
 sub merge

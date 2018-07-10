@@ -42,6 +42,8 @@ sub push_line
   my $line = Kgps::CodeLine->new ($sigil, $code_line);
 
   push (@{$lines}, $line);
+
+  return;
 }
 
 1;

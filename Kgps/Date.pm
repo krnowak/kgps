@@ -28,7 +28,7 @@ sub create
   my ($type, $raw) = @_;
   my $dt = _do_lame_strptime ($raw);
 
-  return undef unless (defined ($dt));
+  return unless (defined ($dt));
   return _new_with_datetime ($type, $dt);
 }
 
@@ -110,12 +110,12 @@ sub _do_lame_strptime
     my $second = Kgps::Misc::to_num ($7);
     my $offset_str = $8;
 
-    return undef unless (exists ($day_to_idx{$day_str}));
-    return undef unless (exists ($month_to_idx{$month_str}));
-    return undef unless (1 <= $day and $day <= 31);
-    return undef unless (0 <= $hour and $hour <= 23);
-    return undef unless (0 <= $minute and $minute <= 59);
-    return undef unless (0 <= $second and $second <= 61);
+    return unless (exists ($day_to_idx{$day_str}));
+    return unless (exists ($month_to_idx{$month_str}));
+    return unless (1 <= $day and $day <= 31);
+    return unless (0 <= $hour and $hour <= 23);
+    return unless (0 <= $minute and $minute <= 59);
+    return unless (0 <= $second and $second <= 61);
 
     return DateTime->new (
       'year' => $year,
@@ -129,14 +129,15 @@ sub _do_lame_strptime
     );
   }
 
-  return undef;
+  return;
 }
 
 sub _words_to_idx_map
 {
+  my @args = @_;
   my $i = 0;
 
-  return map { $_ => ++$i } @_;
+  return map { $_ => ++$i } @args;
 }
 
 1;

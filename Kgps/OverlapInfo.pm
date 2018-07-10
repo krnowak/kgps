@@ -40,6 +40,8 @@ sub push_section_overlapped_code
 
   push (@{$codes}, $section_overlapped_code);
   Scalar::Util::weaken ($codes->[-1]);
+
+  return;
 }
 
 1;

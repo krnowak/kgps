@@ -45,6 +45,8 @@ sub get_to_size
 sub _fill_context_info_vfunc
 {
   my ($self, $stat_render_context) = @_;
+
+  return;
 }
 
 sub _to_string_vfunc
@@ -67,6 +69,8 @@ sub _fill_summary_vfunc
   my ($self, $summary) = @_;
 
   $summary->set_files_changed_count (1);
+
+  return;
 }
 
 1;

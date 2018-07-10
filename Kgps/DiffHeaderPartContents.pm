@@ -38,6 +38,8 @@ sub set_from_hash
   my ($self, $hash) = @_;
 
   $self->{'from_hash'} = $hash;
+
+  return;
 }
 
 sub get_to_hash
@@ -52,6 +54,8 @@ sub set_to_hash
   my ($self, $hash) = @_;
 
   $self->{'to_hash'} = $hash;
+
+  return;
 }
 
 sub to_lines

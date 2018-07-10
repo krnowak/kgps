@@ -39,6 +39,8 @@ sub set_similarity_index
   my ($self, $index) = @_;
 
   $self->{'similarity_index'} = $index;
+
+  return;
 }
 
 sub get_from
@@ -53,6 +55,8 @@ sub set_from
   my ($self, $from) = @_;
 
   $self->{'from'} = $from;
+
+  return;
 }
 
 sub get_to
@@ -67,6 +71,8 @@ sub set_to
   my ($self, $to) = @_;
 
   $self->{'to'} = $to;
+
+  return;
 }
 
 sub to_lines

@@ -37,7 +37,7 @@ sub _apply_create_customization_vfunc
 {
   my ($self, $customization, $fresh_start) = @_;
 
-  return undef;
+  return;
 }
 
 sub _apply_delete_customization_vfunc
@@ -128,7 +128,7 @@ sub _generate_diff_header_vfunc
   }
   else
   {
-    return undef;
+    return;
   }
 }
 

@@ -53,7 +53,7 @@ sub first_word
     return $1;
   }
 
-  return undef;
+  return;
 }
 
 1;

@@ -40,7 +40,7 @@ sub _apply_create_customization_vfunc
 {
   my ($self, $customization, $fresh_start) = @_;
 
-  return undef;
+  return;
 }
 
 sub _apply_delete_customization_vfunc
@@ -50,7 +50,7 @@ sub _apply_delete_customization_vfunc
 
   unless ($fresh_start)
   {
-    return undef;
+    return;
   }
   # TODO: checks
   return $builder->build_empty_file_state ();
@@ -96,7 +96,7 @@ sub _apply_index_customization_vfunc
 {
   my ($self, $customization, $fresh_start) = @_;
 
-  return undef;
+  return;
 }
 
 sub _is_same_vfunc

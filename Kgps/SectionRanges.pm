@@ -40,6 +40,8 @@ sub add_range
 
   _ensure_order_or_die ($first_section, $last_section);
   push (@{$ranges}, [$first_section, $last_section]);
+
+  return;
 }
 
 sub terminate_last_range_at
@@ -54,6 +56,8 @@ sub terminate_last_range_at
 
   _ensure_order_or_die ($first_section, $last_section);
   $last_range->[1] = $last_section;
+
+  return;
 }
 
 sub is_in_range
@@ -106,6 +110,8 @@ sub _ensure_any_range_or_die
   {
     die;
   }
+
+  return;
 }
 
 sub _ensure_order_or_die
@@ -120,6 +126,8 @@ sub _ensure_order_or_die
   {
     die;
   }
+
+  return;
 }
 
 sub _get_ranges

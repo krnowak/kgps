@@ -56,6 +56,8 @@ sub set_author
   my ($self, $author) = @_;
 
   $self->{'author'} = $author;
+
+  return;
 }
 
 sub get_from_date
@@ -70,6 +72,8 @@ sub set_from_date
   my ($self, $from_date) = @_;
 
   $self->{'from_date'} = $from_date;
+
+  return;
 }
 
 sub get_patch_date
@@ -84,6 +88,8 @@ sub set_patch_date
   my ($self, $patch_date) = @_;
 
   $self->{'patch_date'} = $patch_date;
+
+  return;
 }
 
 sub get_subject
@@ -98,6 +104,8 @@ sub set_subject
   my ($self, $subject) = @_;
 
   $self->{'subject'} = $subject;
+
+  return;
 }
 
 sub get_message_lines
@@ -113,6 +121,8 @@ sub add_message_line
   my $lines = $self->get_message_lines ();
 
   push (@{$lines}, $line);
+
+  return;
 }
 
 sub get_date_inc
@@ -127,6 +137,8 @@ sub set_date_inc
   my ($self, $date_inc) = @_;
 
   $self->{'date_inc'} = $date_inc;
+
+  return;
 }
 
 sub get_diffs
@@ -142,6 +154,8 @@ sub add_diff
   my $diffs = $self->get_diffs ();
 
   push (@{$diffs}, $diff);
+
+  return;
 }
 
 sub get_last_diff
@@ -154,7 +168,7 @@ sub get_last_diff
     return @{$diffs}[-1];
   }
 
-  return undef;
+  return;
 }
 
 sub get_sections_ordered
@@ -236,6 +250,8 @@ sub add_raw_diffs_and_mode
     }
     $raw_diffs_and_modes->{$section_name}->{'stats'} = $new_listing;
   }
+
+  return;
 }
 
 sub get_ordered_sectioned_raw_diffs_and_modes
@@ -292,6 +308,8 @@ sub wrap_sections
   push (@{$sections_array}, $end_section);
   $sections_hash->{SpecialStart ()} = $start_section;
   $sections_hash->{SpecialEnd ()} = $end_section;
+
+  return;
 }
 
 1;

@@ -59,7 +59,7 @@ sub merge
 
   unless (defined ($merged_per_basename_stats) and defined ($merged_summary) and defined ($merged_aux_changes))
   {
-    return undef;
+    return;
   }
 
   return Kgps::ListingInfo->_new_with_items ($merged_per_basename_stats, $merged_summary, $merged_aux_changes);

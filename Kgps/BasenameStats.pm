@@ -68,6 +68,8 @@ sub add_stat
   }
 
   push (@{$stats->{$basename}}, $stat);
+
+  return;
 }
 
 sub add_file_stats
@@ -145,6 +147,8 @@ sub fill_context_info
       $file_stat->fill_context_info ($stat_render_context);
     }
   }
+
+  return;
 }
 
 sub to_lines

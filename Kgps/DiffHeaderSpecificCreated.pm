@@ -41,6 +41,8 @@ sub set_mode
   my ($self, $mode) = @_;
 
   $self->{'mode'} = $mode;
+
+  return;
 }
 
 sub get_part_contents
@@ -55,6 +57,8 @@ sub set_part_contents
   my ($self, $part_contents) = @_;
 
   $self->{'part_contents'} = $part_contents;
+
+  return;
 }
 
 sub _get_text_from_vfunc
@@ -117,6 +121,8 @@ sub _fill_aux_changes_vfunc
   my $details = Kgps::ListingAuxChangesDetailsCreate->new ($mode, $common->get_b_no_prefix ());
 
   $listing_aux_changes->add_details ($details);
+
+  return;
 }
 
 sub _get_allowed_customizations_vfunc

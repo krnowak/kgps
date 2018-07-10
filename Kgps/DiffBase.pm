@@ -38,6 +38,8 @@ sub set_header
   my ($self, $header) = @_;
 
   $self->{'header'} = $header;
+
+  return;
 }
 
 sub postprocess
