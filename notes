@@ -39,6 +39,7 @@ index line.
 
 Issues to file:
 
+- Shellcheck the bash scripts.
 - Check what perl-critic is and maybe use it.
 - FileStateModified, FileStateWrapperModified are probably not
   necessary, dunno.
