@@ -85,7 +85,7 @@ then
     fail 'We need at least two commits for the expected patches'
 fi
 
-noninit_commit_count=$(($commit_count - 1))
+noninit_commit_count=$((commit_count - 1))
 roofs=$(printf '^%.0s' $(seq 1 ${noninit_commit_count}))
 rev="HEAD${roofs}"
 

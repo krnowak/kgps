@@ -44,73 +44,79 @@ done
 
 function join_path
 {
-    local IFS='/'
+    local IFS
+    IFS='/'
     echo "$*"
 }
 
 function rel2rel
 {
-    local rel_from="${1}"
+    local rel_from
     local min_count
     local path
     local iter
     local rel_to
-    declare -a rel_from_array
-    declare -a rel_to_array
+    local rel_from_array
+    local rel_to_array
+    local f
+    local t
 
-    shift
+    rel_from_array=()
+    rel_to_array=()
+    rel_from="${1}"
+    rel_to="${2}"
+    min_count=0
+    path=()
+    iter=0
+    IFS='/' read -r -a rel_from_array <<< "${rel_from}"
+    IFS='/' read -r -a rel_to_array <<< "${rel_to}"
 
-    for rel_to in "$@"
+    if [[ ${#rel_from_array[@]} -gt ${#rel_to_array[@]} ]]
+    then
+        min_count=${#rel_to_array[@]}
+    else
+        min_count=${#rel_from_array[@]}
+    fi
+    for iter in $(seq 0 $((min_count - 1)))
     do
-        min_count=0
-        path=()
-        iter=0
-        IFS='/' read -r -a rel_from_array <<< "${rel_from}"
-        IFS='/' read -r -a rel_to_array <<< "${rel_to}"
+        f=${rel_from_array[0]}
+        t=${rel_to_array[0]}
 
-        if [[ ${#rel_from_array[@]} -gt ${#rel_to_array[@]} ]]
+        if [[ "${f}" != "${t}" ]]
         then
-            min_count=${#rel_to_array[@]}
-        else
-            min_count=${#rel_from_array[@]}
+            break
         fi
-        for iter in $(seq 0 $(($min_count - 1)))
-        do
-            local f=${rel_from_array[0]}
-            local t=${rel_to_array[0]}
-
-            if [[ ${f} != ${t} ]]
-            then
-                break
-            fi
-            # shift array
-            rel_from_array=("${rel_from_array[@]:1}")
-            rel_to_array=("${rel_to_array[@]:1}")
-        done
-        for iter in "${rel_from_array[@]}"
-        do
-            path+=('..')
-        done
-        for iter in "${rel_to_array[@]}"
-        do
-            path+=("${iter}")
-        done
-        if [[ ${#path[@]} -gt 0 ]]
-        then
-            join_path "${path[@]}"
-        else
-            echo '.'
-        fi
+        # shift array
+        rel_from_array=("${rel_from_array[@]:1}")
+        rel_to_array=("${rel_to_array[@]:1}")
     done
+    for iter in "${rel_from_array[@]}"
+    do
+        path+=('..')
+    done
+    for iter in "${rel_to_array[@]}"
+    do
+        path+=("${iter}")
+    done
+    if [[ ${#path[@]} -gt 0 ]]
+    then
+        join_path "${path[@]}"
+    else
+        echo '.'
+    fi
 }
 
 function git_strip_patch
 {
-    local path="${1}"
-    local target_path="${2}"
-    local stage='header'
-    local line=''
+    local path
+    local target_path
+    local stage
+    local line
 
+    path="${1}"
+    target_path="${2}"
+    stage='header'
+    line=''
     truncate --size=0 "${target_path}"
     while IFS='' read -r line || [[ -n "$line" ]]
     do
@@ -169,13 +175,21 @@ function git_strip_patch
 
 function git_patch_diff
 {
-    local patch_name="${1}"
-    local real_dir="${2}"
-    local generated_dir="${3}"
-    local help_dir="${4}"
-    local patch_dir="${help_dir}/${patch_name}"
-    local stripped_real="${help_dir}/${patch_name}/real"
-    local stripped_generated="${help_dir}/${patch_name}/generated"
+    local patch_name
+    local real_dir
+    local generated_dir
+    local help_dir
+    local patch_dir
+    local stripped_real
+    local stripped_generated
+
+    patch_name="${1}"
+    real_dir="${2}"
+    generated_dir="${3}"
+    help_dir="${4}"
+    patch_dir="${help_dir}/${patch_name}"
+    stripped_real="${help_dir}/${patch_name}/real"
+    stripped_generated="${help_dir}/${patch_name}/generated"
 
     mkdir -p "${patch_dir}"
     git_strip_patch \
@@ -192,17 +206,18 @@ function git_patch_diff
 # up. Returns 1 if command failed.
 function call_and_log
 {
-    local quoted=()
-    local param=''
-    local cmd_basename=$(basename "${1}")
+    local quoted
+    local param
+    local cmd_basename
 
+    quoted=()
+    param=''
+    cmd_basename=$(basename "${1}")
     for param in "$@"
     do
         quoted+=("'${param}'")
     done
-    echo "###" >>"${cmdoutputfile}"
-    echo "${quoted[@]}" >>"${cmdoutputfile}"
-    echo "###" >>"${cmdoutputfile}"
+    printf '###\n%s\n###\n' "${quoted[*]}" >>"${cmdoutputfile}"
     if ! "$@" >>"${cmdoutputfile}" 2>&1
     then
         failreasons+=("${cmd_basename} failed, see ${cmdoutputfile}")
@@ -214,7 +229,7 @@ function call_and_log
 # See call_and_log function, this one calls the splitter script.
 function call_and_log_splitter
 {
-    local args=()
+    local args
 
     args=('perl')
     if [[ $use_coverage -eq 1 ]]
@@ -258,11 +273,15 @@ function print_status
 
 function strip_annotations
 {
-    local path="${1}"
-    local target_path="${2}"
-    local stage='non-overlap'
-    local line=''
+    local path
+    local target_path
+    local stage
+    local line
 
+    path="${1}"
+    target_path="${2}"
+    stage='non-overlap'
+    line=''
     truncate --size=0 "${target_path}"
     while IFS='' read -r line || [[ -n "$line" ]]
     do
@@ -429,8 +448,13 @@ do
             print_status
             continue
         fi
+        relpatches=()
+        for p in "${patchesdir}"/*.patch
+        do
+            relpatches+=("$(rel2rel "${gitsplittestdir}" "${p}")")
+        done
         if ! call_and_log \
-             git -C "${gitsplittestdir}" am $(rel2rel "${gitsplittestdir}" "${patchesdir}"/*.patch)
+             git -C "${gitsplittestdir}" am "${relpatches[@]}"
         then
             print_status
             continue
@@ -481,7 +505,7 @@ do
         fi
         for idx in $(seq 1 ${#generated_patches[@]})
         do
-            num=$(printf '%04d' ${idx})
+            num=$(printf '%04d' "${idx}")
             generated_patch_name=$(basename "${patchesdir}/${num}"*.patch)
             real_patch_name=$(basename "${gitrealpatchesdir}/${num}"*.patch)
             if [[ "${generated_patch_name}" = "${real_patch_name}" ]]
