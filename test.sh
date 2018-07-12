@@ -17,6 +17,8 @@ use_coverage=0
 alltestsdir="${dir}/tests"
 resultsdirbase='test-results'
 allresultsdir="${resultsdirbase}-$(date '+%Y-%m-%d-%H-%M-%S')"
+testsresultsdir="${allresultsdir}/tests"
+coveragedir="${allresultsdir}/coverage"
 exitstatus=0
 
 while [[ ${#} -gt 0 ]]
@@ -234,7 +236,7 @@ function call_and_log_splitter
     args=('perl')
     if [[ $use_coverage -eq 1 ]]
     then
-        args+=('-MDevel::Cover')
+        args+=("-MDevel::Cover=-db,${coveragedir}")
     fi
     if [[ $use_standalone -eq 1 ]]
     then
@@ -334,7 +336,7 @@ then
     defaultunbold='\e[39;0m'
 fi
 
-mkdir -p "${allresultsdir}"
+mkdir -p "${allresultsdir}" "${testsresultsdir}"
 rm -f "${resultsdirbase}-latest"
 ln -s "${allresultsdir}" "${resultsdirbase}-latest"
 
@@ -347,7 +349,7 @@ do
     testpatch="${testdir}/test.patch"
     expectedfilesdir="${testdir}/expected"
     name=$(basename "${testdir}")
-    resultdir="${allresultsdir}/${name}"
+    resultdir="${testsresultsdir}/${name}"
     debugdir="${resultdir}/debug"
     diffdir="${debugdir}/diffs"
     patchdiffdir="${diffdir}/patches"
@@ -529,4 +531,11 @@ do
     fi
     print_status
 done
+
+if [[ "${use_coverage}" -eq 1 ]]
+then
+    cover -silent "${coveragedir}"
+    echo "coverage report: ${coveragedir}/coverage.html"
+fi
+
 exit ${exitstatus}
