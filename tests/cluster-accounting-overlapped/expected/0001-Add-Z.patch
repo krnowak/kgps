@@ -1,0 +1,26 @@
+From 1111111111111111111111111111111111111111 Mon Sep 17 00:00:00 2001
+From: Krzesimir Nowak <qdlacz@gmail.com>
+Date: Mon, 9 Jul 2018 21:56:31 +0200
+Subject: [PATCH 1/4] Add Z
+
+---
+ foo | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/foo b/foo
+index 1111111..2222222 100644
+--- a/foo
++++ b/foo
+@@ -93,6 +93,9 @@
+ 93
+ 94
+ 95
++Z
++Z
++Z
+ 96
+ 97
+ 98
+-- 
+0.0.0
+

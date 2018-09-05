@@ -1,0 +1,189 @@
+From 88be6182735f741000f09848fcf5eb62157c896e Mon Sep 17 00:00:00 2001
+From: Krzesimir Nowak <qdlacz@gmail.com>
+Date: Mon, 9 Jul 2018 22:00:30 +0200
+Subject: [PATCH] merged
+
+---
+#SECTION: ADD_Z
+# SUBJECT: Add Z
+# DATE: Mon, 9 Jul 2018 21:56:31 +0200
+#SECTION: ADD_A
+# SUBJECT: Add A
+# DATE: Mon, 9 Jul 2018 21:57:45 +0200
+#SECTION: ADD_B
+# SUBJECT: Add B, drop A, 86-88
+# DATE: Mon, 9 Jul 2018 21:58:49 +0200
+#SECTION: ADD_C
+# SUBJECT: Drop stuff, add C
+# DATE: Mon, 9 Jul 2018 22:00:01 +0200
+ foo | 22 +++++-----------------
+ 1 file changed, 5 insertions(+), 17 deletions(-)
+
+diff --git a/foo b/foo
+index 190423f..3c36948 100644
+--- a/foo
++++ b/foo
+@@ -1,12 +1,6 @@
+#OVERLAP
+# OUTCOME
+ 1
+ 2
+ 3
+-4
+-5
+-6
+-7
+-8
+-9
+ 10
+ 11
+ 12
+# SECTION: ADD_A
+ 1
+ 2
+ 3
+ 4
+ 5
++A
++A
++A
+ 6
+ 7
+ 8
+ 9
+ 10
+ 11
+ 12
+# SECTION: ADD_B
+ 1
+ 2
+ 3
+ 4
+ 5
+-A
+-A
+-A
++B
++B
++B
++B
++B
++B
++B
+ 6
+ 7
+ 8
+ 9
+ 10
+ 11
+ 12
+# SECTION: ADD_C
+ 1
+ 2
+ 3
+-4
+-5
+-B
+-B
+-B
+-B
+-B
+-B
+-B
+-6
+-7
+-8
+-9
+ 10
+ 11
+ 12
+#END_OVERLAP
+@@ -47,9 +41,6 @@
+#SECTION: ADD_C
+ 47
+ 48
+ 49
+-50
+-51
+-52
+ 53
+ 54
+ 55
+@@ -62,11 +53,6 @@
+#SECTION: ADD_C
+ 62
+ 63
+ 64
+-65
+-66
+-67
+-68
+-69
+ 70
+ 71
+ 72
+@@ -83,9 +69,8 @@
+#OVERLAP
+# OUTCOME
+ 83
+ 84
+ 85
+-86
+-87
+-88
++C
++C
+ 89
+ 90
+ 91
+# SECTION: ADD_A
+ 83
+ 84
+ 85
++A
++A
++A
+ 86
+ 87
+ 88
+ 89
+ 90
+ 91
+# SECTION: ADD_B
+ 83
+ 84
+ 85
+ A
+-A
+-A
+-86
+-87
+-88
+ 89
+ 90
+ 91
+# SECTION: ADD_C
+ 83
+ 84
+ 85
+-A
++C
++C
+ 89
+ 90
+ 91
+#END_OVERLAP
+@@ -93,6 +78,9 @@
+#SECTION: ADD_Z
+ 93
+ 94
+ 95
++Z
++Z
++Z
+ 96
+ 97
+ 98
+-- 
+2.17.1
+
